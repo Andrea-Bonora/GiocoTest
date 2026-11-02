@@ -756,10 +756,13 @@
             modifiersText: '',
             threshold: 100,
             isLongShot: false,
+            spinning: false,
+            spinId: 0,
             rolled: false,
             finalRoll: null,
             success: false
         };
+        let lastAnimatedSpinId = 0;
 
         // Period End State (Halftime 45' / Fulltime 90')
         let periodEndState = {
@@ -1275,6 +1278,7 @@
         // PRE-MATCH STEP 2: ROCK - PAPER - SCISSORS (SECRET UNTIL BOTH CHOOSE)
         // =========================================================================
         function submitRpsChoice(team, choice) {
+            // Local UI validation ONLY on the device that clicked
             if (networkMode === 'ONLINE' && getMyTeamOnline() !== team) {
                 showLocalToast(`Scegli Sasso, Carta o Forbice nel riquadro della tua squadra!`, 'warn');
                 return;
@@ -1290,6 +1294,14 @@
                 sendOnlineAction({ kind: 'RPS_CHOICE', team, choice });
                 return;
             }
+
+            applyRpsChoiceOnHost(team, choice);
+        }
+
+        function applyRpsChoiceOnHost(team, choice) {
+            if (rpsState.winner) return;
+            if (team === 'red' && rpsState.redChoice) return;
+            if (team === 'blue' && rpsState.blueChoice) return;
 
             if (team === 'red') rpsState.redChoice = choice;
             else rpsState.blueChoice = choice;
@@ -1319,7 +1331,7 @@
                     rpsState.statusText = '';
                     syncPreMatchUI();
                     if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
-                }, 1700);
+                }, 1500);
                 return;
             }
 
@@ -1335,7 +1347,7 @@
             setTimeout(() => {
                 startActualMatchAfterRps(rpsState.winner);
                 if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
-            }, 1900);
+            }, 1800);
         }
 
         function syncPreMatchUI() {
@@ -1598,7 +1610,7 @@
             if (act.kind === 'LOCK_FORMATION') {
                 applyLockFormationOnHost(act.team, act.formKey);
             } else if (act.kind === 'RPS_CHOICE') {
-                submitRpsChoice(act.team, act.choice);
+                applyRpsChoiceOnHost(act.team, act.choice);
             } else if (act.kind === 'COMMIT_PHASE_MOVE') {
                 // Atomic commit of the active player's staged moves for the phase
                 if (act.phase === 1 && Array.isArray(act.moves1)) {
@@ -1611,7 +1623,7 @@
                 }
                 confirmPhaseStep(true);
             } else if (act.kind === 'ROULETTE_SPIN') {
-                triggerManualRouletteSpin(act.forcedRoll);
+                triggerManualRouletteSpin(act.forcedRoll, true);
             } else if (act.kind === 'ROULETTE_CONTINUE') {
                 confirmRouletteContinue(true);
             } else if (act.kind === 'NEXT_TURN') {
@@ -2094,11 +2106,11 @@
                 }
 
                 const baseVis = getVisiblePieces(1); // Before P4 move
-                const carrier = baseVis.find(p => p.hasBall);
-                if (!carrier) return;
-                selectedPieceId = carrier.id;
-
-                if (r === carrier.r && c === carrier.c) {
+                if ( r === carrier.r && c === carrier.c ) {
+                    if (carrier.isGK) {
+                        showLocalToast("Il portiere può solo passare la palla!", "info");
+                        return;
+                    }
                     setP4Mode(p4Mode === 'PASS' ? 'DRIBBLE' : 'PASS');
                     return;
                 }
@@ -2281,6 +2293,8 @@
                 modifiersText: modifiersText || '',
                 threshold,
                 isLongShot,
+                spinning: false,
+                spinId: 0,
                 rolled: false,
                 finalRoll: null,
                 success: false
@@ -2289,6 +2303,28 @@
             if (networkMode === 'ONLINE' && isOnlineHost) {
                 broadcastFullStateFromHost();
             }
+        }
+
+        function runLocalRouletteTicker(finalRoll) {
+            const cursor = document.getElementById('roulette-cursor');
+            const rollEl = document.getElementById('roulette-roll');
+            const outEl = document.getElementById('roulette-outcome');
+            if (!cursor || !rollEl || !outEl) return;
+
+            outEl.innerText = "🎲 Estrazione in corso...";
+            outEl.className = "text-xs sm:text-sm font-black min-h-[28px] text-amber-300 mb-4";
+            let ticks = 0;
+            const interval = setInterval(() => {
+                ticks++;
+                const fake = Math.floor(Math.random() * 100) + 1;
+                cursor.style.left = `${fake}%`;
+                rollEl.innerText = `${fake}`;
+                if (ticks >= 12) {
+                    clearInterval(interval);
+                    cursor.style.left = `${finalRoll}%`;
+                    rollEl.innerText = `${finalRoll}`;
+                }
+            }, 50);
         }
 
         function syncRouletteModalUI() {
@@ -2311,7 +2347,12 @@
             const p4Slot = getRequiredSlotForPhase(4);
             const canInteract = (networkMode === 'LOCAL') || (myOnlineSlot === p4Slot);
 
-            if (!pendingRoulette.rolled) {
+            if (pendingRoulette.spinning && pendingRoulette.spinId !== lastAnimatedSpinId) {
+                lastAnimatedSpinId = pendingRoulette.spinId;
+                spinBtn.classList.add('hidden');
+                contBtn.classList.add('hidden');
+                runLocalRouletteTicker(pendingRoulette.finalRoll);
+            } else if (!pendingRoulette.rolled && !pendingRoulette.spinning) {
                 cursor.style.left = `0%`;
                 rollEl.innerText = `--`;
                 outEl.innerText = canInteract
@@ -2321,7 +2362,7 @@
                 spinBtn.classList.toggle('hidden', !canInteract);
                 spinBtn.disabled = false;
                 contBtn.classList.add('hidden');
-            } else {
+            } else if (pendingRoulette.rolled) {
                 cursor.style.left = `${pendingRoulette.finalRoll}%`;
                 rollEl.innerText = `${pendingRoulette.finalRoll}`;
                 if (pendingRoulette.success) {
@@ -2338,8 +2379,14 @@
             modal.classList.remove('hidden');
         }
 
-        function triggerManualRouletteSpin(forcedRollFromNet = null) {
-            if (networkMode === 'ONLINE' && !isOnlineHost && forcedRollFromNet === null) {
+        function triggerManualRouletteSpin(forcedRollFromNet = null, fromNetworkHost = false) {
+            const p4Slot = getRequiredSlotForPhase(4);
+            if (!fromNetworkHost && networkMode === 'ONLINE' && myOnlineSlot !== p4Slot) {
+                showLocalToast("Solo il giocatore che effettua l'azione può estrarre la probabilità!", "warn");
+                return;
+            }
+
+            if (networkMode === 'ONLINE' && !isOnlineHost && !fromNetworkHost) {
                 const clientRoll = Math.floor(Math.random() * 100) + 1;
                 sendOnlineAction({ kind: 'ROULETTE_SPIN', forcedRoll: clientRoll });
                 return;
@@ -2350,28 +2397,25 @@
 
             const finalRoll = forcedRollFromNet !== null ? forcedRollFromNet : (Math.floor(Math.random() * 100) + 1);
             const success = finalRoll <= pendingRoulette.threshold;
-            const cursor = document.getElementById('roulette-cursor');
-            const rollEl = document.getElementById('roulette-roll');
-            const outEl = document.getElementById('roulette-outcome');
 
-            outEl.innerText = "🎲 Estrazione in corso...";
-            let ticks = 0;
-            const interval = setInterval(() => {
-                ticks++;
-                const fake = Math.floor(Math.random() * 100) + 1;
-                cursor.style.left = `${fake}%`;
-                rollEl.innerText = `${fake}`;
-                if (ticks >= 14) {
-                    clearInterval(interval);
-                    pendingRoulette.rolled = true;
-                    pendingRoulette.finalRoll = finalRoll;
-                    pendingRoulette.success = success;
-                    syncRouletteModalUI();
-                    if (networkMode === 'ONLINE' && isOnlineHost) {
-                        broadcastFullStateFromHost();
-                    }
+            pendingRoulette.spinning = true;
+            pendingRoulette.spinId = Date.now();
+            pendingRoulette.finalRoll = finalRoll;
+            pendingRoulette.success = success;
+
+            syncRouletteModalUI();
+            if (networkMode === 'ONLINE' && isOnlineHost) {
+                broadcastFullStateFromHost();
+            }
+
+            setTimeout(() => {
+                pendingRoulette.spinning = false;
+                pendingRoulette.rolled = true;
+                syncRouletteModalUI();
+                if (networkMode === 'ONLINE' && isOnlineHost) {
+                    broadcastFullStateFromHost();
                 }
-            }, 55);
+            }, 680);
         }
 
         function confirmRouletteContinue(fromNetworkHost = false) {
@@ -2741,12 +2785,13 @@
             // Safe range = 3 orthogonal steps.
             // Penalty above 3 steps = -10% per step (-5% with Il Maestro).
             // Space pass (non sull'uomo) = -10% default penalty.
+            // Triangolazione (1-2 with player moved by P1) = +15% bonus.
             const extraSteps = Math.max(0, dist - 3);
             const stepPenaltyRate = activeBuffs.maestro ? 5 : 10;
             const distPenalty = extraSteps * stepPenaltyRate;
             const spacePenalty = isSpacePass ? 10 : 0;
             const isTriangolazione = plannedMoves[1].some(m => m.pieceId === receiver.id);
-            const triBonus = (isTriangolazione && (distPenalty > 0 || spacePenalty > 0)) ? 10 : 0;
+            const triBonus = (isTriangolazione && (distPenalty > 0 || spacePenalty > 0)) ? 15 : 0;
 
             let successChance = 100 - distPenalty - spacePenalty + triBonus;
             successChance = Math.max(10, Math.min(100, successChance));
@@ -2754,7 +2799,7 @@
             const modParts = [`Distanza: ${dist} caselle (Sicuro ≤ 3)`];
             if (extraSteps > 0) modParts.push(`Oltre 3 caselle: -${distPenalty}%`);
             if (isSpacePass) modParts.push(`Sulla corsa nello spazio: -10%`);
-            if (triBonus > 0) modParts.push(`Triangolazione 1-2: +10%`);
+            if (triBonus > 0) modParts.push(`Triangolazione 1-2: +15%`);
 
             return {
                 valid: true,
@@ -2769,6 +2814,7 @@
 
         function evaluateLongShot(carrier, baseVisPieces) {
             if (!carrier) return { canShoot: false, reason: "Portatore palla non trovato." };
+            if (carrier.isGK) return { canShoot: false, reason: "Il portiere deve passare la palla a un compagno!" };
 
             if (requireFivePastMidfield && countAttackersPastMidfield(baseVisPieces) < 5) {
                 return {
@@ -2809,6 +2855,15 @@
 
         function setP4Mode(mode) {
             if (currentPhase !== 4 || !isMyTurnOnline()) return;
+            const baseVis = getVisiblePieces(1);
+            const carrier = baseVis.find(p => p.hasBall);
+            if (mode === 'DRIBBLE' && carrier && carrier.isGK) {
+                showLocalToast("Il portiere non può dribblare fuori dall'area: scegli un compagno a cui passare la palla!", "info");
+                p4Mode = 'PASS';
+                updateHUD();
+                renderBoard();
+                return;
+            }
             p4Mode = mode;
             if (plannedMoves[4]) plannedMoves[4] = null;
             updateHUD();
@@ -3335,10 +3390,10 @@
                 // Reset board to initial formations and give ball to the team that conceded
                 advanceClockAndCheckPeriod(true, defTeam);
             } else {
-                // Saved: keep board positions intact and give ball to a defender in front of the keeper (since GK cannot move/pass if locked, or give ball to nearest defender!)
+                // Saved: keep board positions intact and give the ball directly to the defending Goalkeeper!
                 pieces.forEach(p => p.hasBall = false);
-                const defReceiver = findNearestDefenderTo(defTeam === 'red' ? 2 : 9, 3, defTeam);
-                if (defReceiver) defReceiver.hasBall = true;
+                const gk = pieces.find(p => p.team === defTeam && p.isGK) || findNearestDefenderTo(defTeam === 'red' ? 2 : 9, 3, defTeam);
+                if (gk) gk.hasBall = true;
                 attackingTeam = defTeam;
                 advanceClockAndCheckPeriod(false, null);
             }
