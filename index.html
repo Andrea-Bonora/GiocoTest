@@ -2501,3 +2501,1200 @@
 
             if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
         }
+
+        function executeFoulCardSteal(isRedCard) {
+            const defTeam = attackingTeam === 'red' ? 'blue' : 'red';
+            const activeMove = plannedMoves[currentPhase];
+            if (!activeMove) return;
+
+            // Apply P1 moves
+            plannedMoves[1].forEach(m => {
+                const p = pieces.find(x => x.id === m.pieceId);
+                if (p) { p.r = m.toR; p.c = m.toC; }
+            });
+            // Apply P2 move
+            if (plannedMoves[2]) {
+                const p2 = pieces.find(x => x.id === plannedMoves[2].pieceId);
+                if (p2) { p2.r = plannedMoves[2].toR; p2.c = plannedMoves[2].toC; }
+            }
+            // Apply P3 move if in phase 3
+            if (currentPhase === 3 && plannedMoves[3]) {
+                const p3 = pieces.find(x => x.id === plannedMoves[3].pieceId);
+                if (p3) { p3.r = plannedMoves[3].toR; p3.c = plannedMoves[3].toC; }
+            }
+
+            pieces.forEach(p => p.hasBall = false);
+            const foulingPiece = pieces.find(p => p.id === activeMove.pieceId);
+
+            if (isRedCard && foulingPiece) {
+                expelledPlayers.push({ id: foulingPiece.id, num: foulingPiece.num, team: foulingPiece.team, turns: 10 });
+                pieces = pieces.filter(p => p.id !== foulingPiece.id);
+
+                const teammates = pieces.filter(p => p.team === defTeam && !p.isGK);
+                let receiver = teammates[0] || pieces.find(p => p.team === defTeam);
+                if (receiver) receiver.hasBall = true;
+
+                showResolutionBanner(
+                    "🟥 FALLO DA ROSSO! POSSESSO RUBATO!",
+                    `Il difensore #${foulingPiece.num} ferma l'azione ed è espulso per 10 turni! Palla ai ${defTeam === 'red' ? 'ROSSI' : 'BLU'}.`,
+                    "text-red-400"
+                );
+            } else {
+                if (foulingPiece) foulingPiece.hasBall = true;
+                showResolutionBanner(
+                    "⚠️ FALLO TATTICO PERFETTO!",
+                    `Il difensore #${foulingPiece ? foulingPiece.num : ''} sradica il pallone in anticipo! Possesso ai ${defTeam === 'red' ? 'ROSSI' : 'BLU'}.`,
+                    "text-amber-400"
+                );
+            }
+
+            attackingTeam = defTeam;
+            gameState = 'RESOLUTION';
+            updateHUD();
+            renderBoard();
+        }
+
+        // =========================================================================
+        // VISIBILITY, GRID GEOMETRY & MOVEMENT / PASSING / SHOOTING RULES
+        // =========================================================================
+        function isCellPlayableOnGrid(r, c) {
+            if (r < 0 || r > 11 || c < 0 || c > 6) return false;
+            if (r === 0 || r === 11) return c === 3; // Only GK cell in rows 0 and 11
+            if (r === 1 || r === 10) return (c >= 2 && c <= 4); // Only 3 Shooting Zone cells in rows 1 and 10
+            return true; // Rows 2..9 have all 7 columns
+        }
+
+        function isOpponentShootingCell(r, c, attTeam) {
+            const targetRow = attTeam === 'red' ? 10 : 1;
+            return r === targetRow && c >= 2 && c <= 4;
+        }
+
+        function isOwnDefendingShootingCell(r, c, defTeam) {
+            const ownRow = defTeam === 'red' ? 1 : 10;
+            return r === ownRow && c >= 2 && c <= 4;
+        }
+
+        function getVisiblePieces(phase = currentPhase) {
+            const cloned = JSON.parse(JSON.stringify(pieces));
+            if (gameState === 'RESOLUTION' || gameState === 'SHOOTOUT' || gameState === 'PERIOD_END') {
+                return cloned;
+            }
+
+            // Phase 1 moves are visible to everyone
+            plannedMoves[1].forEach(m => {
+                const p = cloned.find(x => x.id === m.pieceId);
+                if (p) { p.r = m.toR; p.c = m.toC; }
+            });
+
+            // Phase 2 & 3 moves are ONLY visible during Phase 2 and Phase 3 (HIDDEN from Phase 4!)
+            if (phase === 2 || phase === 3) {
+                if (plannedMoves[2]) {
+                    const p2 = cloned.find(x => x.id === plannedMoves[2].pieceId);
+                    if (p2) { p2.r = plannedMoves[2].toR; p2.c = plannedMoves[2].toC; }
+                }
+                if (phase === 3 && plannedMoves[3]) {
+                    const p3 = cloned.find(x => x.id === plannedMoves[3].pieceId);
+                    if (p3) { p3.r = plannedMoves[3].toR; p3.c = plannedMoves[3].toC; }
+                }
+            }
+
+            // In Phase 4, if P4 has staged a preview move/pass, show it locally on the preview state
+            if (phase === 4 && plannedMoves[4]) {
+                const m4 = plannedMoves[4];
+                if (m4.type === 'move') {
+                    const carrier = cloned.find(x => x.id === m4.pieceId);
+                    if (carrier) { carrier.r = m4.toR; carrier.c = m4.toC; }
+                } else if (m4.type === 'pass') {
+                    const sender = cloned.find(x => x.id === m4.fromId);
+                    const rec = cloned.find(x => x.id === m4.toId);
+                    if (sender) sender.hasBall = false;
+                    if (rec) {
+                        rec.hasBall = true;
+                        rec.r = m4.toR;
+                        rec.c = m4.toC;
+                    }
+                }
+            }
+
+            return cloned;
+        }
+
+        function getVisiblePiecesForThisDevice() {
+            return getVisiblePieces(currentPhase);
+        }
+
+        function countAttackersPastMidfield(piecesList) {
+            return piecesList.filter(p => {
+                if (p.team !== attackingTeam || p.isGK) return false;
+                return attackingTeam === 'red' ? p.r >= 6 : p.r <= 5;
+            }).length;
+        }
+
+        function canPlayerMoveTo(piece, targetR, targetC, currentVisPieces) {
+            if (!piece || piece.isGK) {
+                return { valid: false, reason: "Il portiere non può muoversi!" };
+            }
+            if (!isCellPlayableOnGrid(targetR, targetC)) {
+                return { valid: false, reason: "Zona fuori dal campo!" };
+            }
+            if (targetR === 0 || targetR === 11) {
+                return { valid: false, reason: "Nessuno può entrare nella casella del portiere!" };
+            }
+            if (piece.r === targetR && piece.c === targetC) {
+                return { valid: false, reason: "" };
+            }
+
+            // Cannot stack two teammates on the same cell
+            const teammateOnTarget = currentVisPieces.find(p => p.team === piece.team && p.id !== piece.id && p.r === targetR && p.c === targetC);
+            if (teammateOnTarget) {
+                return { valid: false, reason: "Casella già occupata da un tuo compagno!" };
+            }
+
+            const dr = Math.abs(piece.r - targetR);
+            const dc = Math.abs(piece.c - targetC);
+            const sprintBonus = activeBuffs.extra_sprint ? 1 : 0;
+
+            // Ball Carrier (Phase 4 Dribbling): max 1 step in any direction (+1 with Extra Sprint), and target must appear empty
+            if (piece.hasBall) {
+                const maxDribble = 1 + sprintBonus;
+                const isOrtho = (dr === 0 && dc <= maxDribble) || (dc === 0 && dr <= maxDribble);
+                const isDiag = (dr === dc && dr <= maxDribble);
+                if (!isOrtho && !isDiag) {
+                    return { valid: false, reason: `In dribbling puoi muoverti solo di ${maxDribble} casella!` };
+                }
+                const occupiedByAnyone = currentVisPieces.some(p => p.r === targetR && p.c === targetC);
+                if (occupiedByAnyone) {
+                    return { valid: false, reason: "In dribbling puoi muoverti solo su una casella attualmente libera!" };
+                }
+                if (requireFivePastMidfield && isOpponentShootingCell(targetR, targetC, attackingTeam)) {
+                    const simulated = currentVisPieces.map(p => p.id === piece.id ? { ...p, r: targetR, c: targetC } : p);
+                    if (countAttackersPastMidfield(simulated) < 5) {
+                        return { valid: false, reason: "Servono almeno 5 giocatori oltre la metà campo per entrare nella Zona di Tiro!" };
+                    }
+                }
+                return { valid: true };
+            }
+
+            // Non-ball players (P1, P2, P3): up to 2 steps orthogonally or 1 step diagonally (+1 with Extra Sprint)
+            const maxOrtho = 2 + sprintBonus;
+            const maxDiag = 1 + sprintBonus;
+            const validOrtho = (dr === 0 && dc <= maxOrtho) || (dc === 0 && dr <= maxOrtho);
+            const validDiag = (dr === dc && dr <= maxDiag);
+
+            if (!validOrtho && !validDiag) {
+                return { valid: false, reason: "" };
+            }
+
+            // Defending team restriction: Max 1 defender inside their 3 shooting cells
+            if (piece.team !== attackingTeam && isOwnDefendingShootingCell(targetR, targetC, piece.team)) {
+                const defendersInZone = currentVisPieces.filter(p =>
+                    p.team === piece.team &&
+                    p.id !== piece.id &&
+                    isOwnDefendingShootingCell(p.r, p.c, piece.team)
+                );
+                if (defendersInZone.length >= 1) {
+                    return { valid: false, reason: "Massimo 1 difensore consentito nelle 3 caselle della Zona di Tiro!" };
+                }
+            }
+
+            return { valid: true };
+        }
+
+        function evaluatePassTarget(carrier, targetR, targetC, baseVisPieces) {
+            if (!carrier) return { valid: false };
+            if (!isCellPlayableOnGrid(targetR, targetC)) return { valid: false };
+            if (targetR === 0 || targetR === 11) return { valid: false };
+            if (carrier.r === targetR && carrier.c === targetC) return { valid: false };
+
+            const dist = Math.abs(carrier.r - targetR) + Math.abs(carrier.c - targetC);
+            if (dist < 1) return { valid: false };
+
+            // Check direct teammate on target cell
+            let receiver = baseVisPieces.find(p => p.team === carrier.team && p.id !== carrier.id && !p.isGK && p.r === targetR && p.c === targetC);
+            let isSpacePass = false;
+
+            // If cell is empty, check for Passaggio sulla Corsa (adjacent teammate within 1 cell)
+            if (!receiver) {
+                const anyoneOnCell = baseVisPieces.some(p => p.r === targetR && p.c === targetC);
+                if (anyoneOnCell) return { valid: false };
+
+                const adjacentTeammates = baseVisPieces.filter(p =>
+                    p.team === carrier.team &&
+                    p.id !== carrier.id &&
+                    !p.isGK &&
+                    Math.max(Math.abs(p.r - targetR), Math.abs(p.c - targetC)) === 1
+                );
+                if (adjacentTeammates.length === 0) return { valid: false };
+
+                // Prefer a teammate moved by P1 (Triangolazione 1-2)
+                receiver = adjacentTeammates.find(p => plannedMoves[1].some(m => m.pieceId === p.id)) || adjacentTeammates[0];
+                isSpacePass = true;
+            }
+
+            if (requireFivePastMidfield && isOpponentShootingCell(targetR, targetC, attackingTeam)) {
+                const simulated = baseVisPieces.map(p => p.id === receiver.id ? { ...p, r: targetR, c: targetC } : p);
+                if (countAttackersPastMidfield(simulated) < 5) {
+                    return { valid: false, reason: "Servono 5 giocatori oltre metà campo!" };
+                }
+            }
+
+            // Safe range = 3 orthogonal steps.
+            // Penalty above 3 steps = -10% per step (-5% with Il Maestro).
+            // Space pass (non sull'uomo) = -10% default penalty.
+            const extraSteps = Math.max(0, dist - 3);
+            const stepPenaltyRate = activeBuffs.maestro ? 5 : 10;
+            const distPenalty = extraSteps * stepPenaltyRate;
+            const spacePenalty = isSpacePass ? 10 : 0;
+            const isTriangolazione = plannedMoves[1].some(m => m.pieceId === receiver.id);
+            const triBonus = (isTriangolazione && (distPenalty > 0 || spacePenalty > 0)) ? 10 : 0;
+
+            let successChance = 100 - distPenalty - spacePenalty + triBonus;
+            successChance = Math.max(10, Math.min(100, successChance));
+
+            const modParts = [`Distanza: ${dist} caselle (Sicuro ≤ 3)`];
+            if (extraSteps > 0) modParts.push(`Oltre 3 caselle: -${distPenalty}%`);
+            if (isSpacePass) modParts.push(`Sulla corsa nello spazio: -10%`);
+            if (triBonus > 0) modParts.push(`Triangolazione 1-2: +10%`);
+
+            return {
+                valid: true,
+                receiver,
+                dist,
+                isSpacePass,
+                isTriangolazione,
+                successChance,
+                modifiersText: modParts.join(' • ')
+            };
+        }
+
+        function evaluateLongShot(carrier, baseVisPieces) {
+            if (!carrier) return { canShoot: false, reason: "Portatore palla non trovato." };
+
+            if (requireFivePastMidfield && countAttackersPastMidfield(baseVisPieces) < 5) {
+                return {
+                    canShoot: false,
+                    reason: "Regola 5 Giocatori attiva: porta almeno 5 compagni oltre la metà campo per tirare!"
+                };
+            }
+
+            const targetRow = attackingTeam === 'red' ? 10 : 1;
+            const shootingCols = [2, 3, 4];
+            let minDist = 99;
+            shootingCols.forEach(sc => {
+                const d = Math.abs(carrier.r - targetRow) + Math.abs(carrier.c - sc);
+                if (d < minDist) minDist = d;
+            });
+
+            const penaltyPerStep = activeBuffs.bordata ? 10 : 25;
+            const totalPenalty = minDist * penaltyPerStep;
+            const isTriangolazione = plannedMoves[1].some(m => m.pieceId === carrier.id);
+            const bonus = (isTriangolazione && minDist > 0) ? 15 : 0;
+
+            const chance = Math.max(5, Math.min(100, 100 - totalPenalty + bonus));
+            if (chance <= 0) {
+                return { canShoot: false, reason: "Sei troppo lontano dalla porta per tentare il tiro!" };
+            }
+
+            const mods = minDist === 0
+                ? "Tiro da dentro la Zona di Tiro (100%)"
+                : `Distanza Zona Tiro: ${minDist} caselle (-${totalPenalty}%)${bonus ? ' • Bonus 1-2 (+15%)' : ''}`;
+
+            return {
+                canShoot: true,
+                minDist,
+                chance,
+                modifiersText: mods
+            };
+        }
+
+        function setP4Mode(mode) {
+            if (currentPhase !== 4 || !isMyTurnOnline()) return;
+            p4Mode = mode;
+            if (plannedMoves[4]) plannedMoves[4] = null;
+            updateHUD();
+            renderBoard();
+        }
+
+        // =========================================================================
+        // END-OF-TURN RESOLUTION (CLEAR ARROWS ON PITCH, NO DARK OVERLAY)
+        // =========================================================================
+        function showResolutionBanner(titleText, descText, colorClass = "text-emerald-400") {
+            const titleEl = document.getElementById('resolution-title');
+            const descEl = document.getElementById('resolution-desc');
+            if (titleEl) {
+                titleEl.innerText = titleText;
+                titleEl.className = `font-display text-sm font-black uppercase tracking-wide ${colorClass}`;
+            }
+            if (descEl) {
+                descEl.innerText = descText;
+            }
+            document.getElementById('dock-playing-controls').classList.add('hidden');
+            document.getElementById('dock-resolution-controls').classList.remove('hidden');
+        }
+
+        function findNearestDefenderTo(r, c, defTeam) {
+            const defs = pieces.filter(p => p.team === defTeam && !p.isGK);
+            if (defs.length === 0) return pieces.find(p => p.team === defTeam);
+            let best = defs[0];
+            let bestDist = 999;
+            defs.forEach(d => {
+                const dist = Math.abs(d.r - r) + Math.abs(d.c - c);
+                if (dist < bestDist) {
+                    bestDist = dist;
+                    best = d;
+                }
+            });
+            return best;
+        }
+
+        function executeResolution(isLongShot, rouletteSucceeded) {
+            const defTeam = attackingTeam === 'red' ? 'blue' : 'red';
+
+            // 1. Apply P1 moves
+            plannedMoves[1].forEach(m => {
+                const p = pieces.find(x => x.id === m.pieceId);
+                if (p) { p.r = m.toR; p.c = m.toC; }
+            });
+
+            // 2. Apply P2 and P3 moves
+            [2, 3].forEach(ph => {
+                const mv = plannedMoves[ph];
+                if (mv) {
+                    const p = pieces.find(x => x.id === mv.pieceId);
+                    if (p) { p.r = mv.toR; p.c = mv.toC; }
+                }
+            });
+
+            const m4 = plannedMoves[4];
+            const carrierBeforeP4 = pieces.find(p => p.hasBall);
+
+            // CASE A: Distance Shot
+            if (isLongShot && m4 && m4.type === 'longshot') {
+                // Check if a defender tackled the shooter on their starting cell before the shot!
+                const tacklerOnShooter = pieces.find(p => p.team === defTeam && p.r === m4.fromR && p.c === m4.fromC);
+                if (tacklerOnShooter) {
+                    pieces.forEach(p => p.hasBall = false);
+                    tacklerOnShooter.hasBall = true;
+                    attackingTeam = defTeam;
+                    gameState = 'RESOLUTION';
+                    showResolutionBanner(
+                        "🛡️ TIRO CONTRATO DAL DIFENSORE!",
+                        `Il difensore #${tacklerOnShooter.num} è entrato sulla casella del tiratore bloccando la conclusione! Possesso ai ${defTeam === 'red' ? 'ROSSI' : 'BLU'}.`,
+                        "text-amber-400"
+                    );
+                    updateHUD();
+                    renderBoard();
+                    if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
+                    return;
+                }
+
+                if (!rouletteSucceeded) {
+                    // Shot missed wide -> Goal kick to defending team
+                    pieces.forEach(p => p.hasBall = false);
+                    const defReceiver = findNearestDefenderTo(defTeam === 'red' ? 2 : 9, 3, defTeam);
+                    if (defReceiver) defReceiver.hasBall = true;
+                    attackingTeam = defTeam;
+                    gameState = 'RESOLUTION';
+                    showResolutionBanner(
+                        "❌ TIRO DALLA DISTANZA FUORI!",
+                        `La conclusione finisce a lato! Rimessa dal fondo e possesso palla per la Squadra ${defTeam === 'red' ? 'ROSSA' : 'BLU'}.`,
+                        "text-red-400"
+                    );
+                    updateHUD();
+                    renderBoard();
+                    if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
+                    return;
+                }
+
+                // Shot is on target -> Enter 3D Shootout!
+                startShootoutFlow();
+                return;
+            }
+
+            // CASE B: Dribble Move
+            if (m4 && m4.type === 'move') {
+                const carrier = pieces.find(p => p.id === m4.pieceId) || carrierBeforeP4;
+                if (carrier) {
+                    carrier.r = m4.toR;
+                    carrier.c = m4.toC;
+                }
+
+                // Check if any defender ended on the same cell as the ball carrier
+                const defenderOnBall = pieces.find(p => p.team === defTeam && p.r === carrier.r && p.c === carrier.c);
+                if (defenderOnBall) {
+                    pieces.forEach(p => p.hasBall = false);
+                    defenderOnBall.hasBall = true;
+                    attackingTeam = defTeam;
+                    gameState = 'RESOLUTION';
+                    showResolutionBanner(
+                        "⚔️ CONTRASTO VINTO DALLA DIFESA!",
+                        `Il difensore #${defenderOnBall.num} ha intuito il dribbling di #${carrier.num} e recupera il pallone! Palla ai ${defTeam === 'red' ? 'ROSSI' : 'BLU'}.`,
+                        "text-amber-400"
+                    );
+                    updateHUD();
+                    renderBoard();
+                    if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
+                    return;
+                }
+
+                // Check if carrier reached opponent Shooting Zone
+                if (isOpponentShootingCell(carrier.r, carrier.c, attackingTeam)) {
+                    if (!requireFivePastMidfield || countAttackersPastMidfield(pieces) >= 5) {
+                        startShootoutFlow();
+                        return;
+                    }
+                }
+
+                gameState = 'RESOLUTION';
+                showResolutionBanner(
+                    "✅ DRIBBLING RIUSCITO!",
+                    `#${carrier.num} avanza palla al piede senza essere intercettato. Osserva le frecce in campo e conferma il fine turno.`,
+                    "text-emerald-400"
+                );
+                updateHUD();
+                renderBoard();
+                if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
+                return;
+            }
+
+            // CASE C: Pass (Direct or Space Pass)
+            if (m4 && m4.type === 'pass') {
+                const sender = pieces.find(p => p.id === m4.fromId);
+                const receiver = pieces.find(p => p.id === m4.toId);
+
+                if (!rouletteSucceeded) {
+                    pieces.forEach(p => p.hasBall = false);
+                    const interceptor = findNearestDefenderTo(m4.toR, m4.toC, defTeam);
+                    if (interceptor) interceptor.hasBall = true;
+                    attackingTeam = defTeam;
+                    gameState = 'RESOLUTION';
+                    showResolutionBanner(
+                        "🛑 PASSAGGIO IMPRECISO INTERCETTATO!",
+                        `Il lancio non va a buon fine: #${interceptor ? interceptor.num : ''} recupera la sfera per la Squadra ${defTeam === 'red' ? 'ROSSA' : 'BLU'}!`,
+                        "text-red-400"
+                    );
+                    updateHUD();
+                    renderBoard();
+                    if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
+                    return;
+                }
+
+                // Move receiver onto target cell (especially for space pass)
+                if (sender) sender.hasBall = false;
+                if (receiver) {
+                    receiver.r = m4.toR;
+                    receiver.c = m4.toC;
+                    receiver.hasBall = true;
+                }
+
+                // Check if a defender is marking the target cell (or tackled the passer before the pass? Per rules: if at the end of moves a defender is on the same cell as the player with the ball, possession changes!)
+                const defenderOnReceiver = pieces.find(p => p.team === defTeam && p.r === m4.toR && p.c === m4.toC);
+                if (defenderOnReceiver) {
+                    pieces.forEach(p => p.hasBall = false);
+                    defenderOnReceiver.hasBall = true;
+                    attackingTeam = defTeam;
+                    gameState = 'RESOLUTION';
+                    showResolutionBanner(
+                        "🛡️ INTERCETTO DIFENSIVO SULLA LINEA DI PASSAGGIO!",
+                        `Il difensore #${defenderOnReceiver.num} ha coperto la casella di #${receiver ? receiver.num : ''} e ruba il pallone! Palla ai ${defTeam === 'red' ? 'ROSSI' : 'BLU'}.`,
+                        "text-amber-400"
+                    );
+                    updateHUD();
+                    renderBoard();
+                    if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
+                    return;
+                }
+
+                // Check if receiver is inside the Opponent Shooting Zone
+                if (receiver && isOpponentShootingCell(receiver.r, receiver.c, attackingTeam)) {
+                    if (!requireFivePastMidfield || countAttackersPastMidfield(pieces) >= 5) {
+                        startShootoutFlow();
+                        return;
+                    }
+                }
+
+                gameState = 'RESOLUTION';
+                showResolutionBanner(
+                    m4.isSpacePass ? "⚡ PASSAGGIO SULLA CORSA PERFETTO!" : "✅ PASSAGGIO COMPLETATO!",
+                    `Palla recapitata a #${receiver ? receiver.num : ''}. Tutte le frecce del turno sono visibili sul campo.`,
+                    "text-emerald-400"
+                );
+                updateHUD();
+                renderBoard();
+                if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
+            }
+        }
+
+        // =========================================================================
+        // MATCH CLOCK (+3' PER TURN, 45' HALFTIME, 90' FULLTIME)
+        // =========================================================================
+        function nextTurn(fromNetworkHost = false) {
+            if (networkMode === 'ONLINE' && !isOnlineHost && !fromNetworkHost) {
+                sendOnlineAction({ kind: 'NEXT_TURN' });
+                return;
+            }
+
+            advanceClockAndCheckPeriod(false, null);
+        }
+
+        function advanceClockAndCheckPeriod(isAfterGoal, kickoffTeamIfGoal) {
+            matchMinute += 3;
+            turnNumber += 1;
+
+            // Check Halftime at 45'
+            if (currentHalf === 1 && matchMinute >= 45) {
+                matchMinute = 45;
+                gameState = 'PERIOD_END';
+                const secondHalfTeam = firstHalfKickoffTeam === 'red' ? 'blue' : 'red';
+                periodEndState = {
+                    type: 'HALFTIME',
+                    title: 'FINE PRIMO TEMPO (45\')',
+                    desc: `Si va negli spogliatoi! Il 2° Tempo inizierà con il possesso palla per la Squadra ${secondHalfTeam === 'red' ? 'ROSSA 🔴' : 'BLU 🔵'} (che non aveva battuto il 1° Tempo).`
+                };
+                syncPeriodEndModalUI();
+                updateHUD();
+                if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
+                return;
+            }
+
+            // Check Fulltime at 90'
+            if (currentHalf === 2 && matchMinute >= 90) {
+                matchMinute = 90;
+                gameState = 'PERIOD_END';
+                let winnerText = "PAREGGIO AL 90'!";
+                if (scoreRed > scoreBlue) winnerText = "🏆 VINCE LA SQUADRA ROSSA!";
+                if (scoreBlue > scoreRed) winnerText = "🏆 VINCE LA SQUADRA BLU!";
+                periodEndState = {
+                    type: 'FULLTIME',
+                    title: winnerText,
+                    desc: `Triplice fischio finale al 90'! Risultato finale: Rossi ${scoreRed} - ${scoreBlue} Blu.`
+                };
+                syncPeriodEndModalUI();
+                updateHUD();
+                if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
+                return;
+            }
+
+            if (isAfterGoal && kickoffTeamIfGoal) {
+                resetPitchForKickoff(kickoffTeamIfGoal);
+            } else {
+                startTurn();
+            }
+
+            if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
+        }
+
+        function syncPeriodEndModalUI() {
+            const modal = document.getElementById('screen-period-end');
+            const badge = document.getElementById('period-badge');
+            const title = document.getElementById('period-title');
+            const desc = document.getElementById('period-desc');
+            const btn = document.getElementById('btn-period-action');
+
+            document.getElementById('period-score-red').innerText = scoreRed;
+            document.getElementById('period-score-blue').innerText = scoreBlue;
+
+            title.innerText = periodEndState.title;
+            desc.innerText = periodEndState.desc;
+
+            if (periodEndState.type === 'HALFTIME') {
+                badge.innerText = "⏱️ DUPLICE FISCHIO • 45'";
+                btn.innerText = "INIZIA SECONDO TEMPO (45') ➔";
+            } else {
+                badge.innerText = "🏁 TRIPLICE FISCHIO • 90'";
+                btn.innerText = "TORNA ALLA LOBBY / NUOVA PARTITA ➔";
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        function handlePeriodContinue(fromNetworkHost = false) {
+            if (networkMode === 'ONLINE' && !isOnlineHost && !fromNetworkHost) {
+                sendOnlineAction({ kind: 'PERIOD_CONTINUE' });
+                return;
+            }
+
+            document.getElementById('screen-period-end').classList.add('hidden');
+
+            if (periodEndState.type === 'HALFTIME') {
+                currentHalf = 2;
+                const secondHalfKickoff = firstHalfKickoffTeam === 'red' ? 'blue' : 'red';
+                emitSharedMatchEvent(`⏱️ Inizia il 2° Tempo! Palla alla Squadra ${secondHalfKickoff === 'red' ? 'Rossa' : 'Blu'}!`, 'info', 'all');
+                resetPitchForKickoff(secondHalfKickoff);
+            } else {
+                // Fulltime -> return to setup screen
+                gameState = 'SETUP';
+                document.getElementById('screen-game').classList.add('hidden');
+                document.getElementById('screen-setup').classList.remove('hidden');
+            }
+
+            if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
+        }
+
+        // =========================================================================
+        // 3D GRAPHICAL SHOOTOUT (SYNCED LIVE ACROSS ALL 4 SCREENS)
+        // =========================================================================
+        function startShootoutFlow() {
+            gameState = 'SHOOTOUT';
+            shootoutState = {
+                step: 'ATTACK',
+                attChoice: null,
+                defChoices: [],
+                outcome: null
+            };
+            document.getElementById('shootout-result-box').classList.add('hidden');
+            syncShootoutScreenUI();
+            if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
+        }
+
+        function syncShootoutScreenUI(syncedResUI = null) {
+            const screen = document.getElementById('screen-shootout');
+            const badge = document.getElementById('shootout-badge');
+            const title = document.getElementById('shootout-title');
+            const sub = document.getElementById('shootout-subtitle');
+            const gkBody = document.getElementById('shootout-gk-body');
+            const gkWrap = document.getElementById('shootout-gk');
+            const ballEl = document.getElementById('shootout-ball');
+            const guantoniBtn = document.getElementById('btn-shootout-guantoni');
+            const resBox = document.getElementById('shootout-result-box');
+
+            const defTeam = attackingTeam === 'red' ? 'blue' : 'red';
+            gkBody.className = `w-12 h-12 rounded-full ${defTeam === 'red' ? 'token-gk-red' : 'token-gk-blue'} border-2 border-white flex items-center justify-center shadow-2xl`;
+
+            const attSlot = getRequiredSlotForPhase(4);
+            const defSlot = getRequiredSlotForPhase(3);
+            const canClickNow = isMyTurnOnline();
+
+            // Reset positions if not DONE
+            if (shootoutState.step !== 'DONE') {
+                gkWrap.style.left = '50%';
+                ballEl.style.left = '50%';
+                ballEl.style.bottom = '-40px';
+            }
+
+            const hasGuantoniActive = defTeam === 'red' ? activeBuffs.guantoni_red : activeBuffs.guantoni_blue;
+            const hasGuantoniInHand = (defTeam === 'red' ? teamCards.red : teamCards.blue).includes('guantoni');
+
+            if (shootoutState.step === 'ATTACK') {
+                badge.innerText = `⚽ TIRO IN PORTA • ${attackingTeam === 'red' ? 'ROSSI' : 'BLU'}`;
+                if (canClickNow) {
+                    title.innerText = "ATTACCANTE: SCEGLI DOVE CALCIARE!";
+                    sub.innerText = "Tocca Sinistra (SX), Centro (CEN) o Destra (DX)";
+                } else {
+                    title.innerText = "ATTACCANTE SULLA PALLA...";
+                    sub.innerText = `👀 In diretta: ${getSlotDisplayName(attSlot)} sta scegliendo l'angolo di tiro...`;
+                }
+                guantoniBtn.classList.add('hidden');
+            } else if (shootoutState.step === 'DEFEND') {
+                const maxPicks = hasGuantoniActive ? 2 : 1;
+                const remaining = maxPicks - shootoutState.defChoices.length;
+                badge.innerText = `🧤 PARATA PORTIERE • ${defTeam === 'red' ? 'ROSSI' : 'BLU'}`;
+                if (canClickNow) {
+                    title.innerText = maxPicks === 2
+                        ? `PORTIERE (GUANTONI D'ORO): SCEGLI ${remaining} ZONA/E!`
+                        : "PORTIERE: SCEGLI DOVE TUFFARTI!";
+                    sub.innerText = "Intuisci l'angolo scelto dall'attaccante!";
+                } else {
+                    title.innerText = "IL PORTIERE SI PREPARA AL TUFFO...";
+                    sub.innerText = `👀 In diretta: ${getSlotDisplayName(defSlot)} sta scegliendo dove tuffarsi...`;
+                }
+                const showGuantoniBtn = canClickNow && !hasGuantoniActive && hasGuantoniInHand;
+                guantoniBtn.classList.toggle('hidden', !showGuantoniBtn);
+            } else if (shootoutState.step === 'DONE') {
+                guantoniBtn.classList.add('hidden');
+                const posMap = { L: '22%', C: '50%', R: '78%' };
+                if (shootoutState.attChoice) {
+                    ballEl.style.left = posMap[shootoutState.attChoice];
+                    ballEl.style.bottom = '45%';
+                }
+                if (shootoutState.defChoices.length > 0) {
+                    gkWrap.style.left = posMap[shootoutState.defChoices[0]];
+                }
+            }
+
+            ['L', 'C', 'R'].forEach(dir => {
+                const btn = document.getElementById(`shot-btn-${dir}`);
+                const pickedByDef = shootoutState.defChoices.includes(dir);
+                btn.disabled = !canClickNow || shootoutState.step === 'DONE';
+                if (pickedByDef && shootoutState.step === 'DEFEND') {
+                    btn.className = "flex-1 m-1 rounded-xl border-2 border-emerald-400 bg-emerald-500/30 flex flex-col items-center justify-center gap-1 transition-all";
+                } else {
+                    btn.className = `flex-1 m-1 rounded-xl border-2 border-dashed border-white/30 ${canClickNow && shootoutState.step !== 'DONE' ? 'hover:border-amber-400 bg-slate-900/30 hover:bg-amber-400/20 cursor-pointer' : 'bg-slate-900/20 opacity-75 cursor-not-allowed'} flex flex-col items-center justify-center gap-1 transition-all group`;
+                }
+            });
+
+            if (syncedResUI) {
+                resBox.classList.toggle('hidden', syncedResUI.hidden);
+                document.getElementById('shootout-res-title').innerText = syncedResUI.title;
+                document.getElementById('shootout-res-title').className = syncedResUI.titleClass;
+                document.getElementById('shootout-res-desc').innerText = syncedResUI.desc;
+            }
+
+            screen.classList.remove('hidden');
+        }
+
+        function activateGuantoniInShootout(fromNetworkHost = false) {
+            if (!fromNetworkHost && !isMyTurnOnline()) return;
+            if (networkMode === 'ONLINE' && !isOnlineHost && !fromNetworkHost) {
+                sendOnlineAction({ kind: 'ACTIVATE_GUANTONI_SHOOTOUT' });
+                return;
+            }
+
+            const defTeam = attackingTeam === 'red' ? 'blue' : 'red';
+            const arr = defTeam === 'red' ? teamCards.red : teamCards.blue;
+            const idx = arr.indexOf('guantoni');
+            if (idx !== -1) {
+                arr.splice(idx, 1);
+                if (defTeam === 'red') activeBuffs.guantoni_red = true;
+                else activeBuffs.guantoni_blue = true;
+                emitSharedMatchEvent(`🧤 Portiere ${defTeam === 'red' ? 'Rosso' : 'Blu'} attiva GUANTONI D'ORO (copre 2 zone)!`, 'success', 'all');
+                syncShootoutScreenUI();
+                if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
+            }
+        }
+
+        function handleShootoutChoice(dir, fromNetworkHost = false) {
+            if (!fromNetworkHost && !isMyTurnOnline()) {
+                showLocalToast("Attendi la scelta del giocatore incaricato!", "warn");
+                return;
+            }
+            if (networkMode === 'ONLINE' && !isOnlineHost && !fromNetworkHost) {
+                sendOnlineAction({ kind: 'SHOOTOUT_CHOICE', dir });
+                return;
+            }
+
+            const defTeam = attackingTeam === 'red' ? 'blue' : 'red';
+
+            if (shootoutState.step === 'ATTACK') {
+                shootoutState.attChoice = dir;
+                shootoutState.step = 'DEFEND';
+                syncShootoutScreenUI();
+                if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
+                return;
+            }
+
+            if (shootoutState.step === 'DEFEND') {
+                if (!shootoutState.defChoices.includes(dir)) {
+                    shootoutState.defChoices.push(dir);
+                }
+                const hasGuantoni = defTeam === 'red' ? activeBuffs.guantoni_red : activeBuffs.guantoni_blue;
+                const needed = hasGuantoni ? 2 : 1;
+
+                if (shootoutState.defChoices.length < needed) {
+                    syncShootoutScreenUI();
+                    if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
+                    return;
+                }
+
+                // Consume Guantoni buff
+                if (defTeam === 'red') activeBuffs.guantoni_red = false;
+                else activeBuffs.guantoni_blue = false;
+
+                shootoutState.step = 'DONE';
+                const isSaved = shootoutState.defChoices.includes(shootoutState.attChoice);
+                shootoutState.outcome = isSaved ? 'SAVED' : 'GOAL';
+
+                const dirLabels = { L: 'SINISTRA', C: 'CENTRO', R: 'DESTRA' };
+                const resBox = document.getElementById('shootout-result-box');
+                const resTitle = document.getElementById('shootout-res-title');
+                const resDesc = document.getElementById('shootout-res-desc');
+
+                if (isSaved) {
+                    resTitle.innerText = "🧤 PARATA STREPITOSA!";
+                    resTitle.className = "font-display text-3xl font-black mb-1 text-sky-400";
+                    resDesc.innerText = `Tiro a ${dirLabels[shootoutState.attChoice]} neutralizzato dal portiere! Le posizioni restano invariate e la palla passa ai ${defTeam === 'red' ? 'ROSSI' : 'BLU'}.`;
+                } else {
+                    if (attackingTeam === 'red') scoreRed++;
+                    else scoreBlue++;
+
+                    // Award +1 new Secret Card to the team that conceded the goal!
+                    const newCard = drawRandomCardForTeam(defTeam);
+
+                    resTitle.innerText = "⚽ GOOOL!! RETE!";
+                    resTitle.className = "font-display text-3xl font-black mb-1 text-emerald-400";
+                    resDesc.innerText = `Palla nell'angolino (${dirLabels[shootoutState.attChoice]})! La Squadra ${defTeam === 'red' ? 'ROSSA' : 'BLU'} riceve +1 Carta Segreta (${newCard.icon} ${newCard.name}) e riparte da centrocampo!`;
+                }
+
+                resBox.classList.remove('hidden');
+                updateScoreboardUI();
+                syncShootoutScreenUI();
+                if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
+            }
+        }
+
+        function finishShootout(fromNetworkHost = false) {
+            if (networkMode === 'ONLINE' && !isOnlineHost && !fromNetworkHost) {
+                sendOnlineAction({ kind: 'FINISH_SHOOTOUT' });
+                return;
+            }
+
+            document.getElementById('screen-shootout').classList.add('hidden');
+            const defTeam = attackingTeam === 'red' ? 'blue' : 'red';
+
+            if (shootoutState.outcome === 'GOAL') {
+                // Reset board to initial formations and give ball to the team that conceded
+                advanceClockAndCheckPeriod(true, defTeam);
+            } else {
+                // Saved: keep board positions intact and give ball to a defender in front of the keeper (since GK cannot move/pass if locked, or give ball to nearest defender!)
+                pieces.forEach(p => p.hasBall = false);
+                const defReceiver = findNearestDefenderTo(defTeam === 'red' ? 2 : 9, 3, defTeam);
+                if (defReceiver) defReceiver.hasBall = true;
+                attackingTeam = defTeam;
+                advanceClockAndCheckPeriod(false, null);
+            }
+        }
+
+        // =========================================================================
+        // HUD & BOARD RENDERING (WITH PERFECT CENTERING & SYMMETRIC OVERLAP)
+        // =========================================================================
+        function updateScoreboardUI() {
+            document.getElementById('score-red').innerText = scoreRed;
+            document.getElementById('score-blue').innerText = scoreBlue;
+            document.getElementById('match-clock').innerText = `${matchMinute}'`;
+            document.getElementById('match-half-label').innerText = `${currentHalf}°T`;
+
+            const rRole = document.getElementById('role-red');
+            const bRole = document.getElementById('role-blue');
+            if (attackingTeam === 'red') {
+                rRole.innerText = "ATT ⚽";
+                rRole.className = "text-[9px] font-black px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-400/40";
+                bRole.innerText = "DIF 🛡️";
+                bRole.className = "text-[9px] font-black px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30";
+            } else {
+                bRole.innerText = "ATT ⚽";
+                bRole.className = "text-[9px] font-black px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-400/40";
+                rRole.innerText = "DIF 🛡️";
+                rRole.className = "text-[9px] font-black px-1.5 py-0.5 rounded bg-red-500/20 text-red-300 border border-red-500/30";
+            }
+        }
+
+        function updateHUD() {
+            updateScoreboardUI();
+            updatePrivacyButtonUI();
+            applyPitchOrientationUI();
+
+            const vis = getVisiblePiecesForThisDevice();
+            const midEl = document.getElementById('midfield-indicator');
+            if (requireFivePastMidfield) {
+                const cnt = countAttackersPastMidfield(vis);
+                midEl.innerHTML = `<span>⚡ Spinta: ${cnt}/5</span>`;
+                midEl.className = cnt >= 5
+                    ? "px-2 py-1 rounded-lg bg-emerald-500/20 border border-emerald-500/40 font-bold flex items-center gap-1 text-emerald-300 text-[10px]"
+                    : "px-2 py-1 rounded-lg bg-amber-500/20 border border-amber-500/40 font-bold flex items-center gap-1 text-amber-300 text-[10px]";
+            } else {
+                midEl.innerHTML = `<span>⚡ Tiro Libero</span>`;
+                midEl.className = "px-2 py-1 rounded-lg bg-slate-800 border border-slate-700 font-bold flex items-center gap-1 text-emerald-400 text-[10px]";
+            }
+
+            const activeTeam = getActiveTeamForPhase(currentPhase);
+            const phasePill = document.getElementById('phase-pill');
+            const phaseNames = {
+                1: `P1 ATT (${2 - plannedMoves[1].length}/2 PA)`,
+                2: `P2 DIF 1`,
+                3: `P3 DIF 2`,
+                4: `P4 REGISTA ⚽`
+            };
+            phasePill.innerText = `F${currentPhase}: ${phaseNames[currentPhase]}`;
+            phasePill.className = activeTeam === 'red'
+                ? "px-2.5 py-1 rounded-lg bg-red-600/30 border border-red-400/50 font-black text-red-200 text-[10px] sm:text-[11px]"
+                : "px-2.5 py-1 rounded-lg bg-blue-600/30 border border-blue-400/50 font-black text-blue-200 text-[10px] sm:text-[11px]";
+
+            // Cards count for local viewer's team
+            const cardTeam = (networkMode === 'ONLINE' && getMyTeamOnline()) ? getMyTeamOnline() : activeTeam;
+            document.getElementById('cards-count-badge').innerText = (cardTeam === 'red' ? teamCards.red : teamCards.blue).length;
+
+            // Active buffs & expulsions row
+            const badgesRow = document.getElementById('status-badges-row');
+            badgesRow.innerHTML = '';
+            if (activeBuffs.extra_sprint) {
+                badgesRow.innerHTML += `<span class="px-2 py-0.5 rounded bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-[9px] font-black">⚡ EXTRA SPRINT (+1)</span>`;
+            }
+            if (activeBuffs.maestro) {
+                badgesRow.innerHTML += `<span class="px-2 py-0.5 rounded bg-purple-500/20 border border-purple-400/40 text-purple-300 text-[9px] font-black">🎩 IL MAESTRO</span>`;
+            }
+            if (activeBuffs.bordata) {
+                badgesRow.innerHTML += `<span class="px-2 py-0.5 rounded bg-amber-500/20 border border-amber-400/40 text-amber-300 text-[9px] font-black">🚀 BORDATA</span>`;
+            }
+            expelledPlayers.forEach(ep => {
+                badgesRow.innerHTML += `<span class="px-2 py-0.5 rounded bg-red-600/30 border border-red-400/40 text-red-200 text-[9px] font-black">🟥 #${ep.num} (${ep.turns}t)</span>`;
+            });
+
+            // Bottom Dock Instructions & Mandatory Confirmation Buttons
+            const instr = document.getElementById('instruction-text');
+            const btnUndo = document.getElementById('btn-undo-phase');
+            const btnConfirm = document.getElementById('btn-confirm-phase');
+            const p4Bar = document.getElementById('p4-action-bar');
+
+            const myTurn = isMyTurnOnline();
+            const reqSlot = getRequiredSlotForPhase(currentPhase);
+
+            if (!myTurn) {
+                instr.innerText = `⏳ In attesa di ${getSlotDisplayName(reqSlot)} (Fase ${currentPhase}/4)...`;
+                btnUndo.classList.add('hidden');
+                btnConfirm.classList.add('hidden');
+                p4Bar.classList.add('hidden');
+                return;
+            }
+
+            if (currentPhase === 1) {
+                p4Bar.classList.add('hidden');
+                const used = plannedMoves[1].length;
+                btnUndo.classList.toggle('hidden', used === 0);
+                // Always allow confirming once at least 1 move is staged (or all 2 PA used)
+                btnConfirm.classList.toggle('hidden', used === 0);
+                if (used === 0) {
+                    instr.innerText = "Fase 1 (Attacco): Seleziona un compagno senza palla (2 PA)";
+                } else if (used === 1) {
+                    instr.innerText = "1 PA usato: muovi un altro giocatore o premi Conferma ✓";
+                } else {
+                    instr.innerText = "2 PA usati! Premi 'Conferma Mossa ✓' o '↩ Ripensa'";
+                }
+            } else if (currentPhase === 2 || currentPhase === 3) {
+                p4Bar.classList.add('hidden');
+                const hasMove = !!plannedMoves[currentPhase];
+                btnUndo.classList.toggle('hidden', !hasMove);
+                btnConfirm.classList.toggle('hidden', !hasMove);
+                instr.innerText = hasMove
+                    ? "Mossa difensiva pronta: premi 'Conferma Mossa ✓' o '↩ Ripensa'"
+                    : `Fase ${currentPhase} (Difesa): Seleziona e muovi un difensore`;
+            } else if (currentPhase === 4) {
+                p4Bar.classList.remove('hidden');
+                const hasMove4 = !!plannedMoves[4];
+                btnUndo.classList.toggle('hidden', !hasMove4);
+                btnConfirm.classList.toggle('hidden', !hasMove4);
+
+                const bDrib = document.getElementById('mode-btn-dribble');
+                const bPass = document.getElementById('mode-btn-pass');
+                bDrib.className = p4Mode === 'DRIBBLE'
+                    ? "py-1.5 px-2 rounded-lg font-black text-[11px] border bg-emerald-500 text-slate-950 border-emerald-300 shadow flex items-center justify-center gap-1"
+                    : "py-1.5 px-2 rounded-lg font-bold text-[11px] border bg-slate-800 text-slate-300 border-slate-700 flex items-center justify-center gap-1";
+                bPass.className = p4Mode === 'PASS'
+                    ? "py-1.5 px-2 rounded-lg font-black text-[11px] border bg-amber-400 text-slate-950 border-amber-200 shadow flex items-center justify-center gap-1"
+                    : "py-1.5 px-2 rounded-lg font-bold text-[11px] border bg-slate-800 text-slate-300 border-slate-700 flex items-center justify-center gap-1";
+
+                const baseVis = getVisiblePieces(1);
+                const carrier = baseVis.find(p => p.hasBall);
+                const shotEval = evaluateLongShot(carrier, baseVis);
+                document.getElementById('btn-shoot-label').innerText = shotEval.canShoot ? `🚀 Tira (${shotEval.chance}%)` : `🚀 Tira`;
+
+                if (hasMove4) {
+                    const m4 = plannedMoves[4];
+                    if (m4.type === 'move') instr.innerText = "Dribbling impostato! Premi 'Conferma Mossa ✓'";
+                    else if (m4.type === 'pass') instr.innerText = `Passaggio (${m4.successChance}%): premi 'Conferma Mossa ✓'`;
+                    else if (m4.type === 'longshot') instr.innerText = `Tiro in porta (${m4.chance}%): premi 'Conferma Mossa ✓'`;
+                } else {
+                    instr.innerText = p4Mode === 'PASS'
+                        ? "Fase 4: Tocca un compagno (o casella adiacente ⚡) per passare"
+                        : "Fase 4: Tocca una casella vuota adiacente per dribblare";
+                }
+            }
+        }
+
+        function renderBoard() {
+            const grid = document.getElementById('grid-container');
+            if (!grid) return;
+            grid.innerHTML = '';
+
+            const visPieces = getVisiblePiecesForThisDevice();
+            const baseVisForP4 = currentPhase === 4 ? getVisiblePieces(1) : visPieces;
+            const activeTeam = getActiveTeamForPhase(currentPhase);
+            const myTurn = isMyTurnOnline() && gameState === 'PLAYING';
+            const selPiece = visPieces.find(p => p.id === selectedPieceId);
+
+            for (let r = 0; r < 12; r++) {
+                for (let c = 0; c < 7; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = "relative flex items-center justify-center w-full h-full";
+
+                    if (!isCellPlayableOnGrid(r, c)) {
+                        grid.appendChild(cell);
+                        continue;
+                    }
+
+                    const isRedShootZone = (r === 1 && c >= 2 && c <= 4);
+                    const isBlueShootZone = (r === 10 && c >= 2 && c <= 4);
+                    const isGKSpot = (r === 0 || r === 11) && c === 3;
+
+                    // Determine if cell is a valid move or pass target
+                    let moveHighlight = false;
+                    let passInfo = null;
+
+                    if (myTurn && selPiece) {
+                        if (currentPhase <= 3 && (currentPhase === 1 ? p1ActionPoints > 0 : !plannedMoves[currentPhase])) {
+                            moveHighlight = canPlayerMoveTo(selPiece, r, c, visPieces).valid;
+                        } else if (currentPhase === 4 && !plannedMoves[4]) {
+                            const carrier = baseVisForP4.find(p => p.hasBall);
+                            if (carrier) {
+                                if (p4Mode === 'DRIBBLE') {
+                                    moveHighlight = canPlayerMoveTo(carrier, r, c, baseVisForP4).valid;
+                                } else {
+                                    const ps = evaluatePassTarget(carrier, r, c, baseVisForP4);
+                                    if (ps.valid) passInfo = ps;
+                                }
+                            }
+                        }
+                    }
+
+                    // Grid Dot Circle
+                    const dot = document.createElement('div');
+                    if (isRedShootZone || isBlueShootZone) {
+                        dot.className = "w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 border-amber-400 bg-red-500/25 shadow-[0_0_12px_rgba(251,191,36,0.5)] transition-all";
+                    } else if (isGKSpot) {
+                        dot.className = "w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 border-white/50 bg-white/10";
+                    } else {
+                        dot.className = "w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 border-white/35 bg-slate-950/25 transition-all";
+                    }
+
+                    if (moveHighlight) {
+                        dot.className = "w-6 h-6 sm:w-7 sm:h-7 rounded-full border-2 border-emerald-300 bg-emerald-400/45 shadow-[0_0_14px_rgba(52,211,153,0.9)] animate-target cursor-pointer";
+                    } else if (passInfo && passInfo.isSpacePass) {
+                        dot.className = "w-6 h-6 sm:w-7 sm:h-7 rounded-full border-2 border-cyan-300 bg-cyan-400/35 shadow-[0_0_14px_rgba(34,211,238,0.85)] animate-target cursor-pointer flex items-center justify-center";
+                        dot.innerHTML = `<span class="counter-flip text-[9px] font-black text-white drop-shadow">${passInfo.successChance}%</span>`;
+                    }
+
+                    cell.appendChild(dot);
+
+                    // Render Players on this cell
+                    const cellPieces = visPieces.filter(p => p.r === r && p.c === c);
+                    const hasOverlap = cellPieces.length > 1;
+
+                    // Sort so active team (or ball carrier) is rendered last (highest DOM & z-index priority)
+                    cellPieces.sort((a, b) => {
+                        if (a.team === activeTeam && b.team !== activeTeam) return 1;
+                        if (b.team === activeTeam && a.team !== activeTeam) return -1;
+                        if (a.hasBall && !b.hasBall) return 1;
+                        if (b.hasBall && !a.hasBall) return -1;
+                        return 0;
+                    });
+
+                    cellPieces.forEach((p) => {
+                        const tok = document.createElement('div');
+                        const isSelected = p.id === selectedPieceId;
+                        const isPassTargetPlayer = passInfo && !passInfo.isSpacePass && passInfo.receiver.id === p.id;
+                        const movedByP1 = plannedMoves[1].some(m => m.pieceId === p.id);
+
+                        let colorCls = p.team === 'red' ? 'token-red' : 'token-blue';
+                        if (p.isGK) colorCls = p.team === 'red' ? 'token-gk-red' : 'token-gk-blue';
+
+                        tok.className = `board-token w-7 h-7 sm:w-8 sm:h-8 rounded-full ${colorCls} flex items-center justify-center cursor-pointer transition-all duration-200 ${
+                            isSelected ? 'selected-token scale-110' : ''
+                        } ${p.hasBall ? 'ball-aura' : ''} ${
+                            isPassTargetPlayer ? 'ring-4 ring-yellow-300 shadow-[0_0_20px_#fde047] animate-target' : ''
+                        }`;
+
+                        // Centering vs Symmetric Offset when Red & Blue share the cell
+                        if (!hasOverlap) {
+                            tok.style.transform = 'translate(-50%, -50%)';
+                            tok.style.zIndex = p.hasBall ? '26' : (p.team === activeTeam ? '24' : '20');
+                        } else {
+                            // Symmetric offset so both tokens are clearly visible and active team is on top
+                            const offsetPct = p.team === 'red' ? '-68%' : '-32%';
+                            tok.style.transform = `translate(${offsetPct}, -50%)`;
+                            tok.style.zIndex = (p.team === activeTeam || p.hasBall) ? '28' : '18';
+                        }
+
+                        tok.innerHTML = `
+                            <div class="counter-flip relative w-full h-full flex items-center justify-center">
+                                <span class="font-display font-black text-[11px] sm:text-xs text-white drop-shadow">${p.isGK ? 'GK' : p.num}</span>
+                                ${p.hasBall ? '<span class="ball-icon absolute -top-2 -right-2 text-[11px] drop-shadow">⚽</span>' : ''}
+                                ${movedByP1 && !p.hasBall ? '<span class="absolute -bottom-1.5 -right-1.5 px-1 rounded bg-emerald-400 text-slate-950 font-black text-[7px] shadow">1-2</span>' : ''}
+                                ${isPassTargetPlayer ? `<span class="absolute -top-2.5 left-1/2 -translate-x-1/2 px-1 rounded bg-yellow-300 text-slate-950 font-black text-[8px] shadow">${passInfo.successChance}%</span>` : ''}
+                            </div>
+                        `;
+
+                        cell.appendChild(tok);
+                    });
+
+                    cell.onclick = () => handleCellClick(r, c);
+                    grid.appendChild(cell);
+                }
+            }
+
+            drawTacticalArrows();
+        }
+
+        function getCellCenterSVGCoords(r, c) {
+            return {
+                x: (c + 0.5) * 100,
+                y: (r + 0.5) * 100
+            };
+        }
+
+        function drawSingleSVGArrow(group, fromR, fromC, toR, toC, colorHex, markerId, isDashed = false) {
+            if (fromR === toR && fromC === toC) return;
+            const start = getCellCenterSVGCoords(fromR, fromC);
+            const end = getCellCenterSVGCoords(toR, toC);
+
+            const dx = end.x - start.x;
+            const dy = end.y - start.y;
+            const len = Math.hypot(dx, dy);
+            if (len < 1) return;
+
+            const padStart = 18;
+            const padEnd = 26;
+            const x1 = start.x + (dx / len) * padStart;
+            const y1 = start.y + (dy / len) * padStart;
+            const x2 = end.x - (dx / len) * padEnd;
+            const y2 = end.y - (dy / len) * padEnd;
+
+            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            line.setAttribute('x1', x1);
+            line.setAttribute('y1', y1);
+            line.setAttribute('x2', x2);
+            line.setAttribute('y2', y2);
+            line.setAttribute('stroke', colorHex);
+            line.setAttribute('stroke-width', isDashed ? '6' : '7');
+            line.setAttribute('stroke-linecap', 'round');
+            if (isDashed) line.setAttribute('stroke-dasharray', '12 8');
+            line.setAttribute('marker-end', `url(#${markerId})`);
+            group.appendChild(line);
+        }
+
+        function drawTacticalArrows() {
+            const group = document.getElementById('arrows-group');
+            if (!group) return;
+            group.innerHTML = '';
+
+            const attColor = attackingTeam === 'red' ? '#f87171' : '#60a5fa';
+            const attMarker = attackingTeam === 'red' ? 'arrow-red' : 'arrow-blue';
+            const defColor = attackingTeam === 'red' ? '#60a5fa' : '#f87171';
+            const defMarker = attackingTeam === 'red' ? 'arrow-blue' : 'arrow-red';
+
+            // 1. P1 Moves (Always visible in P1, P2, P3, P4, Resolution)
+            plannedMoves[1].forEach(m => {
+                drawSingleSVGArrow(group, m.fromR, m.fromC, m.toR, m.toC, attColor, attMarker, false);
+            });
+
+            // 2. P2 & P3 Defensive Moves (Visible in P2, P3, and Resolution; HIDDEN in P4!)
+            if (currentPhase === 2 || currentPhase === 3 || gameState === 'RESOLUTION') {
+                if (plannedMoves[2]) {
+                    drawSingleSVGArrow(group, plannedMoves[2].fromR, plannedMoves[2].fromC, plannedMoves[2].toR, plannedMoves[2].toC, defColor, defMarker, false);
+                }
+                if ((currentPhase === 3 || gameState === 'RESOLUTION') && plannedMoves[3]) {
+                    drawSingleSVGArrow(group, plannedMoves[3].fromR, plannedMoves[3].fromC, plannedMoves[3].toR, plannedMoves[3].toC, defColor, defMarker, false);
+                }
+            }
+
+            // 3. P4 Move / Pass / Longshot (Visible in P4 preview and Resolution)
+            if ((currentPhase === 4 || gameState === 'RESOLUTION') && plannedMoves[4]) {
+                const m4 = plannedMoves[4];
+                if (m4.type === 'move') {
+                    drawSingleSVGArrow(group, m4.fromR, m4.fromC, m4.toR, m4.toC, '#facc15', 'arrow-pass', false);
+                } else if (m4.type === 'pass') {
+                    if (m4.isSpacePass && (m4.snapFromR !== m4.toR || m4.snapFromC !== m4.toC)) {
+                        drawSingleSVGArrow(group, m4.snapFromR, m4.snapFromC, m4.toR, m4.toC, '#22d3ee', 'arrow-space', false);
+                    }
+                    drawSingleSVGArrow(group, m4.fromR, m4.fromC, m4.toR, m4.toC, '#facc15', 'arrow-pass', true);
+                } else if (m4.type === 'longshot') {
+                    const goalRow = attackingTeam === 'red' ? 11 : 0;
+                    drawSingleSVGArrow(group, m4.fromR, m4.fromC, goalRow, 3, '#facc15', 'arrow-pass', true);
+                }
+            }
+        }
+
+        window.onload = () => {
+            updatePrivacyButtonUI();
+        };
+    </script>
+</body>
+</html>
