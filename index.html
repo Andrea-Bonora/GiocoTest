@@ -22,10 +22,10 @@
             font-family: 'Outfit', sans-serif;
         }
 
-        /* Stadium Pitch Styling */
+        /* Stadium Pitch Styling & Dynamic 180deg Flip */
         .pitch-container {
             width: 100%;
-            max-width: 430px;
+            max-width: 420px;
             aspect-ratio: 7 / 12;
             position: relative;
             background: repeating-linear-gradient(
@@ -39,6 +39,14 @@
                 0 20px 50px rgba(0, 0, 0, 0.85),
                 inset 0 0 60px rgba(0, 0, 0, 0.45),
                 0 0 0 2px rgba(255, 255, 255, 0.18);
+            transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .pitch-container.flipped-pitch {
+            transform: rotate(180deg);
+        }
+        /* Keep text/numbers/badges upright when pitch is flipped 180deg */
+        .pitch-container.flipped-pitch .counter-flip {
+            transform: rotate(180deg);
         }
 
         /* Jersey 3D Token */
@@ -116,9 +124,9 @@
 <body class="text-white h-screen w-screen flex flex-col overflow-hidden select-none">
 
     <!-- TOAST CONTAINER -->
-    <div id="toast-container" class="fixed top-14 left-1/2 -translate-x-1/2 z-[120] flex flex-col items-center gap-2 pointer-events-none w-11/12 max-w-sm"></div>
+    <div id="toast-container" class="fixed top-14 left-1/2 -translate-x-1/2 z-[140] flex flex-col items-center gap-2 pointer-events-none w-11/12 max-w-sm"></div>
 
-    <!-- SCREEN 1: SETUP, FORMATION & MULTIPLAYER LOBBY -->
+    <!-- SCREEN 1: SETUP & ONLINE WAITING ROOM LOBBY -->
     <div id="screen-setup" class="absolute inset-0 z-50 flex flex-col items-center justify-start sm:justify-center p-4 bg-slate-950/95 backdrop-blur-xl overflow-y-auto">
         <div class="w-full max-w-md flex flex-col items-center my-auto py-2">
             <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[11px] font-bold tracking-widest uppercase mb-2">
@@ -127,8 +135,8 @@
             <h1 class="font-display text-3xl sm:text-4xl font-black tracking-tight text-center bg-gradient-to-r from-white via-slate-100 to-emerald-400 bg-clip-text text-transparent drop-shadow-sm">
                 TATTICA FC: PRO
             </h1>
-            <p class="text-slate-400 text-xs mt-0.5 mb-4 text-center max-w-xs">
-                Gioca su 1 dispositivo (Passa il Telefono) o Online su 2/4 dispositivi (GitHub Pages P2P).
+            <p class="text-slate-400 text-xs mt-0.5 mb-3 text-center max-w-xs">
+                Sfida tattica 90' (3' a turno) su 1 dispositivo o in Multiplayer Online P2P su 2/4 dispositivi.
             </p>
 
             <!-- Mode Tabs: LOCALE vs ONLINE -->
@@ -141,27 +149,9 @@
                 </button>
             </div>
 
-            <!-- Shared Tactical Settings (Formations & Optional Rules) -->
+            <!-- Match Rules Box -->
             <div id="setup-match-settings" class="w-full bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-2xl mb-3">
-                <div class="grid grid-cols-2 gap-3 mb-3">
-                    <div>
-                        <label class="block text-[10px] font-bold text-red-400 uppercase tracking-wider mb-1">Modulo Rossi (Alto)</label>
-                        <select id="select-form-red" onchange="syncLobbySettingsFromHost()" class="w-full bg-slate-800 border border-red-500/40 rounded-xl px-2.5 py-2 text-xs font-bold text-white focus:outline-none focus:ring-2 focus:ring-red-500">
-                            <option value="4-3-3">4 - 3 - 3 Offensivo</option>
-                            <option value="3-5-2">3 - 5 - 2 Densità</option>
-                            <option value="4-4-2">4 - 4 - 2 Classico</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-bold text-blue-400 uppercase tracking-wider mb-1">Modulo Blu (Basso)</label>
-                        <select id="select-form-blue" onchange="syncLobbySettingsFromHost()" class="w-full bg-slate-800 border border-blue-500/40 rounded-xl px-2.5 py-2 text-xs font-bold text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <option value="4-3-3">4 - 3 - 3 Offensivo</option>
-                            <option value="3-5-2">3 - 5 - 2 Densità</option>
-                            <option value="4-4-2">4 - 4 - 2 Classico</option>
-                        </select>
-                    </div>
-                </div>
-
+                <div class="text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-2">Impostazioni Regolamento</div>
                 <!-- Optional 5-Players Rule Toggle (OFF by default) -->
                 <div class="flex items-center justify-between bg-slate-950/70 px-3 py-2 rounded-xl border border-slate-800/80 mb-2">
                     <div>
@@ -171,7 +161,7 @@
                     <input id="toggle-five-rule" type="checkbox" onchange="syncLobbySettingsFromHost()" class="w-5 h-5 accent-emerald-500 rounded cursor-pointer">
                 </div>
 
-                <!-- Privacy Mode Option (Only relevant in Local Mode) -->
+                <!-- Privacy Mode Option (Local Mode) -->
                 <div id="local-privacy-row" class="flex items-center justify-between bg-slate-950/70 px-3 py-2 rounded-xl border border-slate-800/80">
                     <div>
                         <div class="text-xs font-bold text-slate-200">Schermata "Passa il Telefono"</div>
@@ -181,15 +171,15 @@
                 </div>
 
                 <!-- Start Local Match Button -->
-                <button id="btn-start-local" onclick="startMatchFromSetup('LOCAL')" class="mt-4 w-full py-3.5 rounded-xl font-display font-black text-sm tracking-wider uppercase bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-slate-950 shadow-[0_0_25px_rgba(16,185,129,0.4)] active:scale-95 transition-all">
-                    CALCIO D'INIZIO (LOCALE)
+                <button id="btn-start-local" onclick="enterPreMatchFlow('LOCAL')" class="mt-4 w-full py-3.5 rounded-xl font-display font-black text-sm tracking-wider uppercase bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-slate-950 shadow-[0_0_25px_rgba(16,185,129,0.4)] active:scale-95 transition-all">
+                    VAI ALLA SCELTA MODULI (LOCALE) ➔
                 </button>
             </div>
 
             <!-- ONLINE MULTIPLAYER PANEL -->
             <div id="panel-online-lobby" class="w-full bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-2xl mb-3 hidden">
                 <div id="online-step-entry">
-                    <div class="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-2">Multiplayer P2P (GitHub Pages Ready)</div>
+                    <div class="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-2">Lobby Multiplayer P2P (GitHub Pages Ready)</div>
                     
                     <!-- Create Room Box -->
                     <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 mb-3">
@@ -203,10 +193,10 @@
                             </button>
                         </div>
                         <p id="online-mode-desc" class="text-[10px] text-slate-400 mb-2.5">
-                            In 2 Dispositivi: ciascuno comanda un'intera squadra (Rosso vs Blu).
+                            In 2 Dispositivi: la partita attende l'ingresso dell'avversario (2/2).
                         </p>
                         <button onclick="createOnlineRoom()" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-display font-black text-xs uppercase tracking-wider shadow">
-                            ➕ CREA STANZA ONLINE
+                            ➕ CREA STANZA D'ATTESA
                         </button>
                     </div>
 
@@ -239,30 +229,146 @@
                         </div>
                     </div>
 
-                    <div class="text-[11px] font-bold text-slate-300 mb-1.5">Scegli il tuo Ruolo / Dispositivo:</div>
-                    <div id="lobby-slots-container" class="grid grid-cols-2 gap-2 mb-3"></div>
-
-                    <div id="lobby-status-msg" class="text-[11px] text-center text-amber-300 font-semibold mb-3">
-                        In attesa dei giocatori...
+                    <!-- Quick Team Join Buttons (Especially useful in 4-player mode) -->
+                    <div class="mb-2">
+                        <div class="text-[11px] font-bold text-slate-300 mb-1.5">Scegli la tua Squadra (se c'è posto disponibile):</div>
+                        <div class="grid grid-cols-2 gap-2 mb-2">
+                            <button id="btn-join-team-red" onclick="joinTeamAvailableSlot('red')" class="py-2 px-3 rounded-xl bg-red-600/20 hover:bg-red-600/30 border border-red-500/40 text-red-300 font-display font-black text-xs uppercase">
+                                🔴 Entra nei Rossi
+                            </button>
+                            <button id="btn-join-team-blue" onclick="joinTeamAvailableSlot('blue')" class="py-2 px-3 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/40 text-blue-300 font-display font-black text-xs uppercase">
+                                🔵 Entra nei Blu
+                            </button>
+                        </div>
                     </div>
 
-                    <button id="btn-host-start-online" onclick="hostStartOnlineMatch()" class="hidden w-full py-3 rounded-xl font-display font-black text-sm uppercase tracking-wider bg-gradient-to-r from-emerald-500 to-green-600 text-slate-950 shadow-[0_0_20px_rgba(16,185,129,0.4)]">
-                        🚀 AVVIA PARTITA ONLINE
+                    <div class="text-[10px] font-bold text-slate-400 uppercase mb-1">Posti in Stanza:</div>
+                    <div id="lobby-slots-container" class="grid grid-cols-2 gap-2 mb-3"></div>
+
+                    <div id="lobby-status-msg" class="text-xs text-center text-amber-300 font-bold py-2 px-3 rounded-xl bg-slate-950/90 border border-slate-800 mb-3 animate-pulse">
+                        ⏳ In attesa che tutti i giocatori entrino in partita...
+                    </div>
+
+                    <button id="btn-host-start-online" onclick="hostProceedToFormations()" disabled class="hidden w-full py-3 rounded-xl font-display font-black text-sm uppercase tracking-wider bg-slate-800 text-slate-500 cursor-not-allowed transition-all">
+                        ⏳ IN ATTESA DEI GIOCATORI...
                     </button>
                 </div>
             </div>
 
-            <!-- Quick Rules Summary Card -->
+            <!-- Rules Summary -->
             <div class="w-full bg-slate-900/60 border border-slate-800/80 rounded-xl p-3 text-[11px] text-slate-300 space-y-1">
-                <div class="font-bold text-emerald-400 uppercase tracking-wider text-[10px] mb-1">Riepilogo Regole & Ruoli:</div>
-                <div>• <b class="text-white">Campo:</b> Rossi in alto (Porta `r=0`), Blu in basso (Porta `r=11`). Dopo ogni gol si riparte dal modulo iniziale e palla a chi ha subito rete.</div>
-                <div>• <b class="text-white">Online 2 Disp.:</b> Un dispositivo guida tutta la Squadra Rossa, l'altro tutta la Squadra Blu.</div>
-                <div>• <b class="text-white">Online 4 Disp.:</b> 1 mossa a testa per turno con ordine alternato (`A` e `B` si scambiano prima e seconda mossa a ogni turno!).</div>
+                <div class="font-bold text-emerald-400 uppercase tracking-wider text-[10px] mb-1">Novità Regolamento Pro:</div>
+                <div>• <b class="text-white">Passaggi:</b> Sicuri fino a 3 caselle. Oltre 3 caselle: <span class="text-amber-300">-10% a casella</span>. Passaggi nello spazio (non sull'uomo): <span class="text-amber-300">-10% di base</span>.</div>
+                <div>• <b class="text-white">Tempo & Carte:</b> 3' a turno. Intervallo al 45' e fine al 90'. Chi subisce gol riceve <span class="text-purple-300">+1 Carta Imprevisto</span>!</div>
+                <div>• <b class="text-white">Visuale Dinamica:</b> Vedi sempre la tua porta in basso verso di te.</div>
             </div>
         </div>
     </div>
 
-    <!-- SCREEN 2: INTERSTITIAL PRIVACY CURTAIN -->
+    <!-- SCREEN 1B: INDEPENDENT FORMATION SELECTION & ROCK-PAPER-SCISSORS -->
+    <div id="screen-prematch" class="absolute inset-0 z-50 flex flex-col items-center justify-center p-4 bg-slate-950/95 backdrop-blur-xl hidden overflow-y-auto">
+        <!-- STEP A: FORMATION SELECTION -->
+        <div id="prematch-step-formations" class="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-2xl">
+            <div class="text-center mb-4">
+                <span class="px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[10px] font-black uppercase tracking-widest">FASE PRE-PARTITA 1/2</span>
+                <h2 class="font-display text-2xl font-black text-white mt-1">SCELTA DEL MODULO</h2>
+                <p class="text-xs text-slate-400">Ogni squadra sceglie e conferma il proprio schieramento tattico</p>
+            </div>
+
+            <div class="space-y-4">
+                <!-- Red Team Formation Box -->
+                <div id="box-form-red" class="p-3.5 rounded-xl bg-red-950/25 border border-red-500/30">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="font-display font-black text-sm text-red-400">🔴 SQUADRA ROSSA</span>
+                        <span id="status-form-red" class="text-[10px] font-black px-2 py-0.5 rounded bg-amber-500/20 text-amber-300">In scelta...</span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2 mb-2.5">
+                        <button onclick="selectTeamFormation('red', '4-3-3')" id="btn-form-red-4-3-3" class="py-2 rounded-lg font-display font-black text-xs border">4-3-3</button>
+                        <button onclick="selectTeamFormation('red', '3-5-2')" id="btn-form-red-3-5-2" class="py-2 rounded-lg font-display font-black text-xs border">3-5-2</button>
+                        <button onclick="selectTeamFormation('red', '4-4-2')" id="btn-form-red-4-4-2" class="py-2 rounded-lg font-display font-black text-xs border">4-4-2</button>
+                    </div>
+                    <button id="btn-lock-form-red" onclick="confirmTeamFormation('red')" class="w-full py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-display font-black text-xs uppercase tracking-wider shadow">
+                        CONFERMA MODULO ROSSI ✓
+                    </button>
+                </div>
+
+                <!-- Blue Team Formation Box -->
+                <div id="box-form-blue" class="p-3.5 rounded-xl bg-blue-950/25 border border-blue-500/30">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="font-display font-black text-sm text-blue-400">🔵 SQUADRA BLU</span>
+                        <span id="status-form-blue" class="text-[10px] font-black px-2 py-0.5 rounded bg-amber-500/20 text-amber-300">In scelta...</span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2 mb-2.5">
+                        <button onclick="selectTeamFormation('blue', '4-3-3')" id="btn-form-blue-4-3-3" class="py-2 rounded-lg font-display font-black text-xs border">4-3-3</button>
+                        <button onclick="selectTeamFormation('blue', '3-5-2')" id="btn-form-blue-3-5-2" class="py-2 rounded-lg font-display font-black text-xs border">3-5-2</button>
+                        <button onclick="selectTeamFormation('blue', '4-4-2')" id="btn-form-blue-4-4-2" class="py-2 rounded-lg font-display font-black text-xs border">4-4-2</button>
+                    </div>
+                    <button id="btn-lock-form-blue" onclick="confirmTeamFormation('blue')" class="w-full py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-display font-black text-xs uppercase tracking-wider shadow">
+                        CONFERMA MODULO BLU ✓
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP B: ROCK-PAPER-SCISSORS FOR KICKOFF -->
+        <div id="prematch-step-rps" class="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-2xl hidden text-center">
+            <span class="px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-black uppercase tracking-widest">FASE PRE-PARTITA 2/2</span>
+            <h2 class="font-display text-2xl font-black text-white mt-1">SASSO • CARTA • FORBICE</h2>
+            <p class="text-xs text-slate-400 mb-4">Chi vince batte il Calcio d'Inizio del 1° Tempo (chi perde inizierà il 2° Tempo al 45')</p>
+
+            <!-- Red Team RPS Picker -->
+            <div id="rps-box-red" class="p-3.5 rounded-xl bg-red-950/25 border border-red-500/30 mb-3">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="font-display font-black text-xs text-red-400 uppercase">🔴 Scelta Squadra Rossa</span>
+                    <span id="rps-status-red" class="text-[10px] font-bold text-amber-300">Scegli una mossa...</span>
+                </div>
+                <div class="grid grid-cols-3 gap-2">
+                    <button id="btn-rps-red-rock" onclick="submitRpsChoice('red', 'ROCK')" class="py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 flex flex-col items-center gap-1">
+                        <span class="text-2xl">🪨</span>
+                        <span class="text-[10px] font-black uppercase">Sasso</span>
+                    </button>
+                    <button id="btn-rps-red-paper" onclick="submitRpsChoice('red', 'PAPER')" class="py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 flex flex-col items-center gap-1">
+                        <span class="text-2xl">📄</span>
+                        <span class="text-[10px] font-black uppercase">Carta</span>
+                    </button>
+                    <button id="btn-rps-red-scissors" onclick="submitRpsChoice('red', 'SCISSORS')" class="py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 flex flex-col items-center gap-1">
+                        <span class="text-2xl">✂️</span>
+                        <span class="text-[10px] font-black uppercase">Forbice</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Blue Team RPS Picker -->
+            <div id="rps-box-blue" class="p-3.5 rounded-xl bg-blue-950/25 border border-blue-500/30 mb-3">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="font-display font-black text-xs text-blue-400 uppercase">🔵 Scelta Squadra Blu</span>
+                    <span id="rps-status-blue" class="text-[10px] font-bold text-amber-300">Scegli una mossa...</span>
+                </div>
+                <div class="grid grid-cols-3 gap-2">
+                    <button id="btn-rps-blue-rock" onclick="submitRpsChoice('blue', 'ROCK')" class="py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 flex flex-col items-center gap-1">
+                        <span class="text-2xl">🪨</span>
+                        <span class="text-[10px] font-black uppercase">Sasso</span>
+                    </button>
+                    <button id="btn-rps-blue-paper" onclick="submitRpsChoice('blue', 'PAPER')" class="py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 flex flex-col items-center gap-1">
+                        <span class="text-2xl">📄</span>
+                        <span class="text-[10px] font-black uppercase">Carta</span>
+                    </button>
+                    <button id="btn-rps-blue-scissors" onclick="submitRpsChoice('blue', 'SCISSORS')" class="py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 flex flex-col items-center gap-1">
+                        <span class="text-2xl">✂️</span>
+                        <span class="text-[10px] font-black uppercase">Forbice</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- RPS Result Banner -->
+            <div id="rps-result-banner" class="hidden p-3 rounded-xl bg-slate-950 border border-slate-700 mt-2">
+                <div id="rps-result-title" class="font-display text-lg font-black text-emerald-400"></div>
+                <div id="rps-result-desc" class="text-xs text-slate-300 mt-0.5"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCREEN 2: INTERSTITIAL PRIVACY CURTAIN (LOCAL MODE) -->
     <div id="screen-interstitial" class="absolute inset-0 z-40 flex flex-col items-center justify-center bg-slate-950/95 backdrop-blur-xl p-6 hidden">
         <div class="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-2xl p-6 text-center shadow-2xl">
             <div id="interstitial-badge" class="inline-block px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest mb-3 bg-red-500/20 text-red-400 border border-red-500/30">
@@ -272,20 +378,22 @@
             <p class="text-slate-300 mb-6 text-sm" id="interstitial-desc">Passa il dispositivo a Giocatore 1 (Attacco)</p>
             
             <button onclick="closeInterstitial()" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-base font-black py-3.5 px-8 rounded-xl border border-blue-400/40 shadow-[0_0_20px_rgba(37,99,235,0.4)] transition-all active:scale-95">
-                MOSTRA IL CAMPO
+                MOSTRA IL CAMPO (TUA PORTA IN BASSO)
             </button>
         </div>
     </div>
 
-    <!-- SCREEN 3: PROBABILITY ROULETTE MODAL (MANUAL BUTTON EXTRACTION) -->
-    <div id="screen-roulette" class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-slate-950/90 backdrop-blur-md p-6 hidden">
+    <!-- SCREEN 3: PROBABILITY ROULETTE MODAL (SHARED ACROSS ALL 4 DEVICES) -->
+    <div id="screen-roulette" class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-slate-950/85 backdrop-blur-md p-6 hidden">
         <div class="w-full max-w-sm bg-slate-900 border border-slate-700 rounded-2xl p-6 text-center shadow-2xl">
-            <div id="roulette-subtitle" class="text-xs font-bold uppercase tracking-widest text-amber-400 mb-1">PROVA DI PRECISIONE</div>
+            <div id="roulette-live-badge" class="inline-block px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-300 text-[10px] font-black uppercase tracking-widest mb-1">
+                🎲 ESTRAZIONE PROBABILITÀ IN DIRETTA
+            </div>
             <h3 id="roulette-title" class="font-display text-2xl font-black text-white mb-2">PASSAGGIO FILTRANTE</h3>
             <p id="roulette-modifiers" class="text-[11px] text-slate-300 mb-4 bg-slate-950/80 py-1.5 px-3 rounded-lg border border-slate-800"></p>
             
             <div class="relative w-full h-8 bg-slate-950 rounded-full overflow-hidden border border-slate-700 mb-3">
-                <div id="roulette-target-bar" class="absolute top-0 bottom-0 left-0 bg-gradient-to-r from-emerald-600 to-emerald-400 opacity-40" style="width: 60%"></div>
+                <div id="roulette-target-bar" class="absolute top-0 bottom-0 left-0 bg-gradient-to-r from-emerald-600 to-emerald-400 opacity-45" style="width: 60%"></div>
                 <div id="roulette-cursor" class="absolute top-0 bottom-0 w-2 bg-white shadow-[0_0_12px_#fff] transition-all duration-75" style="left: 0%"></div>
             </div>
             
@@ -294,7 +402,7 @@
                 <span>Dado Estratto: <b id="roulette-roll" class="text-white text-sm">--</b></span>
             </div>
 
-            <div id="roulette-outcome" class="text-base font-black min-h-[28px] text-amber-300 mb-4">
+            <div id="roulette-outcome" class="text-sm sm:text-base font-black min-h-[28px] text-amber-300 mb-4">
                 Premi il pulsante per estrarre il risultato!
             </div>
 
@@ -303,28 +411,42 @@
             </button>
 
             <button id="btn-roulette-continue" onclick="confirmRouletteContinue()" class="hidden w-full py-3.5 px-4 rounded-xl bg-white hover:bg-slate-100 text-slate-950 font-display font-black text-sm uppercase tracking-wider shadow-lg active:scale-95 transition-all">
-                CONTINUA ➔
+                VAI ALL'ESITO DELL'AZIONE ➔
             </button>
         </div>
     </div>
 
-    <!-- SCREEN 4: TURN RESOLUTION OVERLAY -->
-    <div id="screen-resolution" class="absolute inset-0 z-40 flex flex-col justify-end pb-6 px-4 bg-gradient-to-t from-slate-950 via-slate-950/70 to-transparent pointer-events-none hidden">
-        <div class="w-full max-w-md mx-auto bg-slate-900/95 backdrop-blur-md border border-slate-700 rounded-2xl p-4 shadow-2xl pointer-events-auto flex flex-col items-center text-center">
-            <h2 class="font-display text-2xl font-black mb-1 text-white" id="resolution-title">RISOLUZIONE TURNO</h2>
-            <p class="text-xs sm:text-sm font-semibold text-slate-300 mb-4" id="resolution-desc"></p>
-            <button id="btn-next-turn" onclick="nextTurn()" class="w-full bg-white hover:bg-slate-100 text-slate-950 text-sm font-black py-3 px-8 rounded-xl shadow-lg transition-all active:scale-95 uppercase tracking-wider">
-                PROSSIMO TURNO ➔
+    <!-- SCREEN 4: HALFTIME (45') & FULLTIME (90') MODAL -->
+    <div id="screen-period-end" class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-slate-950/90 backdrop-blur-xl p-6 hidden">
+        <div class="w-full max-w-sm bg-slate-900 border border-slate-700 rounded-2xl p-6 text-center shadow-2xl">
+            <div id="period-badge" class="inline-block px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-300 text-xs font-black uppercase tracking-widest mb-2">
+                ⏱️ DUPLICE FISCHIO • 45'
+            </div>
+            <h2 id="period-title" class="font-display text-3xl font-black text-white mb-2">FINE PRIMO TEMPO</h2>
+            <div class="flex items-center justify-center gap-4 my-4 bg-slate-950 py-3 px-6 rounded-2xl border border-slate-800">
+                <div class="text-center">
+                    <div class="text-[10px] font-bold text-red-400 uppercase">ROSSI</div>
+                    <div id="period-score-red" class="font-display text-3xl font-black text-white">0</div>
+                </div>
+                <div class="text-slate-600 font-black text-xl">-</div>
+                <div class="text-center">
+                    <div class="text-[10px] font-bold text-blue-400 uppercase">BLU</div>
+                    <div id="period-score-blue" class="font-display text-3xl font-black text-white">0</div>
+                </div>
+            </div>
+            <p id="period-desc" class="text-xs text-slate-300 mb-5 leading-relaxed"></p>
+            <button id="btn-period-action" onclick="handlePeriodContinue()" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 text-slate-950 font-display font-black text-sm uppercase tracking-wider shadow-lg active:scale-95 transition-all">
+                INIZIA SECONDO TEMPO (45') ➔
             </button>
         </div>
     </div>
 
-    <!-- SCREEN 5: INTERACTIVE 3D GOAL SHOOTOUT -->
+    <!-- SCREEN 5: INTERACTIVE 3D GOAL SHOOTOUT (VISIBLE LIVE TO ALL 4 PLAYERS) -->
     <div id="screen-shootout" class="absolute inset-0 z-50 flex flex-col justify-between shootout-stadium p-5 hidden">
         <!-- Shootout Header -->
         <div class="w-full max-w-md mx-auto text-center pt-2">
             <div id="shootout-badge" class="inline-block px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest bg-amber-500/20 text-amber-300 border border-amber-400/40 mb-1">
-                FASE DI TIRO IN PORTA
+                FASE DI TIRO IN PORTA (DIRETTA)
             </div>
             <h2 id="shootout-title" class="font-display text-2xl sm:text-3xl font-black text-white drop-shadow">
                 ATTACCANTE: SCEGLI L'ANGOLO
@@ -380,7 +502,7 @@
             <h3 id="shootout-res-title" class="font-display text-3xl font-black mb-1">GOL!</h3>
             <p id="shootout-res-desc" class="text-xs sm:text-sm text-slate-300 mb-3"></p>
             <button id="btn-finish-shootout" onclick="finishShootout()" class="w-full py-3 rounded-xl bg-white text-slate-950 font-black text-sm uppercase tracking-wider shadow-lg">
-                CONTINUA PARTITA
+                CONTINUA PARTITA ➔
             </button>
         </div>
     </div>
@@ -407,51 +529,49 @@
         
         <!-- TOP HUD -->
         <header class="bg-slate-900/95 border-b border-slate-800 px-3 pt-2 pb-1.5 z-20 flex-shrink-0 shadow-lg">
-            <!-- Row 1: Scoreboard & Controls -->
+            <!-- Row 1: Scoreboard & Match Timer (0' -> 45' -> 90') -->
             <div class="flex items-center justify-between mb-1.5">
                 <!-- Red Team Badge -->
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-1.5">
                     <div class="w-3.5 h-3.5 rounded-full token-red"></div>
-                    <div>
-                        <div class="flex items-center gap-1.5">
-                            <span class="font-display font-black text-sm text-white">ROSSI</span>
-                            <span id="role-red" class="text-[9px] font-black px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30">ATT</span>
-                        </div>
-                    </div>
+                    <span class="font-display font-black text-xs sm:text-sm text-white">ROSSI</span>
+                    <span id="role-red" class="text-[9px] font-black px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30">ATT</span>
                 </div>
 
-                <!-- Score Pill -->
-                <div class="flex items-center gap-2.5 bg-slate-950 border border-slate-800 px-3.5 py-1 rounded-full shadow-inner">
+                <!-- Score & Match Clock Pill -->
+                <div class="flex items-center gap-2.5 bg-slate-950 border border-slate-800 px-3 py-1 rounded-full shadow-inner">
                     <span id="score-red" class="font-display font-black text-lg text-red-400">0</span>
-                    <span class="text-[10px] font-bold text-slate-500 uppercase" id="turn-counter">T1</span>
+                    <div class="flex flex-col items-center leading-none px-1 border-x border-slate-800">
+                        <span id="match-clock" class="font-display font-black text-xs text-emerald-400">0'</span>
+                        <span id="match-half-label" class="text-[8px] font-bold text-slate-400 uppercase">1°T</span>
+                    </div>
                     <span id="score-blue" class="font-display font-black text-lg text-blue-400">0</span>
                 </div>
 
                 <!-- Blue Team Badge -->
-                <div class="flex items-center gap-2">
-                    <div class="text-right">
-                        <div class="flex items-center gap-1.5 justify-end">
-                            <span id="role-blue" class="text-[9px] font-black px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">DIF</span>
-                            <span class="font-display font-black text-sm text-white">BLU</span>
-                        </div>
-                    </div>
+                <div class="flex items-center gap-1.5">
+                    <span id="role-blue" class="text-[9px] font-black px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">DIF</span>
+                    <span class="font-display font-black text-xs sm:text-sm text-white">BLU</span>
                     <div class="w-3.5 h-3.5 rounded-full token-blue"></div>
                 </div>
             </div>
 
-            <!-- Row 2: Tactical Status Bar (Midfield Rule, Phase, Online Role & Cards) -->
-            <div class="flex items-center justify-between gap-1.5 text-[11px]">
-                <div id="midfield-indicator" class="px-2 py-1 rounded-lg bg-slate-800 border border-slate-700 font-bold flex items-center gap-1 text-emerald-400">
-                    <span>⚡ Tiro: Libero</span>
+            <!-- Row 2: Tactical Status Bar -->
+            <div class="flex items-center justify-between gap-1 text-[11px]">
+                <div id="midfield-indicator" class="px-2 py-1 rounded-lg bg-slate-800 border border-slate-700 font-bold flex items-center gap-1 text-emerald-400 text-[10px]">
+                    <span>⚡ Tiro Libero</span>
                 </div>
 
-                <div id="phase-pill" class="px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 font-black text-white">
+                <div id="phase-pill" class="px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 font-black text-white text-[10px] sm:text-[11px]">
                     FASE 1/4
                 </div>
 
                 <div class="flex items-center gap-1">
+                    <button id="btn-flip-toggle" onclick="toggleAutoFlip()" title="Ruota visuale campo" class="px-2 py-1 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 font-bold text-[10px]">
+                        🔄 Porta: Giù
+                    </button>
                     <button id="btn-privacy-toggle" onclick="togglePrivacyMode()" title="Attiva/Disattiva Velo Privacy" class="px-2 py-1 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 font-bold text-[10px]">
-                        👁️ Velo: ON
+                        👁️ Velo
                     </button>
                     <button onclick="openCardsModal()" id="btn-open-cards" class="px-2.5 py-1 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black shadow flex items-center gap-1">
                         <span>🃏</span>
@@ -466,7 +586,7 @@
 
         <!-- PITCH AREA -->
         <main class="flex-1 relative flex items-center justify-center p-2 overflow-hidden">
-            <div class="pitch-container rounded-xl overflow-hidden">
+            <div id="pitch-box" class="pitch-container rounded-xl overflow-hidden">
                 <!-- Pitch Markings (SVG Background Lines) -->
                 <svg class="absolute inset-0 w-full h-full pointer-events-none z-0" viewBox="0 0 700 1200" preserveAspectRatio="none">
                     <!-- Outer touchline -->
@@ -477,18 +597,18 @@
                     <circle cx="350" cy="600" r="85" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="4"/>
                     <circle cx="350" cy="600" r="6" fill="rgba(255,255,255,0.6)"/>
                     <!-- Top Penalty Box (Red GK r=0 & Row 1 Shooting Zone) -->
-                    <rect x="150" y="20" width="400" height="185" fill="rgba(239,68,68,0.10)" stroke="rgba(255,255,255,0.4)" stroke-width="4"/>
+                    <rect x="150" y="20" width="400" height="185" fill="rgba(239,68,68,0.12)" stroke="rgba(255,255,255,0.4)" stroke-width="4"/>
                     <rect x="255" y="20" width="190" height="80" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="3"/>
                     <!-- Bottom Penalty Box (Blue GK r=11 & Row 10 Shooting Zone) -->
-                    <rect x="150" y="995" width="400" height="185" fill="rgba(59,130,246,0.10)" stroke="rgba(255,255,255,0.4)" stroke-width="4"/>
+                    <rect x="150" y="995" width="400" height="185" fill="rgba(59,130,246,0.12)" stroke="rgba(255,255,255,0.4)" stroke-width="4"/>
                     <rect x="255" y="1100" width="190" height="80" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="3"/>
                 </svg>
 
                 <!-- 7x12 INTERACTIVE GRID -->
                 <div id="grid-container" class="absolute inset-0 grid grid-cols-7 grid-rows-12 p-1 z-10"></div>
 
-                <!-- SVG TACTICAL ARROWS LAYER -->
-                <svg id="arrows-layer" class="absolute inset-0 w-full h-full pointer-events-none z-30 overflow-visible">
+                <!-- SVG TACTICAL ARROWS LAYER (ViewBox 700x1200 aligned with grid cells, rotates seamlessly with pitch!) -->
+                <svg id="arrows-layer" class="absolute inset-0 w-full h-full pointer-events-none z-30" viewBox="0 0 700 1200" preserveAspectRatio="none">
                     <defs>
                         <marker id="arrow-red" markerWidth="6" markerHeight="6" refX="4.5" refY="3" orient="auto">
                             <polygon points="0 0, 6 3, 0 6" fill="#f87171" />
@@ -508,55 +628,91 @@
             </div>
         </main>
 
-        <!-- BOTTOM TACTICAL CONTROL DOCK -->
+        <!-- BOTTOM TACTICAL CONTROL DOCK (ALSO HOSTS CLEAR NON-OBSTRUCTING TURN RESOLUTION) -->
         <footer class="bg-slate-900/95 border-t border-slate-800 px-3 py-2 z-20 flex-shrink-0">
-            <div class="flex items-center justify-between gap-2 mb-1.5">
-                <div id="instruction-text" class="text-xs font-bold text-slate-200 truncate flex-1">
-                    Seleziona un giocatore per muoverlo
+            <!-- Normal Playing Controls -->
+            <div id="dock-playing-controls">
+                <div class="flex items-center justify-between gap-2 mb-1">
+                    <div id="instruction-text" class="text-xs font-bold text-slate-200 truncate flex-1">
+                        Seleziona un giocatore per muoverlo
+                    </div>
+                    <div class="flex items-center gap-1.5 flex-shrink-0">
+                        <button id="btn-undo-phase" onclick="undoPhaseMove()" class="hidden px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-[11px] font-bold text-amber-300">
+                            ↩ Ripensa
+                        </button>
+                        <button id="btn-confirm-phase" onclick="confirmPhaseStep()" class="hidden px-3.5 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black uppercase tracking-wider shadow-[0_0_15px_rgba(16,185,129,0.4)] animate-pulse">
+                            Conferma Mossa ✓
+                        </button>
+                    </div>
                 </div>
-                <div class="flex items-center gap-1.5">
-                    <button id="btn-undo-phase" onclick="undoPhaseMove()" class="hidden px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-[11px] font-bold text-slate-200">
-                        ↩ Annulla
+
+                <!-- Phase 4 Playmaker Mode Bar (Only visible in Phase 4) -->
+                <div id="p4-action-bar" class="hidden grid grid-cols-3 gap-1.5 pt-1 border-t border-slate-800/80">
+                    <button id="mode-btn-dribble" onclick="setP4Mode('DRIBBLE')" class="py-1.5 px-2 rounded-lg font-bold text-[11px] border flex items-center justify-center gap-1 transition-all">
+                        <span>🏃 Dribbling</span>
                     </button>
-                    <button id="btn-confirm-phase" onclick="confirmPhaseStep()" class="hidden px-3 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black uppercase tracking-wider shadow">
-                        Conferma ✓
+                    <button id="mode-btn-pass" onclick="setP4Mode('PASS')" class="py-1.5 px-2 rounded-lg font-bold text-[11px] border flex items-center justify-center gap-1 transition-all">
+                        <span>🎯 Passaggio</span>
+                    </button>
+                    <button id="mode-btn-shoot" onclick="stageLongShot()" class="py-1.5 px-2 rounded-lg font-black text-[11px] bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 shadow flex items-center justify-center gap-1 active:scale-95 transition-all">
+                        <span id="btn-shoot-label">🚀 Tira</span>
                     </button>
                 </div>
             </div>
 
-            <!-- Phase 4 Playmaker Mode Bar (Only visible in Phase 4) -->
-            <div id="p4-action-bar" class="hidden grid grid-cols-3 gap-1.5 pt-1 border-t border-slate-800/80">
-                <button id="mode-btn-dribble" onclick="setP4Mode('DRIBBLE')" class="py-1.5 px-2 rounded-lg font-bold text-[11px] border flex items-center justify-center gap-1 transition-all">
-                    <span>🏃 Dribbling</span>
-                </button>
-                <button id="mode-btn-pass" onclick="setP4Mode('PASS')" class="py-1.5 px-2 rounded-lg font-bold text-[11px] border flex items-center justify-center gap-1 transition-all">
-                    <span>🎯 Passaggio</span>
-                </button>
-                <button id="mode-btn-shoot" onclick="attemptLongShot()" class="py-1.5 px-2 rounded-lg font-black text-[11px] bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 shadow flex items-center justify-center gap-1 active:scale-95 transition-all">
-                    <span id="btn-shoot-label">🚀 Tira</span>
-                </button>
+            <!-- Non-Obstructing Turn Resolution Banner (Keeps Pitch & Arrows 100% Visible!) -->
+            <div id="dock-resolution-controls" class="hidden">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-slate-950/90 border border-slate-700 rounded-xl p-2.5">
+                    <div class="flex-1">
+                        <div id="resolution-title" class="font-display text-sm font-black text-emerald-400 uppercase tracking-wide">
+                            ✅ MANOVRA COMPLETATA
+                        </div>
+                        <div id="resolution-desc" class="text-[11px] text-slate-200 font-semibold leading-snug mt-0.5">
+                            Osserva le frecce in campo prima di confermare la fine del turno.
+                        </div>
+                    </div>
+                    <button id="btn-next-turn" onclick="nextTurn()" class="w-full sm:w-auto bg-white hover:bg-slate-100 text-slate-950 text-xs font-display font-black py-2.5 px-4 rounded-xl shadow-lg transition-all active:scale-95 uppercase tracking-wider flex-shrink-0">
+                        CONFERMA FINE TURNO (+3') ➔
+                    </button>
+                </div>
             </div>
         </footer>
     </div>
 
     <script>
         // =========================================================================
-        // TATTICA FC: PRO EDITION - CORE ENGINE & P2P ONLINE MULTIPLAYER
+        // TATTICA FC: PRO EDITION - ENGINE, RULES & P2P MULTIPLAYER
         // =========================================================================
-        let gameState = 'SETUP'; // SETUP, INTERSTITIAL, PLAYING, ROULETTE, RESOLUTION, SHOOTOUT
+        let gameState = 'SETUP'; // SETUP, PREMATCH_FORMATIONS, PREMATCH_RPS, INTERSTITIAL, PLAYING, ROULETTE, RESOLUTION, SHOOTOUT, PERIOD_END
         let turnNumber = 1;
+        let matchMinute = 0; // Starts at 0', +3' every turn. 45' = Halftime, 90' = Fulltime
+        let currentHalf = 1; // 1 or 2
+        let firstHalfKickoffTeam = 'red'; // Decided by Rock-Paper-Scissors
         let currentPhase = 1; // 1: P1 (2 PA), 2: P2 (Def 1), 3: P3 (Def 2), 4: P4 (Playmaker)
+
         // Coordinate System:
-        // RED Team is at TOP (GK at r=0, c=3; defends shooting zone r=1, c=2..4; attacks DOWN towards r=10).
-        // BLUE Team is at BOTTOM (GK at r=11, c=3; defends shooting zone r=10, c=2..4; attacks UP towards r=1).
+        // RED Team is at Row 0 (GK at r=0, c=3; defends shooting zone r=1, c=2..4; attacks towards r=10).
+        // BLUE Team is at Row 11 (GK at r=11, c=3; defends shooting zone r=10, c=2..4; attacks towards r=1).
+        // Dynamic Pitch Flip rotates the pitch 180deg whenever viewing as RED so the viewer's own goal is ALWAYS at the bottom!
         let attackingTeam = 'red';
         let usePrivacyCurtain = true;
-        let requireFivePastMidfield = false; // Optional rule, OFF by default
+        let autoFlipPitch = true;
+        let manualFlipOverride = false;
+        let requireFivePastMidfield = false; // OFF by default
 
         let scoreRed = 0;
         let scoreBlue = 0;
         let formationRed = '4-3-3';
         let formationBlue = '4-3-3';
+        let formationLocked = { red: false, blue: false };
+
+        // Rock-Paper-Scissors State
+        let rpsState = {
+            redChoice: null, // 'ROCK', 'PAPER', 'SCISSORS'
+            blueChoice: null,
+            winner: null,
+            statusText: ''
+        };
 
         let pieces = [];
         let selectedPieceId = null;
@@ -568,10 +724,10 @@
             1: [],   // Array of { type:'move', pieceId, fromR, fromC, toR, toC }
             2: null, // { type:'move', pieceId, fromR, fromC, toR, toC }
             3: null, // { type:'move', pieceId, fromR, fromC, toR, toC }
-            4: null  // { type:'move'|'pass', ... }
+            4: null  // { type:'move'|'pass'|'longshot', ... }
         };
 
-        // Pending Probability Roulette State (Manual Extraction)
+        // Pending Probability Roulette State (Shared across all 4 devices)
         let pendingRoulette = {
             active: false,
             title: '',
@@ -583,7 +739,14 @@
             success: false
         };
 
-        // Multiplayer Online State (PeerJS WebRTC + BroadcastChannel fallback)
+        // Period End State (Halftime 45' / Fulltime 90')
+        let periodEndState = {
+            type: 'HALFTIME', // 'HALFTIME' or 'FULLTIME'
+            title: '',
+            desc: ''
+        };
+
+        // Multiplayer Online State (PeerJS WebRTC + BroadcastChannel)
         let networkMode = 'LOCAL'; // 'LOCAL' or 'ONLINE'
         let isOnlineHost = false;
         let onlinePlayerCount = 2; // 2 (1v1) or 4 (2v2 alternating)
@@ -591,12 +754,12 @@
         let myPeerId = '';
         let myOnlineSlot = null; // 2P: 'red' | 'blue' ; 4P: 'red_A' | 'red_B' | 'blue_A' | 'blue_B'
         let peerInstance = null;
-        let hostConnections = []; // Used by Host to store client DataConnections
-        let clientConnection = null; // Used by Client to store connection to Host
-        let localBroadcast = null; // BroadcastChannel for multi-tab testing on same device
-        let lobbySlots = {}; // Maps slotKey -> { occupiedBy: peerId, label: string }
+        let hostConnections = [];
+        let clientConnection = null;
+        let localBroadcast = null;
+        let lobbySlots = {};
 
-        // Secret Cards System
+        // Secret Cards Catalog (Updated for 3-step pass & 10%/5% penalties)
         const CARD_CATALOG = {
             guantoni: {
                 name: "Guantoni d'Oro",
@@ -606,7 +769,7 @@
             fallo_tattico: {
                 name: "Fallo Tattico",
                 icon: "⚠️",
-                desc: "Giocabile in Difesa (P2/P3) dopo aver mosso: se il difensore mosso è adiacente (dist. 1) al portatore di palla, ruba subito il pallone!"
+                desc: "Giocabile in Difesa (P2/P3) prima di confermare: se il difensore mosso è adiacente (dist. 1) al portatore di palla, ruba subito il pallone!"
             },
             extra_sprint: {
                 name: "Extra Sprint",
@@ -616,7 +779,7 @@
             fallo_rosso: {
                 name: "Fallo da Rosso",
                 icon: "🟥",
-                desc: "Giocabile in Difesa (P2/P3) dopo aver mosso: se sei entro 2 caselle ortogonali dalla palla, rubi il possesso ma il difensore è espulso per 10 turni!"
+                desc: "Giocabile in Difesa (P2/P3) prima di confermare: se sei entro 2 caselle ortogonali dalla palla, rubi il possesso ma il difensore è espulso per 10 turni!"
             },
             bordata: {
                 name: "Bordata dalla Distanza",
@@ -626,7 +789,7 @@
             maestro: {
                 name: "Il Maestro",
                 icon: "🎩",
-                desc: "Riduce il malus del Passaggio Filtrante lungo (>4 caselle) dal 20% al 10% per casella."
+                desc: "Riduce il malus del Passaggio lungo (>3 caselle) dal 10% al 5% per casella."
             }
         };
 
@@ -638,7 +801,7 @@
             guantoni_red: false,
             guantoni_blue: false
         };
-        let expelledPlayers = []; // [{ id, team, num, turns }]
+        let expelledPlayers = [];
 
         // Shootout state
         let shootoutState = {
@@ -648,8 +811,6 @@
             outcome: null
         };
 
-        // Formations coordinates for Top half (Red Team: rows 0..5, GK at r=0, c=3).
-        // Bottom half (Blue Team: mirrored onto rows 6..11, GK at r=11, c=3 -> row = 11 - r, col = 6 - c).
         const FORMATIONS = {
             '4-3-3': {
                 def: [[2,1], [2,2], [2,4], [2,5]],
@@ -669,7 +830,7 @@
         };
 
         // =========================================================================
-        // NOTIFICATIONS (NON-BLOCKING TOAST)
+        // NOTIFICATIONS (TOAST)
         // =========================================================================
         function showToast(msg, type = 'info') {
             const container = document.getElementById('toast-container');
@@ -687,11 +848,18 @@
                 toast.style.opacity = '0';
                 toast.style.transform = 'translateY(-8px)';
                 setTimeout(() => toast.remove(), 280);
-            }, 2600);
+            }, 2800);
+        }
+
+        function drawRandomCardForTeam(team) {
+            const keys = Object.keys(CARD_CATALOG);
+            const randomKey = keys[Math.floor(Math.random() * keys.length)];
+            teamCards[team].push(randomKey);
+            return CARD_CATALOG[randomKey];
         }
 
         // =========================================================================
-        // SETUP TABS & ONLINE MULTIPLAYER (PEERJS + BROADCASTCHANNEL)
+        // SETUP TABS & ONLINE MULTIPLAYER WAITING ROOM LOBBY
         // =========================================================================
         function switchSetupTab(tab) {
             const btnLocal = document.getElementById('tab-btn-local');
@@ -723,26 +891,26 @@
             if (count === 2) {
                 b2.className = "py-2 px-2 rounded-lg text-xs font-black border bg-emerald-500/20 border-emerald-400 text-emerald-300";
                 b4.className = "py-2 px-2 rounded-lg text-xs font-bold border bg-slate-900 border-slate-700 text-slate-400";
-                desc.innerText = "In 2 Dispositivi: ciascuno comanda un'intera squadra (Rosso vs Blu).";
+                desc.innerText = "In 2 Dispositivi: la partita rimane in attesa finché non entra l'avversario (2/2).";
             } else {
                 b4.className = "py-2 px-2 rounded-lg text-xs font-black border bg-emerald-500/20 border-emerald-400 text-emerald-300";
                 b2.className = "py-2 px-2 rounded-lg text-xs font-bold border bg-slate-900 border-slate-700 text-slate-400";
-                desc.innerText = "In 4 Dispositivi: 2v2 (Rosso A/B vs Blu A/B). 1 mossa a testa con ordine alternato a ogni turno!";
+                desc.innerText = "In 4 Dispositivi: ciascuno sceglie la squadra in cui entrare (2v2) finché non si è 4/4.";
             }
         }
 
         function initLobbySlotsStructure(count) {
             if (count === 2) {
                 lobbySlots = {
-                    red: { label: "🔴 Squadra Rossa", occupiedBy: null },
-                    blue: { label: "🔵 Squadra Blu", occupiedBy: null }
+                    red: { label: "🔴 Squadra Rossa", team: 'red', occupiedBy: null },
+                    blue: { label: "🔵 Squadra Blu", team: 'blue', occupiedBy: null }
                 };
             } else {
                 lobbySlots = {
-                    red_A: { label: "🔴 Rosso A", occupiedBy: null },
-                    red_B: { label: "🔴 Rosso B", occupiedBy: null },
-                    blue_A: { label: "🔵 Blu A", occupiedBy: null },
-                    blue_B: { label: "🔵 Blu B", occupiedBy: null }
+                    red_A: { label: "🔴 Rosso (Gioc. A)", team: 'red', occupiedBy: null },
+                    red_B: { label: "🔴 Rosso (Gioc. B)", team: 'red', occupiedBy: null },
+                    blue_A: { label: "🔵 Blu (Gioc. A)", team: 'blue', occupiedBy: null },
+                    blue_B: { label: "🔵 Blu (Gioc. B)", team: 'blue', occupiedBy: null }
                 };
             }
         }
@@ -780,7 +948,7 @@
                 if (peerInstance) peerInstance.destroy();
                 peerInstance = new Peer(`tattica-fc-pro-${roomCode}`);
                 peerInstance.on('open', () => {
-                    showToast(`Stanza ${roomCode} creata! Condividi il codice.`, 'success');
+                    showToast(`Stanza ${roomCode} creata! In attesa degli altri giocatori...`, 'success');
                 });
                 peerInstance.on('connection', (conn) => {
                     hostConnections.push(conn);
@@ -788,7 +956,7 @@
                     conn.on('open', () => broadcastFullStateFromHost());
                 });
                 peerInstance.on('error', () => {
-                    showToast("Stanza attiva in modalità locale multi-scheda / P2P.", "info");
+                    showToast("Lobby pronta (supporto P2P e multi-scheda attivo).", "info");
                 });
             }
         }
@@ -806,10 +974,6 @@
             document.getElementById('online-step-room').classList.remove('hidden');
             document.getElementById('lobby-room-code').innerText = roomCode;
             document.getElementById('lobby-status-msg').innerText = "Connessione alla stanza in corso...";
-
-            // Disable host-only match settings inputs for client
-            document.getElementById('select-form-red').disabled = true;
-            document.getElementById('select-form-blue').disabled = true;
             document.getElementById('toggle-five-rule').disabled = true;
 
             setupBroadcastChannel(roomCode);
@@ -837,11 +1001,7 @@
             networkMode = 'LOCAL';
             isOnlineHost = false;
             myOnlineSlot = null;
-
-            document.getElementById('select-form-red').disabled = false;
-            document.getElementById('select-form-blue').disabled = false;
             document.getElementById('toggle-five-rule').disabled = false;
-
             document.getElementById('online-step-room').classList.add('hidden');
             document.getElementById('online-step-entry').classList.remove('hidden');
         }
@@ -853,7 +1013,23 @@
             temp.select();
             document.execCommand('copy');
             temp.remove();
-            showToast(`Codice ${roomCode} copiato negli appunti!`, 'success');
+            showToast(`Codice ${roomCode} copiato!`, 'success');
+        }
+
+        // Allow choosing which team to join if a spot is free in that team
+        function joinTeamAvailableSlot(teamColor) {
+            const teamKeys = Object.keys(lobbySlots).filter(k => k.startsWith(teamColor));
+            const alreadyInTeam = teamKeys.find(k => lobbySlots[k].occupiedBy === myPeerId);
+            if (alreadyInTeam) {
+                showToast(`Sei già nella Squadra ${teamColor === 'red' ? 'Rossa' : 'Blu'}!`, 'info');
+                return;
+            }
+            const freeSlot = teamKeys.find(k => !lobbySlots[k].occupiedBy);
+            if (!freeSlot) {
+                showToast(`La Squadra ${teamColor === 'red' ? 'Rossa' : 'Blu'} è al completo!`, 'warn');
+                return;
+            }
+            claimLobbySlot(freeSlot);
         }
 
         function claimLobbySlot(slotKey) {
@@ -867,9 +1043,7 @@
 
         function assignPeerToSlot(peerId, slotKey) {
             if (!lobbySlots[slotKey]) return;
-            if (lobbySlots[slotKey].occupiedBy && lobbySlots[slotKey].occupiedBy !== peerId) {
-                return;
-            }
+            if (lobbySlots[slotKey].occupiedBy && lobbySlots[slotKey].occupiedBy !== peerId) return;
             Object.keys(lobbySlots).forEach(k => {
                 if (lobbySlots[k].occupiedBy === peerId) lobbySlots[k].occupiedBy = null;
             });
@@ -900,7 +1074,7 @@
                 btn.innerHTML = `
                     <div class="font-display font-black text-xs">${slot.label}</div>
                     <div class="text-[10px] font-bold mt-0.5 ${isMine ? 'text-emerald-300' : isTaken ? 'text-amber-400' : 'text-slate-400'}">
-                        ${isMine ? '✓ Tuo Dispositivo' : isTaken ? 'Occupato' : 'Tocca per scegliere'}
+                        ${isMine ? '✓ Tu' : isTaken ? 'Giocatore connesso' : 'Posto Libero (Clicca)'}
                     </div>
                 `;
                 if (!isTaken) {
@@ -909,34 +1083,274 @@
                 container.appendChild(btn);
             });
 
+            // Update Team Quick-Join Buttons
+            const redFree = Object.keys(lobbySlots).some(k => k.startsWith('red') && !lobbySlots[k].occupiedBy);
+            const blueFree = Object.keys(lobbySlots).some(k => k.startsWith('blue') && !lobbySlots[k].occupiedBy);
+            const btnJoinRed = document.getElementById('btn-join-team-red');
+            const btnJoinBlue = document.getElementById('btn-join-team-blue');
+            if (btnJoinRed) btnJoinRed.innerText = redFree ? "🔴 Entra nei Rossi (Posto Libero)" : "🔴 Rossi al Completo";
+            if (btnJoinBlue) btnJoinBlue.innerText = blueFree ? "🔵 Entra nei Blu (Posto Libero)" : "🔵 Blu al Completo";
+
             const totalSlots = Object.keys(lobbySlots).length;
             const filledSlots = Object.values(lobbySlots).filter(s => !!s.occupiedBy).length;
+            const allReady = totalSlots > 0 && filledSlots === totalSlots;
+
             const statusEl = document.getElementById('lobby-status-msg');
-            statusEl.innerText = `Giocatori pronti: ${filledSlots}/${totalSlots} (${onlinePlayerCount === 2 ? 'Modalità 1v1' : 'Modalità 2v2 Alternata'})`;
+            if (allReady) {
+                statusEl.innerText = `✅ Tutti i giocatori sono in stanza (${filledSlots}/${totalSlots})! Pronti a scegliere il modulo.`;
+                statusEl.className = "text-xs text-center text-emerald-300 font-bold py-2 px-3 rounded-xl bg-emerald-950/60 border border-emerald-500/40 mb-3";
+            } else {
+                statusEl.innerText = `⏳ In attesa che entrino tutti i giocatori: ${filledSlots}/${totalSlots} connessi...`;
+                statusEl.className = "text-xs text-center text-amber-300 font-bold py-2 px-3 rounded-xl bg-slate-950/90 border border-slate-800 mb-3 animate-pulse";
+            }
 
             const startBtn = document.getElementById('btn-host-start-online');
             if (isOnlineHost) {
                 startBtn.classList.remove('hidden');
+                startBtn.disabled = !allReady;
+                if (allReady) {
+                    startBtn.innerText = "🚀 PROCEDI ALLA SCELTA MODULI ➔";
+                    startBtn.className = "w-full py-3 rounded-xl font-display font-black text-sm uppercase tracking-wider bg-gradient-to-r from-emerald-500 to-green-600 text-slate-950 shadow-[0_0_20px_rgba(16,185,129,0.4)] cursor-pointer";
+                } else {
+                    startBtn.innerText = `⏳ ATTESA GIOCATORI (${filledSlots}/${totalSlots})...`;
+                    startBtn.className = "w-full py-3 rounded-xl font-display font-black text-sm uppercase tracking-wider bg-slate-800 text-slate-500 cursor-not-allowed";
+                }
             } else {
                 startBtn.classList.add('hidden');
             }
         }
 
         function syncLobbySettingsFromHost() {
-            formationRed = document.getElementById('select-form-red').value;
-            formationBlue = document.getElementById('select-form-blue').value;
             requireFivePastMidfield = document.getElementById('toggle-five-rule').checked;
             if (networkMode === 'ONLINE' && isOnlineHost) {
                 broadcastFullStateFromHost();
             }
         }
 
-        function hostStartOnlineMatch() {
+        function hostProceedToFormations() {
             if (!isOnlineHost) return;
-            startMatchFromSetup('ONLINE');
+            const totalSlots = Object.keys(lobbySlots).length;
+            const filledSlots = Object.values(lobbySlots).filter(s => !!s.occupiedBy).length;
+            if (filledSlots < totalSlots) {
+                showToast("Attendi che tutti i giocatori entrino nella stanza!", "warn");
+                return;
+            }
+            enterPreMatchFlow('ONLINE');
             broadcastFullStateFromHost();
         }
 
+        // =========================================================================
+        // PRE-MATCH STEP 1: INDEPENDENT FORMATION SELECTION
+        // =========================================================================
+        function enterPreMatchFlow(mode = 'LOCAL') {
+            networkMode = mode;
+            requireFivePastMidfield = document.getElementById('toggle-five-rule').checked;
+            usePrivacyCurtain = (mode === 'LOCAL') ? document.getElementById('toggle-privacy-init').checked : false;
+
+            formationRed = '4-3-3';
+            formationBlue = '4-3-3';
+            formationLocked = { red: false, blue: false };
+            rpsState = { redChoice: null, blueChoice: null, winner: null, statusText: '' };
+
+            gameState = 'PREMATCH_FORMATIONS';
+            syncPreMatchUI();
+        }
+
+        function canControlTeamInPreMatch(team) {
+            if (networkMode === 'LOCAL') return true;
+            return getMyTeamOnline() === team;
+        }
+
+        function selectTeamFormation(team, formKey) {
+            if (!canControlTeamInPreMatch(team)) {
+                showToast(`Puoi scegliere solo il modulo della tua squadra!`, 'warn');
+                return;
+            }
+            if (formationLocked[team]) return;
+
+            if (networkMode === 'ONLINE' && !isOnlineHost) {
+                sendOnlineAction({ kind: 'SELECT_FORMATION', team, formKey });
+                return;
+            }
+
+            if (team === 'red') formationRed = formKey;
+            else formationBlue = formKey;
+
+            syncPreMatchUI();
+            if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
+        }
+
+        function confirmTeamFormation(team) {
+            if (!canControlTeamInPreMatch(team)) {
+                showToast(`Puoi confermare solo il modulo della tua squadra!`, 'warn');
+                return;
+            }
+            if (networkMode === 'ONLINE' && !isOnlineHost) {
+                sendOnlineAction({ kind: 'CONFIRM_FORMATION', team });
+                return;
+            }
+
+            formationLocked[team] = true;
+            syncPreMatchUI();
+
+            if (formationLocked.red && formationLocked.blue) {
+                setTimeout(() => {
+                    gameState = 'PREMATCH_RPS';
+                    syncPreMatchUI();
+                    if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
+                }, 350);
+            } else if (networkMode === 'ONLINE' && isOnlineHost) {
+                broadcastFullStateFromHost();
+            }
+        }
+
+        // =========================================================================
+        // PRE-MATCH STEP 2: ROCK - PAPER - SCISSORS (SASSO CARTA FORBICE)
+        // =========================================================================
+        function submitRpsChoice(team, choice) {
+            if (!canControlTeamInPreMatch(team)) {
+                showToast(`Puoi scegliere solo per la tua squadra!`, 'warn');
+                return;
+            }
+            if (rpsState.winner) return;
+
+            if (networkMode === 'ONLINE' && !isOnlineHost) {
+                sendOnlineAction({ kind: 'RPS_CHOICE', team, choice });
+                return;
+            }
+
+            if (team === 'red') rpsState.redChoice = choice;
+            else rpsState.blueChoice = choice;
+
+            syncPreMatchUI();
+
+            if (rpsState.redChoice && rpsState.blueChoice) {
+                resolveRpsRound();
+            } else if (networkMode === 'ONLINE' && isOnlineHost) {
+                broadcastFullStateFromHost();
+            }
+        }
+
+        function resolveRpsRound() {
+            const r = rpsState.redChoice;
+            const b = rpsState.blueChoice;
+            const icons = { ROCK: '🪨 Sasso', PAPER: '📄 Carta', SCISSORS: '✂️ Forbice' };
+
+            if (r === b) {
+                rpsState.statusText = `PAREGGIO! (${icons[r]} vs ${icons[b]}). Ripetete la scelta!`;
+                syncPreMatchUI();
+                if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
+
+                setTimeout(() => {
+                    rpsState.redChoice = null;
+                    rpsState.blueChoice = null;
+                    rpsState.statusText = '';
+                    syncPreMatchUI();
+                    if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
+                }, 1700);
+                return;
+            }
+
+            const redWins = (r === 'ROCK' && b === 'SCISSORS') ||
+                            (r === 'PAPER' && b === 'ROCK') ||
+                            (r === 'SCISSORS' && b === 'PAPER');
+
+            rpsState.winner = redWins ? 'red' : 'blue';
+            rpsState.statusText = `${icons[r]} vs ${icons[b]} ➔ Vince la Squadra ${redWins ? 'ROSSA' : 'BLU'}!`;
+            syncPreMatchUI();
+            if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
+
+            setTimeout(() => {
+                startActualMatchAfterRps(rpsState.winner);
+                if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
+            }, 1900);
+        }
+
+        function syncPreMatchUI() {
+            const screenSetup = document.getElementById('screen-setup');
+            const screenPre = document.getElementById('screen-prematch');
+            const stepForm = document.getElementById('prematch-step-formations');
+            const stepRps = document.getElementById('prematch-step-rps');
+
+            if (gameState !== 'PREMATCH_FORMATIONS' && gameState !== 'PREMATCH_RPS') {
+                screenPre.classList.add('hidden');
+                return;
+            }
+
+            screenSetup.classList.add('hidden');
+            screenPre.classList.remove('hidden');
+
+            if (gameState === 'PREMATCH_FORMATIONS') {
+                stepForm.classList.remove('hidden');
+                stepRps.classList.add('hidden');
+
+                ['4-3-3', '3-5-2', '4-4-2'].forEach(f => {
+                    const bR = document.getElementById(`btn-form-red-${f}`);
+                    const bB = document.getElementById(`btn-form-blue-${f}`);
+                    bR.className = formationRed === f
+                        ? "py-2 rounded-lg font-display font-black text-xs border bg-red-500 text-white border-red-300 shadow"
+                        : "py-2 rounded-lg font-display font-bold text-xs border bg-slate-800 text-slate-400 border-slate-700";
+                    bB.className = formationBlue === f
+                        ? "py-2 rounded-lg font-display font-black text-xs border bg-blue-500 text-white border-blue-300 shadow"
+                        : "py-2 rounded-lg font-display font-bold text-xs border bg-slate-800 text-slate-400 border-slate-700";
+                });
+
+                const stR = document.getElementById('status-form-red');
+                const stB = document.getElementById('status-form-blue');
+                stR.innerText = formationLocked.red ? "✓ Modulo Confermato" : "In scelta...";
+                stR.className = formationLocked.red
+                    ? "text-[10px] font-black px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300"
+                    : "text-[10px] font-black px-2 py-0.5 rounded bg-amber-500/20 text-amber-300";
+
+                stB.innerText = formationLocked.blue ? "✓ Modulo Confermato" : "In scelta...";
+                stB.className = formationLocked.blue
+                    ? "text-[10px] font-black px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300"
+                    : "text-[10px] font-black px-2 py-0.5 rounded bg-amber-500/20 text-amber-300";
+
+                document.getElementById('btn-lock-form-red').disabled = formationLocked.red || !canControlTeamInPreMatch('red');
+                document.getElementById('btn-lock-form-blue').disabled = formationLocked.blue || !canControlTeamInPreMatch('blue');
+            } else if (gameState === 'PREMATCH_RPS') {
+                stepForm.classList.add('hidden');
+                stepRps.classList.remove('hidden');
+
+                const stR = document.getElementById('rps-status-red');
+                const stB = document.getElementById('rps-status-blue');
+                stR.innerText = rpsState.redChoice ? "✓ Scelta pronta!" : "In attesa...";
+                stB.innerText = rpsState.blueChoice ? "✓ Scelta pronta!" : "In attesa...";
+
+                const banner = document.getElementById('rps-result-banner');
+                if (rpsState.statusText) {
+                    banner.classList.remove('hidden');
+                    document.getElementById('rps-result-title').innerText = rpsState.winner ? "🏆 CALCIO D'INIZIO ASSEGNATO!" : "⚡ PAREGGIO!";
+                    document.getElementById('rps-result-desc').innerText = rpsState.statusText;
+                } else {
+                    banner.classList.add('hidden');
+                }
+            }
+        }
+
+        function startActualMatchAfterRps(kickoffWinnerTeam) {
+            document.getElementById('screen-prematch').classList.add('hidden');
+            document.getElementById('screen-game').classList.remove('hidden');
+
+            firstHalfKickoffTeam = kickoffWinnerTeam || 'red';
+            scoreRed = 0;
+            scoreBlue = 0;
+            turnNumber = 1;
+            matchMinute = 0;
+            currentHalf = 1;
+            expelledPlayers = [];
+
+            const keys = Object.keys(CARD_CATALOG);
+            teamCards.red = Array.from({ length: 3 }, () => keys[Math.floor(Math.random() * keys.length)]);
+            teamCards.blue = Array.from({ length: 3 }, () => keys[Math.floor(Math.random() * keys.length)]);
+
+            resetPitchForKickoff(firstHalfKickoffTeam);
+        }
+
+        // =========================================================================
+        // NETWORK SYNCHRONIZATION
+        // =========================================================================
         function sendToHost(payload) {
             if (clientConnection && clientConnection.open) {
                 clientConnection.send(payload);
@@ -952,6 +1366,9 @@
                 type: 'STATE_SYNC',
                 gameState,
                 turnNumber,
+                matchMinute,
+                currentHalf,
+                firstHalfKickoffTeam,
                 currentPhase,
                 attackingTeam,
                 requireFivePastMidfield,
@@ -961,11 +1378,14 @@
                 scoreBlue,
                 formationRed,
                 formationBlue,
+                formationLocked,
+                rpsState,
                 pieces,
                 p1ActionPoints,
                 p4Mode,
                 plannedMoves,
                 pendingRoulette,
+                periodEndState,
                 teamCards,
                 activeBuffs,
                 expelledPlayers,
@@ -1005,7 +1425,6 @@
 
             if (isOnlineHost) {
                 if (data.type === 'JOIN_REQUEST') {
-                    // Auto-assign first free slot if peer doesn't have one yet
                     const existing = Object.keys(lobbySlots).find(k => lobbySlots[k].occupiedBy === data.peerId);
                     if (!existing) {
                         const freeKey = Object.keys(lobbySlots).find(k => !lobbySlots[k].occupiedBy);
@@ -1028,28 +1447,40 @@
 
         function applyClientActionOnHost(act) {
             if (!act) return;
-            if (act.kind === 'CELL_CLICK') {
+            if (act.kind === 'SELECT_FORMATION') {
+                if (!formationLocked[act.team]) {
+                    if (act.team === 'red') formationRed = act.formKey;
+                    else formationBlue = act.formKey;
+                    syncPreMatchUI();
+                }
+            } else if (act.kind === 'CONFIRM_FORMATION') {
+                confirmTeamFormation(act.team);
+            } else if (act.kind === 'RPS_CHOICE') {
+                submitRpsChoice(act.team, act.choice);
+            } else if (act.kind === 'CELL_CLICK') {
                 selectedPieceId = act.selectedPieceId;
                 p4Mode = act.p4Mode || p4Mode;
                 handleCellClick(act.r, act.c, true);
+            } else if (act.kind === 'STAGE_LONG_SHOT') {
+                stageLongShot(true);
             } else if (act.kind === 'UNDO') {
-                undoPhaseMove();
+                undoPhaseMove(true);
             } else if (act.kind === 'CONFIRM_PHASE') {
-                confirmPhaseStep();
-            } else if (act.kind === 'LONG_SHOT') {
-                attemptLongShot();
+                confirmPhaseStep(true);
             } else if (act.kind === 'ROULETTE_SPIN') {
                 triggerManualRouletteSpin(act.forcedRoll);
             } else if (act.kind === 'ROULETTE_CONTINUE') {
-                confirmRouletteContinue();
+                confirmRouletteContinue(true);
             } else if (act.kind === 'NEXT_TURN') {
-                nextTurn();
+                nextTurn(true);
+            } else if (act.kind === 'PERIOD_CONTINUE') {
+                handlePeriodContinue(true);
             } else if (act.kind === 'SHOOTOUT_CHOICE') {
-                handleShootoutChoice(act.dir);
+                handleShootoutChoice(act.dir, true);
             } else if (act.kind === 'ACTIVATE_GUANTONI_SHOOTOUT') {
-                activateGuantoniInShootout();
+                activateGuantoniInShootout(true);
             } else if (act.kind === 'FINISH_SHOOTOUT') {
-                finishShootout();
+                finishShootout(true);
             } else if (act.kind === 'PLAY_CARD') {
                 triggerSecretCard(act.cardKey, act.cardIndex, act.team);
             }
@@ -1061,17 +1492,18 @@
             lobbySlots = st.lobbySlots || lobbySlots;
             formationRed = st.formationRed;
             formationBlue = st.formationBlue;
+            formationLocked = st.formationLocked || { red: false, blue: false };
+            rpsState = st.rpsState || rpsState;
             requireFivePastMidfield = st.requireFivePastMidfield;
 
-            document.getElementById('select-form-red').value = formationRed;
-            document.getElementById('select-form-blue').value = formationBlue;
             document.getElementById('toggle-five-rule').checked = requireFivePastMidfield;
-
             renderLobbySlotsUI();
 
-            const prevState = gameState;
             gameState = st.gameState;
             turnNumber = st.turnNumber;
+            matchMinute = st.matchMinute || 0;
+            currentHalf = st.currentHalf || 1;
+            firstHalfKickoffTeam = st.firstHalfKickoffTeam || 'red';
             currentPhase = st.currentPhase;
             attackingTeam = st.attackingTeam;
             scoreRed = st.scoreRed;
@@ -1081,38 +1513,55 @@
             p4Mode = st.p4Mode;
             plannedMoves = st.plannedMoves;
             pendingRoulette = st.pendingRoulette;
+            periodEndState = st.periodEndState || periodEndState;
             teamCards = st.teamCards;
             activeBuffs = st.activeBuffs;
             expelledPlayers = st.expelledPlayers;
             shootoutState = st.shootoutState;
+
+            if (gameState === 'PREMATCH_FORMATIONS' || gameState === 'PREMATCH_RPS') {
+                syncPreMatchUI();
+                return;
+            } else {
+                document.getElementById('screen-prematch').classList.add('hidden');
+            }
 
             if (gameState !== 'SETUP') {
                 document.getElementById('screen-setup').classList.add('hidden');
                 document.getElementById('screen-game').classList.remove('hidden');
             }
 
-            // Sync Roulette Modal
+            // Sync Roulette Modal (All 4 players see it!)
             if (gameState === 'ROULETTE' && pendingRoulette.active) {
                 syncRouletteModalUI();
             } else {
                 document.getElementById('screen-roulette').classList.add('hidden');
             }
 
-            // Sync Resolution Overlay
+            // Sync Non-Obstructing Resolution Dock
             if (gameState === 'RESOLUTION') {
                 document.getElementById('resolution-title').innerText = st.resolutionUI.title;
                 document.getElementById('resolution-title').className = st.resolutionUI.titleClass;
                 document.getElementById('resolution-desc').innerText = st.resolutionUI.desc;
-                document.getElementById('screen-resolution').classList.remove('hidden');
+                document.getElementById('dock-playing-controls').classList.add('hidden');
+                document.getElementById('dock-resolution-controls').classList.remove('hidden');
             } else {
-                document.getElementById('screen-resolution').classList.add('hidden');
+                document.getElementById('dock-playing-controls').classList.remove('hidden');
+                document.getElementById('dock-resolution-controls').classList.add('hidden');
             }
 
-            // Sync Shootout Screen
+            // Sync Shootout Screen (All 4 players see it!)
             if (gameState === 'SHOOTOUT') {
                 syncShootoutScreenUI(st.shootoutResultUI);
             } else {
                 document.getElementById('screen-shootout').classList.add('hidden');
+            }
+
+            // Sync Halftime / Fulltime Screen
+            if (gameState === 'PERIOD_END') {
+                syncPeriodEndModalUI();
+            } else {
+                document.getElementById('screen-period-end').classList.add('hidden');
             }
 
             if (currentPhase === 4 && isMyTurnOnline()) {
@@ -1126,7 +1575,7 @@
         }
 
         // =========================================================================
-        // ONLINE ROLE & TURN PERMISSIONS (2-DEVICE & 4-DEVICE ALTERNATING)
+        // ONLINE ROLE & DYNAMIC PITCH ORIENTATION (MY GOAL AT THE BOTTOM)
         // =========================================================================
         function getRequiredSlotForPhase(phase = currentPhase) {
             const defTeam = attackingTeam === 'red' ? 'blue' : 'red';
@@ -1136,9 +1585,6 @@
                 return teamForPhase; // 'red' or 'blue'
             }
 
-            // 4-Device Mode: A and B alternate who goes first each turn!
-            // Odd turns (T1, T3...): A does 1st move (P1 or P2), B does 2nd move (P4 or P3).
-            // Even turns (T2, T4...): B does 1st move (P1 or P2), A does 2nd move (P4 or P3).
             const isOddTurn = (turnNumber % 2 === 1);
             const isFirstTeamMove = (phase === 1 || phase === 2);
             let subRole = 'A';
@@ -1183,32 +1629,49 @@
             return myOnlineSlot.startsWith('red') ? 'red' : 'blue';
         }
 
+        // Red Goal is at Row 0 (top in raw coordinates), Blue Goal is at Row 11 (bottom in raw coordinates).
+        // So when viewing from Red's perspective, we flip the pitch 180deg so Red's goal is at the bottom!
+        function shouldFlipPitchForCurrentViewer() {
+            if (!autoFlipPitch) return manualFlipOverride;
+            if (networkMode === 'ONLINE' && getMyTeamOnline()) {
+                return getMyTeamOnline() === 'red';
+            }
+            // In Local mode during RESOLUTION, keep perspective of attacking team; during PLAYING, use active phase team
+            if (gameState === 'RESOLUTION') {
+                return attackingTeam === 'red';
+            }
+            return getActiveTeamForPhase(currentPhase) === 'red';
+        }
+
+        function toggleAutoFlip() {
+            if (autoFlipPitch) {
+                autoFlipPitch = false;
+                manualFlipOverride = !shouldFlipPitchForCurrentViewer();
+                showToast("Visuale campo bloccata manualmente.", "info");
+            } else {
+                autoFlipPitch = true;
+                showToast("Visuale Dinamica ATTIVA: la tua porta è sempre in basso!", "success");
+            }
+            updateHUD();
+            renderBoard();
+        }
+
+        function applyPitchOrientationUI() {
+            const pitchBox = document.getElementById('pitch-box');
+            if (!pitchBox) return;
+            const flip = shouldFlipPitchForCurrentViewer();
+            pitchBox.classList.toggle('flipped-pitch', flip);
+
+            const btnFlip = document.getElementById('btn-flip-toggle');
+            if (btnFlip) {
+                const perspectiveTeam = flip ? 'Rossi' : 'Blu';
+                btnFlip.innerText = `🔄 Porta ${perspectiveTeam} Giù`;
+            }
+        }
+
         // =========================================================================
         // MATCH INITIALIZATION & FORMATIONS
         // =========================================================================
-        function startMatchFromSetup(mode = 'LOCAL') {
-            networkMode = mode;
-            formationRed = document.getElementById('select-form-red').value;
-            formationBlue = document.getElementById('select-form-blue').value;
-            requireFivePastMidfield = document.getElementById('toggle-five-rule').checked;
-            usePrivacyCurtain = (mode === 'LOCAL') ? document.getElementById('toggle-privacy-init').checked : false;
-            updatePrivacyButtonUI();
-
-            scoreRed = 0;
-            scoreBlue = 0;
-            turnNumber = 1;
-            expelledPlayers = [];
-
-            const keys = Object.keys(CARD_CATALOG);
-            teamCards.red = Array.from({ length: 3 }, () => keys[Math.floor(Math.random() * keys.length)]);
-            teamCards.blue = Array.from({ length: 3 }, () => keys[Math.floor(Math.random() * keys.length)]);
-
-            document.getElementById('screen-setup').classList.add('hidden');
-            document.getElementById('screen-game').classList.remove('hidden');
-
-            resetPitchForKickoff('red');
-        }
-
         function resetPitchForKickoff(kickoffTeam) {
             attackingTeam = kickoffTeam;
             setupFormationPieces(formationRed, formationBlue, kickoffTeam);
@@ -1221,14 +1684,12 @@
             const fRed = FORMATIONS[formKeyRed];
             const fBlue = FORMATIONS[formKeyBlue];
 
-            // RED TEAM (Top half: GK at r=0, c=3; shooting zone defended at r=1, c=2..4; players in r=2..5)
             let rNum = 1;
             pieces.push({ id: `R${rNum}`, num: rNum++, team: 'red', r: 0, c: 3, isGK: true, hasBall: false });
             fRed.def.forEach(p => pieces.push({ id: `R${rNum}`, num: rNum++, team: 'red', r: p[0], c: p[1], isGK: false, hasBall: false }));
             fRed.mid.forEach((p, idx) => pieces.push({ id: `R${rNum}`, num: rNum++, team: 'red', r: p[0], c: p[1], isGK: false, hasBall: (ballTeam === 'red' && idx === 1) }));
             fRed.att.forEach(p => pieces.push({ id: `R${rNum}`, num: rNum++, team: 'red', r: p[0], c: p[1], isGK: false, hasBall: false }));
 
-            // BLUE TEAM (Bottom half: GK at r=11, c=3; shooting zone defended at r=10, c=2..4; players mirrored to r=6..9)
             let bNum = 1;
             pieces.push({ id: `B${bNum}`, num: bNum++, team: 'blue', r: 11, c: 3, isGK: true, hasBall: false });
             fBlue.def.forEach(p => pieces.push({ id: `B${bNum}`, num: bNum++, team: 'blue', r: 11 - p[0], c: 6 - p[1], isGK: false, hasBall: false }));
@@ -1238,12 +1699,12 @@
 
         function togglePrivacyMode() {
             if (networkMode === 'ONLINE') {
-                showToast(`Modalità Online attiva (${getSlotDisplayName(myOnlineSlot)})`, "info");
+                showToast(`Stanza Online (${getSlotDisplayName(myOnlineSlot)})`, "info");
                 return;
             }
             usePrivacyCurtain = !usePrivacyCurtain;
             updatePrivacyButtonUI();
-            showToast(usePrivacyCurtain ? "Velo Privacy ATTIVO (Passa il telefono)" : "Modalità Veloce ATTIVA (Senza velo)", "info");
+            showToast(usePrivacyCurtain ? "Velo Privacy ATTIVO" : "Velo Privacy DISATTIVATO", "info");
         }
 
         function updatePrivacyButtonUI() {
@@ -1272,6 +1733,9 @@
             activeBuffs.extra_sprint = false;
             activeBuffs.bordata = false;
             activeBuffs.maestro = false;
+
+            document.getElementById('dock-playing-controls').classList.remove('hidden');
+            document.getElementById('dock-resolution-controls').classList.add('hidden');
 
             // Tick down red card suspensions
             expelledPlayers.forEach(e => e.turns--);
@@ -1337,7 +1801,7 @@
                 desc.innerText = `Passa a Sq2 P3 (${isRed ? 'Rossi' : 'Blu'} - Difesa 2)`;
             } else if (phase === 4) {
                 title.innerText = "Fase 4: Regista (Palla)";
-                desc.innerText = `Passa a Sq1 P4 (${isRed ? 'Rossi' : 'Blu'} - Le mosse difensive sono nascoste!)`;
+                desc.innerText = `Passa a Sq1 P4 (${isRed ? 'Rossi' : 'Blu'} - Mosse difensive nascoste!)`;
             }
 
             document.getElementById('screen-interstitial').classList.remove('hidden');
@@ -1356,27 +1820,23 @@
         }
 
         // =========================================================================
-        // VISIBILITY & BOARD SIMULATION PER PHASE (WITH ONLINE FOG OF WAR)
+        // VISIBILITY & BOARD SIMULATION PER PHASE
         // =========================================================================
         function isCellPlayable(r, c) {
             if (r < 0 || r > 11 || c < 0 || c > 6) return false;
-            if (r === 0 || r === 11) return c === 3; // GK Boxes (r=0 Red GK, r=11 Blue GK)
-            if (r === 1 || r === 10) return c >= 2 && c <= 4; // 3 Shooting Zone cells
-            return true; // Rows 2..9 full 7 columns
+            if (r === 0 || r === 11) return c === 3;
+            if (r === 1 || r === 10) return c >= 2 && c <= 4;
+            return true;
         }
 
         function isDefendingShootingZone(team, r, c) {
-            // Red GK is at r=0 -> Red defends Top Shooting Zone (r=1, c=2..4)
             if (team === 'red' && r === 1 && c >= 2 && c <= 4) return true;
-            // Blue GK is at r=11 -> Blue defends Bottom Shooting Zone (r=10, c=2..4)
             if (team === 'blue' && r === 10 && c >= 2 && c <= 4) return true;
             return false;
         }
 
         function isAttackingShootingZone(team, r, c) {
-            // Red attacks downwards -> Bottom Shooting Zone (r=10, c=2..4)
             if (team === 'red' && r === 10 && c >= 2 && c <= 4) return true;
-            // Blue attacks upwards -> Top Shooting Zone (r=1, c=2..4)
             if (team === 'blue' && r === 1 && c >= 2 && c <= 4) return true;
             return false;
         }
@@ -1394,34 +1854,32 @@
                 }
             };
 
-            // P1 moves are visible in ALL phases (1, 2, 3, 4)
             plannedMoves[1].forEach(m => applyMove(m));
 
-            // P2 and P3 moves are visible during Phase 2 & 3, and HIDDEN during Phase 4!
             if (phase === 2 || phase === 3) {
                 applyMove(plannedMoves[2]);
             }
             if (phase === 3) {
                 applyMove(plannedMoves[3]);
             }
+            if (phase === 4 && plannedMoves[4] && plannedMoves[4].type === 'move') {
+                applyMove(plannedMoves[4]);
+            }
 
             return sim;
         }
 
         function getVisiblePiecesForThisDevice() {
-            // In Online Mode, attacking team devices NEVER see defensive P2/P3 moves during Phases 2, 3, 4 until Resolution!
             if (networkMode === 'ONLINE' && gameState === 'PLAYING') {
                 const myTeam = getMyTeamOnline();
                 if (myTeam === attackingTeam) {
-                    return getVisiblePieces(4); // Only shows P1 moves, hiding P2 and P3
+                    return getVisiblePieces(4);
                 }
             }
             return getVisiblePieces(currentPhase);
         }
 
         function countAttackersPastMidfield(pieceList) {
-            // Red is on Top half (0..5) -> opponent's half is r >= 6
-            // Blue is on Bottom half (6..11) -> opponent's half is r <= 5
             if (attackingTeam === 'red') {
                 return pieceList.filter(p => p.team === 'red' && p.r >= 6).length;
             } else {
@@ -1434,7 +1892,7 @@
         }
 
         // =========================================================================
-        // MOVEMENT & PASSING VALIDATION RULES
+        // MOVEMENT & UPDATED PASSING RULES (SAFE DISTANCE = 3, -10% PER CELL, -10% SPACE PASS)
         // =========================================================================
         function canPlayerMoveTo(piece, targetR, targetC, visPieces) {
             if (!isCellPlayable(targetR, targetC)) return { valid: false };
@@ -1444,11 +1902,9 @@
             }
             if (targetR === piece.r && targetC === piece.c) return { valid: false };
 
-            // Cannot overlap with a teammate
             const hasTeammate = visPieces.some(x => x.team === piece.team && x.id !== piece.id && x.r === targetR && x.c === targetC);
             if (hasTeammate) return { valid: false, reason: "Casella già occupata da un compagno." };
 
-            // Rule: Max 1 defender in own Shooting Zone (r=1 for Red, r=10 for Blue)
             if (isDefendingShootingZone(piece.team, targetR, targetC)) {
                 const otherDefendersInZone = visPieces.filter(
                     x => x.team === piece.team && x.id !== piece.id && isDefendingShootingZone(piece.team, x.r, x.c)
@@ -1460,7 +1916,6 @@
 
             const dr = Math.abs(targetR - piece.r);
             const dc = Math.abs(targetC - piece.c);
-            const maxD = Math.max(dr, dc);
 
             // Phase 4 Ball Carrier Dribbling: 1 cell in any direction (+1 with Extra Sprint)
             if (currentPhase === 4 && piece.hasBall) {
@@ -1481,7 +1936,7 @@
 
             if (!isOrtho && !isDiag) return { valid: false };
 
-            return { valid: true, cost: 1, maxD };
+            return { valid: true, cost: 1 };
         }
 
         function evaluatePassTarget(ballCarrier, targetR, targetC, visPieces) {
@@ -1495,7 +1950,7 @@
             // 1. Direct pass to a teammate standing on (targetR, targetC)
             const directAlly = visPieces.find(x => x.team === ballCarrier.team && x.id !== ballCarrier.id && !x.isGK && x.r === targetR && x.c === targetC);
 
-            // 2. Pass into space (empty of teammates, but at least 1 non-GK teammate is adjacent within 1 step)
+            // 2. Space pass (empty cell adjacent to a teammate)
             let spaceAlly = null;
             if (!directAlly) {
                 const adjAllies = visPieces.filter(x =>
@@ -1516,19 +1971,33 @@
             const isSpacePass = !directAlly && !!spaceAlly;
             const isTriangolazione = didP1MovePlayer(receiver.id);
 
+            // UPDATED PASSING RULES:
+            // - Safe distance is 3 orthogonal steps (manhattan <= 3).
+            // - Beyond 3 steps: -10% per extra step (-5% if "Il Maestro" card is active).
+            // - Space pass (not directly on the player): -10% default feasibility!
+            const SAFE_PASS_DISTANCE = 3;
             let successChance = 100;
-            const penaltyPerStep = activeBuffs.maestro ? 10 : 20;
-            if (manhattan > 4) {
-                successChance = 100 - (manhattan - 4) * penaltyPerStep;
-            }
-            if (isTriangolazione && successChance < 100) {
-                successChance = Math.min(95, successChance + 15);
-            }
-            successChance = Math.max(5, Math.min(100, successChance));
+            const penaltyPerStep = activeBuffs.maestro ? 5 : 10;
 
-            let modParts = [`Distanza: ${manhattan} caselle`];
-            if (manhattan > 4) modParts.push(`Malus: -${(manhattan - 4) * penaltyPerStep}%${activeBuffs.maestro ? ' (Il Maestro)' : ''}`);
-            if (isTriangolazione) modParts.push(`Bonus 1-2: +15%`);
+            let modParts = [`Dist: ${manhattan} (Max sicura: 3)`];
+
+            if (manhattan > SAFE_PASS_DISTANCE) {
+                const distPenalty = (manhattan - SAFE_PASS_DISTANCE) * penaltyPerStep;
+                successChance -= distPenalty;
+                modParts.push(`Dist. oltre 3: -${distPenalty}%${activeBuffs.maestro ? ' (Maestro)' : ''}`);
+            }
+
+            if (isSpacePass) {
+                successChance -= 10;
+                modParts.push(`Sulla Corsa: -10%`);
+            }
+
+            if (isTriangolazione && successChance < 100) {
+                successChance = Math.min(95, successChance + 10);
+                modParts.push(`Bonus 1-2: +10%`);
+            }
+
+            successChance = Math.max(5, Math.min(100, successChance));
 
             return {
                 valid: true,
@@ -1555,7 +2024,6 @@
                 }
             }
 
-            // Red attacks bottom shooting zone (r=10), Blue attacks top shooting zone (r=1)
             const targetRow = attackingTeam === 'red' ? 10 : 1;
             let minD = 999;
             for (let c = 2; c <= 4; c++) {
@@ -1587,18 +2055,20 @@
         function updateScoreboardUI() {
             document.getElementById('score-red').innerText = scoreRed;
             document.getElementById('score-blue').innerText = scoreBlue;
-            document.getElementById('turn-counter').innerText = `T${turnNumber}`;
+            document.getElementById('match-clock').innerText = `${matchMinute}'`;
+            document.getElementById('match-half-label').innerText = `${currentHalf}°T • T${turnNumber}`;
         }
 
         function updateHUD() {
             updateScoreboardUI();
             updatePrivacyButtonUI();
+            applyPitchOrientationUI();
+
             const vis = getVisiblePiecesForThisDevice();
             const activeTeam = getActiveTeamForPhase(currentPhase);
             const activeSlot = getRequiredSlotForPhase(currentPhase);
             const myTurn = isMyTurnOnline();
 
-            // Role badges
             const rRole = document.getElementById('role-red');
             const bRole = document.getElementById('role-blue');
             if (attackingTeam === 'red') {
@@ -1613,23 +2083,21 @@
                 rRole.className = "text-[9px] font-black px-1.5 py-0.5 rounded bg-slate-800 text-red-300 border border-red-500/30";
             }
 
-            // Midfield Offensive Push Indicator
             const midEl = document.getElementById('midfield-indicator');
             if (requireFivePastMidfield) {
                 const attCount = countAttackersPastMidfield(vis);
                 if (attCount >= 5) {
                     midEl.innerHTML = `<span>⚡ Spinta: ${attCount}/5 ✓</span>`;
-                    midEl.className = "px-2 py-1 rounded-lg bg-emerald-500/20 border border-emerald-500/40 font-black flex items-center gap-1 text-emerald-300";
+                    midEl.className = "px-2 py-1 rounded-lg bg-emerald-500/20 border border-emerald-500/40 font-black flex items-center gap-1 text-emerald-300 text-[10px]";
                 } else {
                     midEl.innerHTML = `<span>⚠️ Spinta: ${attCount}/5</span>`;
-                    midEl.className = "px-2 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30 font-bold flex items-center gap-1 text-amber-300";
+                    midEl.className = "px-2 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30 font-bold flex items-center gap-1 text-amber-300 text-[10px]";
                 }
             } else {
-                midEl.innerHTML = `<span>⚡ Tiro: Libero</span>`;
-                midEl.className = "px-2 py-1 rounded-lg bg-slate-800 border border-slate-700 font-bold flex items-center gap-1 text-emerald-400";
+                midEl.innerHTML = `<span>⚡ Tiro Libero</span>`;
+                midEl.className = "px-2 py-1 rounded-lg bg-slate-800 border border-slate-700 font-bold flex items-center gap-1 text-emerald-400 text-[10px]";
             }
 
-            // Phase Pill
             const phasePill = document.getElementById('phase-pill');
             const teamDot = activeTeam === 'red' ? '🔴' : '🔵';
             if (currentPhase === 1) phasePill.innerText = `${teamDot} F1 • PA: ${p1ActionPoints}/2`;
@@ -1637,12 +2105,10 @@
             if (currentPhase === 3) phasePill.innerText = `${teamDot} F3 • DIFESA 2`;
             if (currentPhase === 4) phasePill.innerText = `${teamDot} F4 • REGISTA`;
 
-            // Cards Counter
             const cardTeam = (networkMode === 'ONLINE' && getMyTeamOnline()) ? getMyTeamOnline() : activeTeam;
             const cardsArr = cardTeam === 'red' ? teamCards.red : teamCards.blue;
             document.getElementById('cards-count-badge').innerText = cardsArr.length;
 
-            // Active Buffs, Online Turn Indicator & Expulsions Row
             const badgesRow = document.getElementById('status-badges-row');
             badgesRow.innerHTML = '';
 
@@ -1653,23 +2119,31 @@
                 badgesRow.innerHTML += `<span class="px-2 py-0.5 rounded border ${turnBadgeClass} text-[10px] font-black">${myTurn ? '🟢 TOCCA A TE' : '⏳ Turno di: ' + getSlotDisplayName(activeSlot)}</span>`;
             }
 
+            if (matchMinute === 42) {
+                badgesRow.innerHTML += `<span class="px-2 py-0.5 rounded bg-amber-500/20 border border-amber-400 text-amber-300 text-[10px] font-black">⏱️ Prossimo turno: Ultima azione 1°T (45')</span>`;
+            } else if (matchMinute === 45) {
+                badgesRow.innerHTML += `<span class="px-2 py-0.5 rounded bg-red-500/25 border border-red-400 text-red-200 text-[10px] font-black animate-pulse">🔥 ULTIMA AZIONE PRIMO TEMPO (45')!</span>`;
+            } else if (matchMinute === 90) {
+                badgesRow.innerHTML += `<span class="px-2 py-0.5 rounded bg-red-600/30 border border-red-400 text-white text-[10px] font-black animate-pulse">🚨 ULTIMA AZIONE DELLA PARTITA (90')!</span>`;
+            }
+
             if (activeBuffs.extra_sprint) {
                 badgesRow.innerHTML += `<span class="px-2 py-0.5 rounded bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 text-[10px] font-bold">⚡ Extra Sprint (+1)</span>`;
             }
             if (activeBuffs.maestro) {
-                badgesRow.innerHTML += `<span class="px-2 py-0.5 rounded bg-purple-500/20 border border-purple-400/40 text-purple-300 text-[10px] font-bold">🎩 Il Maestro</span>`;
+                badgesRow.innerHTML += `<span class="px-2 py-0.5 rounded bg-purple-500/20 border border-purple-400/40 text-purple-300 text-[10px] font-bold">🎩 Il Maestro (-5%)</span>`;
             }
             if (activeBuffs.bordata) {
                 badgesRow.innerHTML += `<span class="px-2 py-0.5 rounded bg-amber-500/20 border border-amber-400/40 text-amber-300 text-[10px] font-bold">🚀 Bordata</span>`;
             }
             if (activeBuffs.guantoni_red || activeBuffs.guantoni_blue) {
-                badgesRow.innerHTML += `<span class="px-2 py-0.5 rounded bg-yellow-500/20 border border-yellow-400/40 text-yellow-300 text-[10px] font-bold">🧤 Guantoni d'Oro Pronti</span>`;
+                badgesRow.innerHTML += `<span class="px-2 py-0.5 rounded bg-yellow-500/20 border border-yellow-400/40 text-yellow-300 text-[10px] font-bold">🧤 Guantoni d'Oro</span>`;
             }
             expelledPlayers.forEach(e => {
                 badgesRow.innerHTML += `<span class="px-2 py-0.5 rounded bg-red-600/30 border border-red-500/50 text-red-200 text-[10px] font-bold">🟥 #${e.num} (${e.team === 'red' ? 'R' : 'B'}): ${e.turns}t</span>`;
             });
 
-            // Footer Instructions & Action Buttons
+            // Footer Instructions & Mandatory Confirmation Buttons
             const instr = document.getElementById('instruction-text');
             const btnUndo = document.getElementById('btn-undo-phase');
             const btnConfirm = document.getElementById('btn-confirm-phase');
@@ -1680,13 +2154,19 @@
             p4Bar.classList.add('hidden');
 
             if (!myTurn) {
-                instr.innerText = `⏳ In attesa della mossa di ${getSlotDisplayName(activeSlot)}...`;
+                instr.innerText = `⏳ In attesa della mossa e conferma di ${getSlotDisplayName(activeSlot)}...`;
                 return;
             }
 
             if (currentPhase === 1) {
-                instr.innerText = `P1 Attacco: Muovi compagni senza palla (${p1ActionPoints} PA rimasti)`;
-                if (plannedMoves[1].length > 0) {
+                if (plannedMoves[1].length === 0) {
+                    instr.innerText = `P1 Attacco: Muovi fino a 2 compagni senza palla (2 PA)`;
+                } else if (p1ActionPoints > 0) {
+                    instr.innerText = `1ª mossa pronta (${p1ActionPoints} PA rimasto): muovi ancora o Conferma`;
+                    btnUndo.classList.remove('hidden');
+                    btnConfirm.classList.remove('hidden');
+                } else {
+                    instr.innerText = `2 mosse pianificate! Premi Conferma Mossa o Ripensa`;
                     btnUndo.classList.remove('hidden');
                     btnConfirm.classList.remove('hidden');
                 }
@@ -1694,7 +2174,7 @@
                 if (!plannedMoves[2]) {
                     instr.innerText = "P2 Difesa: Seleziona e muovi il 1° difensore";
                 } else {
-                    instr.innerText = "Mossa pronta! Conferma o gioca una Carta Fallo";
+                    instr.innerText = "Mossa P2 pronta! Premi Conferma Mossa o Ripensa";
                     btnUndo.classList.remove('hidden');
                     btnConfirm.classList.remove('hidden');
                 }
@@ -1702,14 +2182,14 @@
                 if (!plannedMoves[3]) {
                     instr.innerText = "P3 Difesa: Seleziona e muovi un 2° difensore diverso";
                 } else {
-                    instr.innerText = "Mossa pronta! Conferma o gioca una Carta Fallo";
+                    instr.innerText = "Mossa P3 pronta! Premi Conferma Mossa o Ripensa";
                     btnUndo.classList.remove('hidden');
                     btnConfirm.classList.remove('hidden');
                 }
             } else if (currentPhase === 4) {
                 p4Bar.classList.remove('hidden');
-                const carrier = vis.find(p => p.hasBall);
-                const shotEval = evaluateLongShot(carrier, vis);
+                const carrier = pieces.find(p => p.hasBall && !expelledPlayers.some(e => e.id === p.id));
+                const shotEval = evaluateLongShot(carrier, getVisiblePieces(4));
 
                 const dBtn = document.getElementById('mode-btn-dribble');
                 const pBtn = document.getElementById('mode-btn-pass');
@@ -1725,15 +2205,25 @@
 
                 sLabel.innerText = shotEval.canShoot ? `🚀 Tira (${shotEval.chance}%)` : `🚀 Tira (Fuori Raggio)`;
 
-                instr.innerText = p4Mode === 'PASS'
-                    ? "Tocca un compagno o una casella vuota adiacente (Corsa ⚡)"
-                    : "Tocca una casella adiacente per dribblare con la palla";
+                if (plannedMoves[4]) {
+                    const m4 = plannedMoves[4];
+                    if (m4.type === 'move') instr.innerText = "Dribbling pronto! Premi Conferma Mossa o Ripensa";
+                    else if (m4.type === 'pass') instr.innerText = `Passaggio (${m4.successChance}%) pronto! Conferma o Ripensa`;
+                    else if (m4.type === 'longshot') instr.innerText = `Tiro dalla distanza (${m4.chance}%) pronto! Conferma o Ripensa`;
+                    btnUndo.classList.remove('hidden');
+                    btnConfirm.classList.remove('hidden');
+                } else {
+                    instr.innerText = p4Mode === 'PASS'
+                        ? "Scegli dove passare (Sicuro ≤3; Corsa -10%)"
+                        : "Scegli una casella adiacente per dribblare";
+                }
             }
         }
 
         function setP4Mode(mode) {
             if (!isMyTurnOnline()) return;
             p4Mode = mode;
+            plannedMoves[4] = null;
             const vis = getVisiblePiecesForThisDevice();
             const carrier = vis.find(p => p.hasBall);
             if (carrier) selectedPieceId = carrier.id;
@@ -1742,6 +2232,7 @@
         }
 
         function renderBoard() {
+            applyPitchOrientationUI();
             const grid = document.getElementById('grid-container');
             grid.innerHTML = '';
 
@@ -1762,7 +2253,6 @@
                         continue;
                     }
 
-                    // Tactical Grid Node Dot (Always centered at 50% / 50%)
                     const isTopShoot = (r === 1 && c >= 2 && c <= 4);
                     const isBotShoot = (r === 10 && c >= 2 && c <= 4);
                     const isGoalCell = (r === 0 || r === 11);
@@ -1778,9 +2268,9 @@
                     }
                     cell.appendChild(node);
 
-                    // Highlight Valid Move / Pass Targets when a piece is selected
+                    // Highlight Valid Move / Pass Targets when a piece is selected and move not yet staged
                     if (gameState === 'PLAYING' && myTurn && selectedPiece) {
-                        if (currentPhase === 4 && selectedPiece.hasBall) {
+                        if (currentPhase === 4 && selectedPiece.hasBall && !plannedMoves[4]) {
                             if (p4Mode === 'DRIBBLE') {
                                 const mv = canPlayerMoveTo(selectedPiece, r, c, visPieces);
                                 if (mv.valid) {
@@ -1794,28 +2284,31 @@
                                     const hl = document.createElement('div');
                                     const isSafe = ps.successChance === 100;
                                     if (ps.isSpacePass) {
-                                        hl.className = `absolute inset-1 rounded-full ${isSafe ? 'bg-cyan-400/30 border-cyan-300' : 'bg-amber-500/30 border-amber-300'} border-2 border-dashed flex flex-col items-center justify-center pointer-events-none z-30`;
-                                        hl.innerHTML = `<span class="text-[8px] font-black px-1 rounded bg-slate-950/90 text-cyan-300 shadow">⚡${ps.successChance}%</span>`;
+                                        hl.className = `absolute inset-1 rounded-full bg-cyan-400/30 border-cyan-300 border-2 border-dashed flex flex-col items-center justify-center pointer-events-none z-30`;
+                                        hl.innerHTML = `<span class="counter-flip text-[8px] font-black px-1 rounded bg-slate-950/90 text-cyan-300 shadow">⚡${ps.successChance}%</span>`;
                                     } else {
                                         hl.className = `absolute inset-0.5 rounded-full ${isSafe ? 'ring-4 ring-yellow-300 bg-yellow-400/25' : 'ring-4 ring-orange-400 bg-orange-500/25'} animate-target flex items-end justify-center pointer-events-none z-40`;
-                                        hl.innerHTML = `<span class="-mb-1.5 text-[9px] font-black px-1 rounded bg-slate-950 text-yellow-300 border border-yellow-400/50 shadow">${ps.isTriangolazione ? '⚡' : ''}${ps.successChance}%</span>`;
+                                        hl.innerHTML = `<span class="counter-flip -mb-1.5 text-[9px] font-black px-1 rounded bg-slate-950 text-yellow-300 border border-yellow-400/50 shadow">${ps.isTriangolazione ? '⚡' : ''}${ps.successChance}%</span>`;
                                     }
                                     cell.appendChild(hl);
                                 }
                             }
                         } else if (currentPhase <= 3) {
-                            const mv = canPlayerMoveTo(selectedPiece, r, c, visPieces);
-                            if (mv.valid) {
-                                const hl = document.createElement('div');
-                                hl.className = "absolute inset-1.5 rounded-full bg-emerald-400/35 border-2 border-emerald-300 animate-target pointer-events-none z-20";
-                                cell.appendChild(hl);
+                            const stageReady = (currentPhase === 1 && p1ActionPoints <= 0) || (currentPhase >= 2 && !!plannedMoves[currentPhase]);
+                            if (!stageReady) {
+                                const mv = canPlayerMoveTo(selectedPiece, r, c, visPieces);
+                                if (mv.valid) {
+                                    const hl = document.createElement('div');
+                                    hl.className = "absolute inset-1.5 rounded-full bg-emerald-400/35 border-2 border-emerald-300 animate-target pointer-events-none z-20";
+                                    cell.appendChild(hl);
+                                }
                             }
                         }
                     }
 
                     // Render Pieces on this Cell
-                    // FIX 1: Single token is PERFECTLY centered at translate(-50%, -50%) over the grid dot!
-                    // Only when 2 tokens occupy the same cell, apply symmetrical offset and active-team z-index priority.
+                    // Single piece: centered at translate(-50%, -50%) over the grid dot.
+                    // Two pieces: slightly offset (-66% / -34%) with activeTeam in foreground.
                     const cellPieces = visPieces.filter(p => p.r === r && p.c === c);
                     cellPieces.sort((a, b) => {
                         if (a.team !== b.team) return a.team === activeTeam ? 1 : -1;
@@ -1845,24 +2338,27 @@
 
                         token.style.zIndex = 20 + idx * 5 + (p.team === activeTeam ? 10 : 0) + (isSelected ? 20 : 0);
                         token.className = tClass;
-                        token.innerHTML = `<span>${p.isGK ? 'GK' : p.num}</span>`;
 
-                        // Triangolazione 1-2 indicator if moved by P1 this turn
+                        // Inner wrapper with .counter-flip so jersey numbers and badges stay right-side-up when pitch is rotated 180deg!
+                        const innerWrap = document.createElement('div');
+                        innerWrap.className = "counter-flip relative w-full h-full flex items-center justify-center";
+                        innerWrap.innerHTML = `<span>${p.isGK ? 'GK' : p.num}</span>`;
+
                         if (didP1MovePlayer(p.id) && !p.hasBall) {
                             const badge12 = document.createElement('div');
                             badge12.className = "absolute -top-1.5 -left-1.5 bg-cyan-400 text-slate-950 font-black text-[8px] px-1 rounded-full shadow border border-white";
                             badge12.innerText = "1-2";
-                            token.appendChild(badge12);
+                            innerWrap.appendChild(badge12);
                         }
 
-                        // Soccer Ball Icon on Ball Carrier
                         if (p.hasBall) {
                             const ball = document.createElement('div');
                             ball.className = "ball-icon absolute -top-2 -right-2 text-xs sm:text-sm drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]";
                             ball.innerText = "⚽";
-                            token.appendChild(ball);
+                            innerWrap.appendChild(ball);
                         }
 
+                        token.appendChild(innerWrap);
                         cell.appendChild(token);
                     });
 
@@ -1871,37 +2367,27 @@
                 }
             }
 
-            requestAnimationFrame(renderArrows);
+            renderArrows();
         }
 
+        // Rotation-safe SVG Arrows using internal 700x1200 ViewBox coordinates
         function renderArrows() {
             const group = document.getElementById('arrows-group');
-            const svgLayer = document.getElementById('arrows-layer');
-            if (!group || !svgLayer) return;
+            if (!group) return;
             group.innerHTML = '';
 
-            const svgRect = svgLayer.getBoundingClientRect();
-            if (svgRect.width === 0) return;
-
             const drawLine = (fromR, fromC, toR, toC, color, dashed, markerId) => {
-                const c1 = document.getElementById(`cell-${fromR}-${fromC}`);
-                const c2 = document.getElementById(`cell-${toR}-${toC}`);
-                if (!c1 || !c2) return;
-
-                const r1 = c1.getBoundingClientRect();
-                const r2 = c2.getBoundingClientRect();
-
-                let x1 = r1.left + r1.width / 2 - svgRect.left;
-                let y1 = r1.top + r1.height / 2 - svgRect.top;
-                let x2 = r2.left + r2.width / 2 - svgRect.left;
-                let y2 = r2.top + r2.height / 2 - svgRect.top;
+                let x1 = (fromC + 0.5) * 100;
+                let y1 = (fromR + 0.5) * 100;
+                let x2 = (toC + 0.5) * 100;
+                let y2 = (toR + 0.5) * 100;
 
                 const dx = x2 - x1;
                 const dy = y2 - y1;
                 const len = Math.hypot(dx, dy);
-                if (len > 14) {
-                    x2 -= (dx / len) * 12;
-                    y2 -= (dy / len) * 12;
+                if (len > 28) {
+                    x2 -= (dx / len) * 24;
+                    y2 -= (dy / len) * 24;
                 }
 
                 const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
@@ -1910,9 +2396,9 @@
                 line.setAttribute('x2', x2);
                 line.setAttribute('y2', y2);
                 line.setAttribute('stroke', color);
-                line.setAttribute('stroke-width', '3');
+                line.setAttribute('stroke-width', '7');
                 line.setAttribute('stroke-linecap', 'round');
-                if (dashed) line.setAttribute('stroke-dasharray', '5 4');
+                if (dashed) line.setAttribute('stroke-dasharray', '12 9');
                 line.setAttribute('marker-end', `url(#${markerId})`);
                 group.appendChild(line);
             };
@@ -1928,7 +2414,7 @@
                 drawLine(m.fromR, m.fromC, m.toR, m.toC, attColor, false, attMarker);
             });
 
-            // Defensive moves visibility (respecting Online Fog of War & Phase 4 privacy)
+            // Defensive moves visibility (hidden during Phase 4, revealed in Resolution)
             let showDef = (currentPhase === 2 || currentPhase === 3 || gameState === 'RESOLUTION');
             if (networkMode === 'ONLINE' && gameState === 'PLAYING' && getMyTeamOnline() === attackingTeam) {
                 showDef = false;
@@ -1941,8 +2427,9 @@
                 drawLine(plannedMoves[3].fromR, plannedMoves[3].fromC, plannedMoves[3].toR, plannedMoves[3].toC, defColor, false, defMarker);
             }
 
-            // Phase 4 move/pass shown in Resolution
-            if (gameState === 'RESOLUTION' && plannedMoves[4]) {
+            // Phase 4 preview arrow (when staged in Phase 4) OR final Resolution arrow
+            const showP4Arrow = (currentPhase === 4 && !!plannedMoves[4] && isMyTurnOnline()) || (gameState === 'RESOLUTION' && !!plannedMoves[4]);
+            if (showP4Arrow && plannedMoves[4]) {
                 const m4 = plannedMoves[4];
                 if (m4.type === 'move') {
                     drawLine(m4.fromR, m4.fromC, m4.toR, m4.toC, '#facc15', false, 'arrow-pass');
@@ -1951,12 +2438,15 @@
                     if (m4.isSpacePass) {
                         drawLine(m4.snapFromR, m4.snapFromC, m4.toR, m4.toC, '#22d3ee', false, 'arrow-space');
                     }
+                } else if (m4.type === 'longshot') {
+                    const targetRow = attackingTeam === 'red' ? 11 : 0;
+                    drawLine(m4.fromR, m4.fromC, targetRow, 3, '#facc15', true, 'arrow-pass');
                 }
             }
         }
 
         // =========================================================================
-        // INTERACTION HANDLER (CELL CLICK, UNDO, CONFIRM)
+        // INTERACTION HANDLER (MANDATORY CONFIRMATION ON ALL MOVES)
         // =========================================================================
         function handleCellClick(r, c, fromNetworkHost = false) {
             if (gameState !== 'PLAYING') return;
@@ -1967,19 +2457,17 @@
 
             const visPieces = getVisiblePieces(currentPhase);
             const activeTeam = getActiveTeamForPhase(currentPhase);
-            const defTeam = attackingTeam === 'red' ? 'blue' : 'red';
 
             const cellPieces = visPieces.filter(p => p.r === r && p.c === c);
             const activeTeamPieceInCell = cellPieces.find(p => p.team === activeTeam);
 
-            // If client in Online Mode is clicking a target cell with a piece selected, forward to Host
             if (networkMode === 'ONLINE' && !isOnlineHost && !fromNetworkHost) {
                 if (currentPhase <= 3 && activeTeamPieceInCell && !activeTeamPieceInCell.isGK && !(currentPhase === 1 && activeTeamPieceInCell.hasBall)) {
                     selectedPieceId = (selectedPieceId === activeTeamPieceInCell.id) ? null : activeTeamPieceInCell.id;
                     renderBoard();
                     return;
                 }
-                if (currentPhase === 4 && activeTeamPieceInCell && activeTeamPieceInCell.hasBall) {
+                if (currentPhase === 4 && activeTeamPieceInCell && activeTeamPieceInCell.hasBall && !plannedMoves[4]) {
                     setP4Mode(p4Mode === 'PASS' ? 'DRIBBLE' : 'PASS');
                     return;
                 }
@@ -1987,10 +2475,10 @@
                 return;
             }
 
-            // PHASE 1: P1 (Attack without ball, 2 Action Points)
+            // PHASE 1: P1 (Attack without ball, 2 Action Points - NEVER auto-confirms)
             if (currentPhase === 1) {
                 if (p1ActionPoints <= 0) {
-                    showToast("Hai esaurito i Punti Azione! Premi Conferma.", "warn");
+                    showToast("Hai usato i 2 PA! Premi 'Conferma Mossa ✓' o '↩ Ripensa'.", "info");
                     return;
                 }
 
@@ -2022,20 +2510,15 @@
                     selectedPieceId = null;
                     updateHUD();
                     renderBoard();
-
-                    if (p1ActionPoints <= 0) {
-                        setTimeout(() => beginPhase(2), 200);
-                    } else if (networkMode === 'ONLINE' && isOnlineHost) {
-                        broadcastFullStateFromHost();
-                    }
+                    if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
                 }
                 return;
             }
 
-            // PHASE 2 & 3: Defense (1 move each)
+            // PHASE 2 & 3: Defense (1 move each - NEVER auto-confirms, always waits for Confirm button)
             if (currentPhase === 2 || currentPhase === 3) {
                 if (plannedMoves[currentPhase]) {
-                    showToast("Hai già mosso! Premi Conferma o Annulla.", "info");
+                    showToast("Mossa pronta! Premi 'Conferma Mossa ✓' o '↩ Ripensa'.", "info");
                     return;
                 }
 
@@ -2066,26 +2549,22 @@
                         toC: c
                     };
                     selectedPieceId = null;
-
-                    const defCards = defTeam === 'red' ? teamCards.red : teamCards.blue;
-                    const hasFoulCard = defCards.includes('fallo_tattico') || defCards.includes('fallo_rosso');
-
                     updateHUD();
                     renderBoard();
-
-                    if (!hasFoulCard) {
-                        setTimeout(() => confirmPhaseStep(), 200);
-                    } else {
-                        showToast("Mossa registrata! Conferma o gioca una Carta Fallo 🃏", "info");
-                        if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
-                    }
+                    if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
                 }
                 return;
             }
 
-            // PHASE 4: Playmaker (Ball Carrier Dribble or Pass)
+            // PHASE 4: Playmaker (Staged first so player can rethink or confirm!)
             if (currentPhase === 4) {
-                const carrier = visPieces.find(p => p.hasBall);
+                if (plannedMoves[4]) {
+                    showToast("Azione pronta! Premi 'Conferma Mossa ✓' o '↩ Ripensa'.", "info");
+                    return;
+                }
+
+                const baseVis = getVisiblePieces(1); // Before P4 move
+                const carrier = baseVis.find(p => p.hasBall);
                 if (!carrier) return;
                 selectedPieceId = carrier.id;
 
@@ -2095,12 +2574,12 @@
                 }
 
                 if (p4Mode === 'DRIBBLE') {
-                    const mv = canPlayerMoveTo(carrier, r, c, visPieces);
+                    const mv = canPlayerMoveTo(carrier, r, c, baseVis);
                     if (!mv.valid) {
-                        const ps = evaluatePassTarget(carrier, r, c, visPieces);
+                        const ps = evaluatePassTarget(carrier, r, c, baseVis);
                         if (ps.valid) {
                             setP4Mode('PASS');
-                            showToast("Modalità Passaggio attivata! Tocca di nuovo per passare.", "info");
+                            showToast("Modalità Passaggio attivata! Tocca di nuovo per impostare il passaggio.", "info");
                             return;
                         }
                         if (mv.reason) showToast(mv.reason, "warn");
@@ -2114,11 +2593,13 @@
                         toR: r,
                         toC: c
                     };
-                    executeResolution();
+                    updateHUD();
+                    renderBoard();
+                    if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
                 } else {
-                    const ps = evaluatePassTarget(carrier, r, c, visPieces);
+                    const ps = evaluatePassTarget(carrier, r, c, baseVis);
                     if (!ps.valid) {
-                        const mv = canPlayerMoveTo(carrier, r, c, visPieces);
+                        const mv = canPlayerMoveTo(carrier, r, c, baseVis);
                         if (mv.valid) {
                             plannedMoves[4] = {
                                 type: 'move',
@@ -2128,7 +2609,9 @@
                                 toR: r,
                                 toC: c
                             };
-                            executeResolution();
+                            updateHUD();
+                            renderBoard();
+                            if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
                             return;
                         }
                         showToast("Bersaglio non valido per il passaggio.", "warn");
@@ -2147,31 +2630,49 @@
                         isTriangolazione: ps.isTriangolazione,
                         snapFromR: ps.receiver.r,
                         snapFromC: ps.receiver.c,
-                        successChance: ps.successChance
+                        successChance: ps.successChance,
+                        modifiersText: ps.modifiersText
                     };
-
-                    if (ps.isTriangolazione) {
-                        showToast("⚡ TRIANGOLAZIONE (1-2) ATTIVA!", "success");
-                    }
-
-                    // FIX 2: If pass requires probability (< 100%), open Manual Roulette Modal!
-                    if (ps.successChance < 100) {
-                        openManualRouletteModal(
-                            ps.isSpacePass ? "FILTRANTE NELLO SPAZIO" : "PASSAGGIO FILTRANTE AZZARDATO",
-                            ps.modifiersText,
-                            ps.successChance,
-                            false
-                        );
-                    } else {
-                        executeResolution(false, true);
-                    }
+                    updateHUD();
+                    renderBoard();
+                    if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
                 }
             }
         }
 
-        function undoPhaseMove() {
-            if (!isMyTurnOnline()) return;
-            if (networkMode === 'ONLINE' && !isOnlineHost) {
+        function stageLongShot(fromNetworkHost = false) {
+            if (gameState !== 'PLAYING' || currentPhase !== 4) return;
+            if (!fromNetworkHost && !isMyTurnOnline()) return;
+
+            if (networkMode === 'ONLINE' && !isOnlineHost && !fromNetworkHost) {
+                sendOnlineAction({ kind: 'STAGE_LONG_SHOT' });
+                return;
+            }
+
+            const baseVis = getVisiblePieces(1);
+            const carrier = baseVis.find(p => p.hasBall);
+            const shotEval = evaluateLongShot(carrier, baseVis);
+
+            if (!shotEval.canShoot) {
+                showToast(shotEval.reason, "error");
+                return;
+            }
+
+            plannedMoves[4] = {
+                type: 'longshot',
+                fromR: carrier.r,
+                fromC: carrier.c,
+                chance: shotEval.chance,
+                modifiersText: shotEval.modifiersText
+            };
+            updateHUD();
+            renderBoard();
+            if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
+        }
+
+        function undoPhaseMove(fromNetworkHost = false) {
+            if (!fromNetworkHost && !isMyTurnOnline()) return;
+            if (networkMode === 'ONLINE' && !isOnlineHost && !fromNetworkHost) {
                 sendOnlineAction({ kind: 'UNDO' });
                 return;
             }
@@ -2182,25 +2683,63 @@
             } else if ((currentPhase === 2 || currentPhase === 3) && plannedMoves[currentPhase]) {
                 plannedMoves[currentPhase] = null;
                 selectedPieceId = null;
+            } else if (currentPhase === 4 && plannedMoves[4]) {
+                plannedMoves[4] = null;
+                const vis = getVisiblePieces(4);
+                const carrier = vis.find(p => p.hasBall);
+                if (carrier) selectedPieceId = carrier.id;
             }
             updateHUD();
             renderBoard();
             if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
         }
 
-        function confirmPhaseStep() {
-            if (!isMyTurnOnline()) return;
-            if (networkMode === 'ONLINE' && !isOnlineHost) {
+        function confirmPhaseStep(fromNetworkHost = false) {
+            if (!fromNetworkHost && !isMyTurnOnline()) return;
+            if (networkMode === 'ONLINE' && !isOnlineHost && !fromNetworkHost) {
                 sendOnlineAction({ kind: 'CONFIRM_PHASE' });
                 return;
             }
-            if (currentPhase === 1) beginPhase(2);
-            else if (currentPhase === 2) beginPhase(3);
-            else if (currentPhase === 3) beginPhase(4);
+
+            if (currentPhase === 1) {
+                beginPhase(2);
+            } else if (currentPhase === 2) {
+                beginPhase(3);
+            } else if (currentPhase === 3) {
+                beginPhase(4);
+            } else if (currentPhase === 4) {
+                const m4 = plannedMoves[4];
+                if (!m4) return;
+                if (m4.type === 'move') {
+                    executeResolution(false, true);
+                } else if (m4.type === 'pass') {
+                    if (m4.successChance < 100) {
+                        openManualRouletteModal(
+                            m4.isSpacePass ? "PASSAGGIO SULLA CORSA (NELLO SPAZIO)" : "PASSAGGIO FILTRANTE LUNGO",
+                            m4.modifiersText,
+                            m4.successChance,
+                            false
+                        );
+                    } else {
+                        executeResolution(false, true);
+                    }
+                } else if (m4.type === 'longshot') {
+                    if (m4.chance < 100) {
+                        openManualRouletteModal(
+                            "TIRO DALLA DISTANZA",
+                            m4.modifiersText,
+                            m4.chance,
+                            true
+                        );
+                    } else {
+                        executeResolution(true, true);
+                    }
+                }
+            }
         }
 
         // =========================================================================
-        // FIX 2: MANUAL PROBABILITY ROULETTE MODAL
+        // SHARED PROBABILITY ROULETTE MODAL (ALL 4 PLAYERS SEE IT LIVE)
         // =========================================================================
         function openManualRouletteModal(titleText, modifiersText, threshold, isLongShot) {
             gameState = 'ROULETTE';
@@ -2237,15 +2776,16 @@
             bar.style.width = `${pendingRoulette.threshold}%`;
             thEl.innerText = `${pendingRoulette.threshold}%`;
 
-            const canInteract = (networkMode === 'LOCAL') || (myOnlineSlot === getRequiredSlotForPhase(4));
+            const p4Slot = getRequiredSlotForPhase(4);
+            const canInteract = (networkMode === 'LOCAL') || (myOnlineSlot === p4Slot);
 
             if (!pendingRoulette.rolled) {
                 cursor.style.left = `0%`;
                 rollEl.innerText = `--`;
                 outEl.innerText = canInteract
-                    ? "Premi il pulsante per estrarre la probabilità!"
-                    : "⏳ In attesa dell'estrazione dell'attaccante...";
-                outEl.className = "text-sm font-black min-h-[28px] text-amber-300 mb-4";
+                    ? "Tocca il pulsante qui sotto per avviare l'estrazione!"
+                    : `👀 In diretta: ${getSlotDisplayName(p4Slot)} sta per estrarre la probabilità...`;
+                outEl.className = "text-xs sm:text-sm font-black min-h-[28px] text-amber-300 mb-4";
                 spinBtn.classList.toggle('hidden', !canInteract);
                 spinBtn.disabled = false;
                 contBtn.classList.add('hidden');
@@ -2253,10 +2793,10 @@
                 cursor.style.left = `${pendingRoulette.finalRoll}%`;
                 rollEl.innerText = `${pendingRoulette.finalRoll}`;
                 if (pendingRoulette.success) {
-                    outEl.innerText = `✨ RIUSCITO! (${pendingRoulette.finalRoll} ≤ ${pendingRoulette.threshold}%)`;
+                    outEl.innerText = `✨ RIUSCITO! (Estratto ${pendingRoulette.finalRoll} ≤ ${pendingRoulette.threshold}%)`;
                     outEl.className = "text-base font-black min-h-[28px] text-emerald-400 mb-4";
                 } else {
-                    outEl.innerText = `❌ FALLITO! (${pendingRoulette.finalRoll} > ${pendingRoulette.threshold}%)`;
+                    outEl.innerText = `❌ FALLITO! (Estratto ${pendingRoulette.finalRoll} > ${pendingRoulette.threshold}%)`;
                     outEl.className = "text-base font-black min-h-[28px] text-red-400 mb-4";
                 }
                 spinBtn.classList.add('hidden');
@@ -2282,7 +2822,7 @@
             const rollEl = document.getElementById('roulette-roll');
             const outEl = document.getElementById('roulette-outcome');
 
-            outEl.innerText = "Estrazione in corso...";
+            outEl.innerText = "🎲 Estrazione in corso...";
             let ticks = 0;
             const interval = setInterval(() => {
                 ticks++;
@@ -2302,47 +2842,14 @@
             }, 55);
         }
 
-        function confirmRouletteContinue() {
-            if (networkMode === 'ONLINE' && !isOnlineHost) {
+        function confirmRouletteContinue(fromNetworkHost = false) {
+            if (networkMode === 'ONLINE' && !isOnlineHost && !fromNetworkHost) {
                 sendOnlineAction({ kind: 'ROULETTE_CONTINUE' });
                 return;
             }
             document.getElementById('screen-roulette').classList.add('hidden');
             pendingRoulette.active = false;
             executeResolution(pendingRoulette.isLongShot, pendingRoulette.success);
-        }
-
-        // =========================================================================
-        // LONG DISTANCE SHOT
-        // =========================================================================
-        function attemptLongShot() {
-            if (gameState !== 'PLAYING' || currentPhase !== 4) return;
-            if (!isMyTurnOnline()) return;
-
-            if (networkMode === 'ONLINE' && !isOnlineHost) {
-                sendOnlineAction({ kind: 'LONG_SHOT' });
-                return;
-            }
-
-            const vis = getVisiblePieces(4);
-            const carrier = vis.find(p => p.hasBall);
-            const shotEval = evaluateLongShot(carrier, vis);
-
-            if (!shotEval.canShoot) {
-                showToast(shotEval.reason, "error");
-                return;
-            }
-
-            if (shotEval.chance < 100) {
-                openManualRouletteModal(
-                    `TIRO DALLA DISTANZA`,
-                    shotEval.modifiersText,
-                    shotEval.chance,
-                    true
-                );
-            } else {
-                executeResolution(true, true);
-            }
         }
 
         // =========================================================================
@@ -2355,11 +2862,11 @@
             const container = document.getElementById('cards-container');
             const sub = document.getElementById('cards-team-subtitle');
 
-            sub.innerText = `Mazzo ${activeTeam === 'red' ? 'Squadra Rossa' : 'Squadra Blu'} (${cards.length} carte rimaste)`;
+            sub.innerText = `Mazzo ${activeTeam === 'red' ? 'Squadra Rossa' : 'Squadra Blu'} (${cards.length} carte disponibili)`;
             container.innerHTML = '';
 
             if (cards.length === 0) {
-                container.innerHTML = `<div class="text-center py-6 text-slate-400 text-xs font-bold">Hai utilizzato tutte le carte segrete in questa partita.</div>`;
+                container.innerHTML = `<div class="text-center py-6 text-slate-400 text-xs font-bold">Nessuna carta in mano. Subendo un gol ne pescherai una nuova!</div>`;
             }
 
             cards.forEach((key, idx) => {
@@ -2435,12 +2942,14 @@
                 renderBoard();
             } else if (cardKey === 'bordata') {
                 activeBuffs.bordata = true;
+                plannedMoves[4] = null;
                 showToast("🚀 BORDATA ATTIVA! Malus tiro ridotto al 10%!", "success");
                 updateHUD();
                 renderBoard();
             } else if (cardKey === 'maestro') {
                 activeBuffs.maestro = true;
-                showToast("🎩 IL MAESTRO ATTIVO! Malus passaggio lungo ridotto al 10%!", "success");
+                plannedMoves[4] = null;
+                showToast("🎩 IL MAESTRO ATTIVO! Malus passaggio oltre 3 caselle ridotto al 5%!", "success");
                 updateHUD();
                 renderBoard();
             } else if (cardKey === 'guantoni') {
@@ -2484,24 +2993,37 @@
             }
 
             attackingTeam = defTeam;
+            showClearTurnResolution(
+                isRedCard ? "🟥 FALLO DA ROSSO! PALLA RUBATA!" : "⚠️ FALLO TATTICO! PALLA RUBATA!",
+                "font-display text-sm font-black text-amber-400 uppercase tracking-wide",
+                isRedCard
+                    ? `Il #${foulingPiece.num} ferma l'azione ed è espulso per 10 turni! Possesso ai ${defTeam === 'red' ? 'Rossi' : 'Blu'}.`
+                    : `Intervento tattico del #${foulingPiece.num}! Possesso ai ${defTeam === 'red' ? 'Rossi' : 'Blu'}.`
+            );
+        }
+
+        // =========================================================================
+        // NON-OBSTRUCTING TURN RESOLUTION (PITCH & ARROWS FULLY CLEAR)
+        // =========================================================================
+        function showClearTurnResolution(titleText, titleClass, descText) {
             gameState = 'RESOLUTION';
             renderBoard();
 
             const resTitle = document.getElementById('resolution-title');
             const resDesc = document.getElementById('resolution-desc');
-            resTitle.innerText = isRedCard ? "🟥 FALLO DA ROSSO! PALLA RUBATA!" : "⚠️ FALLO TATTICO! PALLA RUBATA!";
-            resTitle.className = "font-display text-2xl font-black mb-1 text-amber-400";
-            resDesc.innerText = isRedCard
-                ? `Il #${foulingPiece.num} ferma l'azione ed è espulso per 10 turni! Possesso ai ${defTeam === 'red' ? 'Rossi' : 'Blu'}.`
-                : `Intervento d'astuzia del #${foulingPiece.num}! Possesso ai ${defTeam === 'red' ? 'Rossi' : 'Blu'}.`;
-            document.getElementById('screen-resolution').classList.remove('hidden');
+            resTitle.innerText = titleText;
+            resTitle.className = titleClass;
+            resDesc.innerText = descText;
+
+            document.getElementById('dock-playing-controls').classList.add('hidden');
+            document.getElementById('dock-resolution-controls').classList.remove('hidden');
+
+            if (networkMode === 'ONLINE' && isOnlineHost) {
+                broadcastFullStateFromHost();
+            }
         }
 
-        // =========================================================================
-        // TURN RESOLUTION & TACKLES
-        // =========================================================================
         function executeResolution(isLongShotAttempt = false, rouletteSuccess = true) {
-            gameState = 'RESOLUTION';
             const defTeam = attackingTeam === 'red' ? 'blue' : 'red';
 
             const applyRealMove = (m) => {
@@ -2514,35 +3036,30 @@
             applyRealMove(plannedMoves[2]);
             applyRealMove(plannedMoves[3]);
 
-            const resTitle = document.getElementById('resolution-title');
-            const resDesc = document.getElementById('resolution-desc');
-
             // If P4 attempted a Long Shot
             if (isLongShotAttempt) {
-                renderBoard();
                 const carrier = pieces.find(p => p.hasBall);
                 const tackler = pieces.find(p => p.team === defTeam && !expelledPlayers.some(e => e.id === p.id) && p.r === carrier.r && p.c === carrier.c);
                 if (tackler) {
                     carrier.hasBall = false;
                     tackler.hasBall = true;
                     attackingTeam = defTeam;
-                    resTitle.innerText = "🛡️ TIRO MURATO IN SCIVOLATA!";
-                    resTitle.className = "font-display text-2xl font-black mb-1 text-amber-400";
-                    resDesc.innerText = `Il difensore #${tackler.num} ha chiuso sul portatore prima del tiro! Cambio possesso.`;
-                    document.getElementById('screen-resolution').classList.remove('hidden');
-                    if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
+                    showClearTurnResolution(
+                        "🛡️ TIRO MURATO IN SCIVOLATA!",
+                        "font-display text-sm font-black text-amber-400 uppercase tracking-wide",
+                        `Il difensore #${tackler.num} ha coperto la casella del portatore prima del tiro! Cambio possesso.`
+                    );
                     return;
                 }
 
                 if (!rouletteSuccess) {
                     giveBallToDefenseAfterMiss(defTeam);
                     attackingTeam = defTeam;
-                    renderBoard();
-                    resTitle.innerText = "💨 TIRO FUORI BERSAGLIO!";
-                    resTitle.className = "font-display text-2xl font-black mb-1 text-red-400";
-                    resDesc.innerText = `La conclusione dalla distanza finisce a lato. Ripartono i ${defTeam === 'red' ? 'Rossi' : 'Blu'}!`;
-                    document.getElementById('screen-resolution').classList.remove('hidden');
-                    if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
+                    showClearTurnResolution(
+                        "💨 TIRO FUORI BERSAGLIO!",
+                        "font-display text-sm font-black text-red-400 uppercase tracking-wide",
+                        `Conclusione dalla distanza fuori misura. Ripartono i ${defTeam === 'red' ? 'Rossi' : 'Blu'}!`
+                    );
                     return;
                 } else {
                     startShootoutPhase();
@@ -2553,6 +3070,7 @@
             // Apply P4 Move or Pass
             const m4 = plannedMoves[4];
             let passIntercepted = false;
+            let interceptedByNum = null;
 
             if (m4) {
                 if (m4.type === 'move') {
@@ -2568,6 +3086,7 @@
                         activeDefs.sort((a, b) => (Math.abs(a.r - m4.toR) + Math.abs(a.c - m4.toC)) - (Math.abs(b.r - m4.toR) + Math.abs(b.c - m4.toC)));
                         if (activeDefs[0]) {
                             activeDefs[0].hasBall = true;
+                            interceptedByNum = activeDefs[0].num;
                         }
                         attackingTeam = defTeam;
                     } else if (receiver) {
@@ -2580,14 +3099,12 @@
                 }
             }
 
-            renderBoard();
-
             if (passIntercepted) {
-                resTitle.innerText = "🛑 LANCIO INTERCETTATO!";
-                resTitle.className = "font-display text-2xl font-black mb-1 text-amber-400";
-                resDesc.innerText = `Passaggio lungo impreciso: la difesa recupera il pallone!`;
-                document.getElementById('screen-resolution').classList.remove('hidden');
-                if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
+                showClearTurnResolution(
+                    "🛑 PASSAGGIO INTERCETTATO!",
+                    "font-display text-sm font-black text-amber-400 uppercase tracking-wide",
+                    `Passaggio impreciso: il difensore #${interceptedByNum || ''} (${defTeam === 'red' ? 'Rossi' : 'Blu'}) recupera la sfera!`
+                );
                 return;
             }
 
@@ -2604,13 +3121,12 @@
                 carrier.hasBall = false;
                 tacklingDef.hasBall = true;
                 attackingTeam = defTeam;
-                renderBoard();
 
-                resTitle.innerText = "⚔️ CONTRASTO VINCENTE!";
-                resTitle.className = "font-display text-2xl font-black mb-1 text-amber-400";
-                resDesc.innerText = `Il difensore #${tacklingDef.num} (${defTeam === 'red' ? 'Rossi' : 'Blu'}) anticipa l'avversario e ruba palla!`;
-                document.getElementById('screen-resolution').classList.remove('hidden');
-                if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
+                showClearTurnResolution(
+                    "⚔️ CONTRASTO VINCENTE!",
+                    "font-display text-sm font-black text-amber-400 uppercase tracking-wide",
+                    `Il difensore #${tacklingDef.num} (${defTeam === 'red' ? 'Rossi' : 'Blu'}) ha chiuso sulla casella della palla rubando il possesso!`
+                );
                 return;
             }
 
@@ -2621,28 +3137,31 @@
 
                 if (requireFivePastMidfield && attAhead < 5) {
                     showToast(`Tiro bloccato: servono 5 giocatori oltre metà campo (${attAhead}/5)!`, "warn");
-                    resTitle.innerText = "⚠️ SQUADRA TROPPO LUNGA!";
-                    resTitle.className = "font-display text-2xl font-black mb-1 text-orange-400";
-                    resDesc.innerText = `Sei in zona di tiro ma hai solo ${attAhead}/5 giocatori oltre metà campo. Fai salire la squadra!`;
-                    document.getElementById('screen-resolution').classList.remove('hidden');
-                    if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
+                    showClearTurnResolution(
+                        "⚠️ SQUADRA TROPPO LUNGA!",
+                        "font-display text-sm font-black text-orange-400 uppercase tracking-wide",
+                        `Sei in zona di tiro ma hai solo ${attAhead}/5 compagni oltre metà campo. Fai salire la squadra!`
+                    );
                 } else {
                     startShootoutPhase();
                 }
                 return;
             }
 
-            resTitle.innerText = "✅ MANOVRA COMPLETATA";
-            resTitle.className = "font-display text-2xl font-black mb-1 text-emerald-400";
-            resDesc.innerText = `La ${attackingTeam === 'red' ? 'Squadra Rossa' : 'Squadra Blu'} mantiene il possesso palla.`;
-            document.getElementById('screen-resolution').classList.remove('hidden');
-            if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
+            const actionSummary = m4?.type === 'pass'
+                ? `Passaggio completato verso il #${pieces.find(p => p.hasBall)?.num}!`
+                : `Dribbling del #${carrier.num} completato con successo!`;
+
+            showClearTurnResolution(
+                "✅ MANOVRA COMPLETATA",
+                "font-display text-sm font-black text-emerald-400 uppercase tracking-wide",
+                `${actionSummary} La ${attackingTeam === 'red' ? 'Squadra Rossa' : 'Squadra Blu'} mantiene il possesso.`
+            );
         }
 
         function giveBallToDefenseAfterMiss(defTeam) {
             pieces.forEach(p => p.hasBall = false);
             const activeDefs = pieces.filter(p => p.team === defTeam && !p.isGK && !expelledPlayers.some(e => e.id === p.id));
-            // Red defends top (r=2), Blue defends bottom (r=9)
             const goalRow = defTeam === 'red' ? 2 : 9;
             activeDefs.sort((a, b) => (Math.abs(a.r - goalRow) + Math.abs(a.c - 3)) - (Math.abs(b.r - goalRow) + Math.abs(b.c - 3)));
             if (activeDefs[0]) {
@@ -2650,25 +3169,129 @@
             }
         }
 
-        function nextTurn() {
-            if (networkMode === 'ONLINE' && !isOnlineHost) {
+        // =========================================================================
+        // MATCH TIMER (+3' PER TURN, 45' HALFTIME, 90' FULLTIME)
+        // =========================================================================
+        function nextTurn(fromNetworkHost = false) {
+            if (networkMode === 'ONLINE' && !isOnlineHost && !fromNetworkHost) {
                 sendOnlineAction({ kind: 'NEXT_TURN' });
                 return;
             }
-            document.getElementById('screen-resolution').classList.add('hidden');
+
+            advanceClockAndProceedAfterTurn(null);
+        }
+
+        function advanceClockAndProceedAfterTurn(postGoalConcedingTeam = null) {
+            // Check if the turn that JUST finished was the 45' or 90' final action!
+            if (matchMinute === 45 && currentHalf === 1) {
+                triggerHalftimeScreen();
+                return;
+            }
+            if (matchMinute >= 90 && currentHalf === 2) {
+                triggerFulltimeScreen();
+                return;
+            }
+
+            // Otherwise advance clock by +3 minutes
+            matchMinute += 3;
             turnNumber++;
-            startTurn();
+
+            if (matchMinute === 45 && currentHalf === 1) {
+                showToast("⏱️ 45' Minuto: ULTIMA AZIONE DEL PRIMO TEMPO!", "warn");
+            } else if (matchMinute === 90 && currentHalf === 2) {
+                showToast("🚨 90' Minuto: ULTIMA AZIONE DELLA PARTITA!", "warn");
+            }
+
+            if (postGoalConcedingTeam) {
+                resetPitchForKickoff(postGoalConcedingTeam);
+            } else {
+                startTurn();
+            }
+
+            if (networkMode === 'ONLINE' && isOnlineHost) {
+                broadcastFullStateFromHost();
+            }
+        }
+
+        function triggerHalftimeScreen() {
+            gameState = 'PERIOD_END';
+            const secondHalfTeam = firstHalfKickoffTeam === 'red' ? 'blue' : 'red';
+            periodEndState = {
+                type: 'HALFTIME',
+                title: "FINE PRIMO TEMPO (45')",
+                desc: `Squadre negli spogliatoi! Nel 2° Tempo le formazioni ripartono dal modulo iniziale e il pallone va alla Squadra ${secondHalfTeam === 'red' ? 'Rossa' : 'Blu'} (che non aveva iniziato il 1° tempo).`
+            };
+            syncPeriodEndModalUI();
+            if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
+        }
+
+        function triggerFulltimeScreen() {
+            gameState = 'PERIOD_END';
+            let verdict = "PAREGGIO SPETTACOLARE!";
+            if (scoreRed > scoreBlue) verdict = "🏆 VINCE LA SQUADRA ROSSA!";
+            if (scoreBlue > scoreRed) verdict = "🏆 VINCE LA SQUADRA BLU!";
+
+            periodEndState = {
+                type: 'FULLTIME',
+                title: "TRIPLICE FISCHIO (90')",
+                desc: `${verdict} La partita regolamentare di 90 minuti si è conclusa.`
+            };
+            syncPeriodEndModalUI();
+            if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
+        }
+
+        function syncPeriodEndModalUI() {
+            const modal = document.getElementById('screen-period-end');
+            const badge = document.getElementById('period-badge');
+            const title = document.getElementById('period-title');
+            const desc = document.getElementById('period-desc');
+            const btn = document.getElementById('btn-period-action');
+
+            document.getElementById('period-score-red').innerText = scoreRed;
+            document.getElementById('period-score-blue').innerText = scoreBlue;
+
+            title.innerText = periodEndState.title;
+            desc.innerText = periodEndState.desc;
+
+            if (periodEndState.type === 'HALFTIME') {
+                badge.innerText = "⏱️ INTERVALLO • 45'";
+                btn.innerText = "INIZIA SECONDO TEMPO (45') ➔";
+            } else {
+                badge.innerText = "🏁 FINE PARTITA • 90'";
+                btn.innerText = "TORNA ALLA LOBBY / RIVINCITA ➔";
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        function handlePeriodContinue(fromNetworkHost = false) {
+            if (networkMode === 'ONLINE' && !isOnlineHost && !fromNetworkHost) {
+                sendOnlineAction({ kind: 'PERIOD_CONTINUE' });
+                return;
+            }
+
+            document.getElementById('screen-period-end').classList.add('hidden');
+
+            if (periodEndState.type === 'HALFTIME') {
+                currentHalf = 2;
+                turnNumber++;
+                const secondHalfStarter = firstHalfKickoffTeam === 'red' ? 'blue' : 'red';
+                resetPitchForKickoff(secondHalfStarter);
+            } else {
+                // Fulltime -> return to Pre-Match Formation Selection for a rematch
+                enterPreMatchFlow(networkMode);
+            }
+
+            if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
         }
 
         // =========================================================================
-        // INTERACTIVE 3D GOAL SHOOTOUT & POST-GOAL FORMATION RESET
+        // INTERACTIVE 3D GOAL SHOOTOUT (LIVE VIEW FOR ALL 4 PLAYERS + BONUS CARD ON GOAL)
         // =========================================================================
         function startShootoutPhase() {
             gameState = 'SHOOTOUT';
             shootoutState = { step: 'ATTACK', attChoice: null, defChoices: [], outcome: null };
-
             syncShootoutScreenUI({ hidden: true, title: '', titleClass: '', desc: '' });
-
             if (networkMode === 'ONLINE' && isOnlineHost) {
                 broadcastFullStateFromHost();
             }
@@ -2683,6 +3306,8 @@
             const ballEl = document.getElementById('shootout-ball');
 
             const myTurnInShootout = isMyTurnOnline();
+            const attSlotName = getSlotDisplayName(getRequiredSlotForPhase(4));
+            const defSlotName = getSlotDisplayName(getRequiredSlotForPhase(3));
 
             if (shootoutState.step === 'ATTACK') {
                 gkEl.style.transform = 'translate(-50%, 0) rotate(0deg)';
@@ -2696,13 +3321,13 @@
                     btn.classList.remove('ring-4', 'ring-emerald-400', 'opacity-40');
                 });
 
-                document.getElementById('shootout-badge').innerText = `TIRO: ${attackingTeam === 'red' ? 'SQUADRA ROSSA' : 'SQUADRA BLU'}`;
+                document.getElementById('shootout-badge').innerText = `⚽ TIRO IN PORTA IN DIRETTA (${attackingTeam === 'red' ? 'ROSSI' : 'BLU'})`;
                 document.getElementById('shootout-title').innerText = myTurnInShootout
                     ? "ATTACCANTE: SCEGLI L'ANGOLO"
-                    : "⏳ L'ATTACCANTE STA MIRANDO...";
+                    : `👀 ${attSlotName} STA MIRANDO...`;
                 document.getElementById('shootout-subtitle').innerText = myTurnInShootout
                     ? "Tocca Sinistra, Centro o Destra per calciare"
-                    : "Attendi la scelta dell'attaccante";
+                    : "Visualizzazione condivisa in tempo reale per tutti i giocatori";
             } else if (shootoutState.step === 'DEFEND') {
                 const hasGuantoniActive = defTeam === 'red' ? activeBuffs.guantoni_red : activeBuffs.guantoni_blue;
                 const defCards = defTeam === 'red' ? teamCards.red : teamCards.blue;
@@ -2718,13 +3343,13 @@
                     }
                 });
 
-                document.getElementById('shootout-badge').innerText = `PARATA: PORTIERE ${defTeam === 'red' ? 'ROSSO' : 'BLU'}`;
+                document.getElementById('shootout-badge').innerText = `🧤 PARATA PORTIERE ${defTeam === 'red' ? 'ROSSO' : 'BLU'} IN DIRETTA`;
                 document.getElementById('shootout-title').innerText = myTurnInShootout
                     ? (hasGuantoniActive ? "GUANTONI D'ORO: SCEGLI 2 ZONE!" : "PORTIERE: SCEGLI DOVE TUFFARTI")
-                    : "⏳ IL PORTIERE SI STA PREPARANDO...";
+                    : `👀 IL PORTIERE (${defSlotName}) SI STA PREPARANDO...`;
                 document.getElementById('shootout-subtitle').innerText = myTurnInShootout
                     ? (hasGuantoniActive ? "Seleziona 2 angoli su 3 da coprire" : "Scegli Sinistra, Centro o Destra per parare")
-                    : "Attendi il tuffo del portiere avversario";
+                    : "Tutti i dispositivi assistono in diretta al rigore!";
 
                 const btnG = document.getElementById('btn-shootout-guantoni');
                 if (myTurnInShootout && !hasGuantoniActive && hasGuantoniInHand) {
@@ -2755,9 +3380,9 @@
             document.getElementById('screen-shootout').classList.remove('hidden');
         }
 
-        function handleShootoutChoice(dir) {
-            if (!isMyTurnOnline() && networkMode === 'ONLINE') return;
-            if (networkMode === 'ONLINE' && !isOnlineHost) {
+        function handleShootoutChoice(dir, fromNetworkHost = false) {
+            if (!fromNetworkHost && !isMyTurnOnline() && networkMode === 'ONLINE') return;
+            if (networkMode === 'ONLINE' && !isOnlineHost && !fromNetworkHost) {
                 sendOnlineAction({ kind: 'SHOOTOUT_CHOICE', dir });
                 return;
             }
@@ -2794,8 +3419,8 @@
             }
         }
 
-        function activateGuantoniInShootout() {
-            if (networkMode === 'ONLINE' && !isOnlineHost) {
+        function activateGuantoniInShootout(fromNetworkHost = false) {
+            if (networkMode === 'ONLINE' && !isOnlineHost && !fromNetworkHost) {
                 sendOnlineAction({ kind: 'ACTIVATE_GUANTONI_SHOOTOUT' });
                 return;
             }
@@ -2844,11 +3469,16 @@
                     shootoutState.outcome = 'SAVED';
                     shootoutState.nextAttackingTeam = defTeam;
                 } else {
-                    resTitle.innerText = "⚽ GOOOOOL!!";
-                    resTitle.className = "font-display text-3xl sm:text-4xl font-black mb-1 text-emerald-400";
-                    resDesc.innerText = `Rete della ${attackingTeam === 'red' ? 'Squadra Rossa' : 'Squadra Blu'}! Squadre riposizionate con modulo iniziale e palla ai ${defTeam === 'red' ? 'Rossi' : 'Blu'}.`;
                     if (attackingTeam === 'red') scoreRed++;
                     else scoreBlue++;
+
+                    // Catch-up Mechanic: Award 1 new Secret Card to the team that conceded the goal!
+                    const bonusCard = drawRandomCardForTeam(defTeam);
+
+                    resTitle.innerText = "⚽ GOOOOOL!!";
+                    resTitle.className = "font-display text-3xl sm:text-4xl font-black mb-1 text-emerald-400";
+                    resDesc.innerText = `Rete dei ${attackingTeam === 'red' ? 'Rossi' : 'Blu'}! I ${defTeam === 'red' ? 'Rossi' : 'Blu'} ripartono da centrocampo e pescano 1 nuova Carta (${bonusCard.icon} ${bonusCard.name})!`;
+
                     shootoutState.outcome = 'GOAL';
                     shootoutState.concedingTeam = defTeam;
                 }
@@ -2857,33 +3487,21 @@
             }, 480);
         }
 
-        function finishShootout() {
-            if (networkMode === 'ONLINE' && !isOnlineHost) {
+        function finishShootout(fromNetworkHost = false) {
+            if (networkMode === 'ONLINE' && !isOnlineHost && !fromNetworkHost) {
                 sendOnlineAction({ kind: 'FINISH_SHOOTOUT' });
                 return;
             }
             document.getElementById('screen-shootout').classList.add('hidden');
-            turnNumber++;
 
-            // FIX 4: After a Goal, reposition BOTH teams in their initial formation and give the ball to the team that conceded!
             if (shootoutState.outcome === 'GOAL') {
                 const kickoffTeam = shootoutState.concedingTeam || (attackingTeam === 'red' ? 'blue' : 'red');
-                resetPitchForKickoff(kickoffTeam);
+                advanceClockAndProceedAfterTurn(kickoffTeam);
             } else {
                 attackingTeam = shootoutState.nextAttackingTeam || (attackingTeam === 'red' ? 'blue' : 'red');
-                startTurn();
-            }
-
-            if (networkMode === 'ONLINE' && isOnlineHost) {
-                broadcastFullStateFromHost();
+                advanceClockAndProceedAfterTurn(null);
             }
         }
-
-        window.addEventListener('resize', () => {
-            if (gameState === 'PLAYING' || gameState === 'RESOLUTION') {
-                requestAnimationFrame(renderArrows);
-            }
-        });
     </script>
 </body>
 </html>
