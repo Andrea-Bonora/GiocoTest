@@ -267,45 +267,59 @@
 
     <!-- SCREEN 1B: INDEPENDENT FORMATION SELECTION & ROCK-PAPER-SCISSORS -->
     <div id="screen-prematch" class="absolute inset-0 z-50 flex flex-col items-center justify-center p-4 bg-slate-950/95 backdrop-blur-xl hidden overflow-y-auto">
-        <!-- STEP A: FORMATION SELECTION -->
+        <!-- STEP A: SECRET FORMATION SELECTION -->
         <div id="prematch-step-formations" class="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-2xl">
             <div class="text-center mb-4">
                 <span class="px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[10px] font-black uppercase tracking-widest">FASE PRE-PARTITA 1/2</span>
-                <h2 class="font-display text-2xl font-black text-white mt-1">SCELTA DEL MODULO</h2>
-                <p class="text-xs text-slate-400">Ogni squadra sceglie e conferma il proprio schieramento tattico</p>
+                <h2 class="font-display text-2xl font-black text-white mt-1">SCELTA SEGRETA DEL MODULO</h2>
+                <p id="prematch-form-subtitle" class="text-xs text-slate-400">Ogni squadra sceglie in segreto il proprio schieramento tattico</p>
             </div>
 
             <div class="space-y-4">
                 <!-- Red Team Formation Box -->
-                <div id="box-form-red" class="p-3.5 rounded-xl bg-red-950/25 border border-red-500/30">
+                <div id="box-form-red" class="p-3.5 rounded-xl bg-red-950/25 border border-red-500/30 transition-all">
                     <div class="flex items-center justify-between mb-2">
                         <span class="font-display font-black text-sm text-red-400">🔴 SQUADRA ROSSA</span>
                         <span id="status-form-red" class="text-[10px] font-black px-2 py-0.5 rounded bg-amber-500/20 text-amber-300">In scelta...</span>
                     </div>
-                    <div class="grid grid-cols-3 gap-2 mb-2.5">
-                        <button onclick="selectTeamFormation('red', '4-3-3')" id="btn-form-red-4-3-3" class="py-2 rounded-lg font-display font-black text-xs border">4-3-3</button>
-                        <button onclick="selectTeamFormation('red', '3-5-2')" id="btn-form-red-3-5-2" class="py-2 rounded-lg font-display font-black text-xs border">3-5-2</button>
-                        <button onclick="selectTeamFormation('red', '4-4-2')" id="btn-form-red-4-4-2" class="py-2 rounded-lg font-display font-black text-xs border">4-4-2</button>
+                    <!-- Interactive controls for Red (hidden when secret/locked or when viewing as Blue online) -->
+                    <div id="controls-form-red">
+                        <div class="grid grid-cols-3 gap-2 mb-2.5">
+                            <button onclick="selectTeamFormation('red', '4-3-3')" id="btn-form-red-4-3-3" class="py-2 rounded-lg font-display font-black text-xs border">4-3-3</button>
+                            <button onclick="selectTeamFormation('red', '3-5-2')" id="btn-form-red-3-5-2" class="py-2 rounded-lg font-display font-black text-xs border">3-5-2</button>
+                            <button onclick="selectTeamFormation('red', '4-4-2')" id="btn-form-red-4-4-2" class="py-2 rounded-lg font-display font-black text-xs border">4-4-2</button>
+                        </div>
+                        <button id="btn-lock-form-red" onclick="confirmTeamFormation('red')" class="w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-display font-black text-xs uppercase tracking-wider shadow active:scale-95 transition-all">
+                            CONFERMA MODULO ROSSI ✓
+                        </button>
                     </div>
-                    <button id="btn-lock-form-red" onclick="confirmTeamFormation('red')" class="w-full py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-display font-black text-xs uppercase tracking-wider shadow">
-                        CONFERMA MODULO ROSSI ✓
-                    </button>
+                    <!-- Secret Mask for Red -->
+                    <div id="secret-mask-red" class="hidden py-3 px-3 rounded-xl bg-slate-950/80 border border-slate-800 text-center">
+                        <div id="secret-text-red" class="text-xs font-bold text-slate-300">🔒 Modulo Segreto</div>
+                    </div>
                 </div>
 
                 <!-- Blue Team Formation Box -->
-                <div id="box-form-blue" class="p-3.5 rounded-xl bg-blue-950/25 border border-blue-500/30">
+                <div id="box-form-blue" class="p-3.5 rounded-xl bg-blue-950/25 border border-blue-500/30 transition-all">
                     <div class="flex items-center justify-between mb-2">
                         <span class="font-display font-black text-sm text-blue-400">🔵 SQUADRA BLU</span>
                         <span id="status-form-blue" class="text-[10px] font-black px-2 py-0.5 rounded bg-amber-500/20 text-amber-300">In scelta...</span>
                     </div>
-                    <div class="grid grid-cols-3 gap-2 mb-2.5">
-                        <button onclick="selectTeamFormation('blue', '4-3-3')" id="btn-form-blue-4-3-3" class="py-2 rounded-lg font-display font-black text-xs border">4-3-3</button>
-                        <button onclick="selectTeamFormation('blue', '3-5-2')" id="btn-form-blue-3-5-2" class="py-2 rounded-lg font-display font-black text-xs border">3-5-2</button>
-                        <button onclick="selectTeamFormation('blue', '4-4-2')" id="btn-form-blue-4-4-2" class="py-2 rounded-lg font-display font-black text-xs border">4-4-2</button>
+                    <!-- Interactive controls for Blue (hidden when secret/locked or when viewing as Red online) -->
+                    <div id="controls-form-blue">
+                        <div class="grid grid-cols-3 gap-2 mb-2.5">
+                            <button onclick="selectTeamFormation('blue', '4-3-3')" id="btn-form-blue-4-3-3" class="py-2 rounded-lg font-display font-black text-xs border">4-3-3</button>
+                            <button onclick="selectTeamFormation('blue', '3-5-2')" id="btn-form-blue-3-5-2" class="py-2 rounded-lg font-display font-black text-xs border">3-5-2</button>
+                            <button onclick="selectTeamFormation('blue', '4-4-2')" id="btn-form-blue-4-4-2" class="py-2 rounded-lg font-display font-black text-xs border">4-4-2</button>
+                        </div>
+                        <button id="btn-lock-form-blue" onclick="confirmTeamFormation('blue')" class="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-display font-black text-xs uppercase tracking-wider shadow active:scale-95 transition-all">
+                            CONFERMA MODULO BLU ✓
+                        </button>
                     </div>
-                    <button id="btn-lock-form-blue" onclick="confirmTeamFormation('blue')" class="w-full py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-display font-black text-xs uppercase tracking-wider shadow">
-                        CONFERMA MODULO BLU ✓
-                    </button>
+                    <!-- Secret Mask for Blue -->
+                    <div id="secret-mask-blue" class="hidden py-3 px-3 rounded-xl bg-slate-950/80 border border-slate-800 text-center">
+                        <div id="secret-text-blue" class="text-xs font-bold text-slate-300">🔒 Modulo Segreto</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -322,19 +336,22 @@
                     <span class="font-display font-black text-xs text-red-400 uppercase">🔴 Scelta Squadra Rossa</span>
                     <span id="rps-status-red" class="text-[10px] font-bold text-amber-300">Scegli una mossa...</span>
                 </div>
-                <div class="grid grid-cols-3 gap-2">
-                    <button id="btn-rps-red-rock" onclick="submitRpsChoice('red', 'ROCK')" class="py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 flex flex-col items-center gap-1">
+                <div id="rps-controls-red" class="grid grid-cols-3 gap-2">
+                    <button id="btn-rps-red-rock" onclick="submitRpsChoice('red', 'ROCK')" class="py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 flex flex-col items-center gap-1 active:scale-95 transition-all">
                         <span class="text-2xl">🪨</span>
                         <span class="text-[10px] font-black uppercase">Sasso</span>
                     </button>
-                    <button id="btn-rps-red-paper" onclick="submitRpsChoice('red', 'PAPER')" class="py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 flex flex-col items-center gap-1">
+                    <button id="btn-rps-red-paper" onclick="submitRpsChoice('red', 'PAPER')" class="py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 flex flex-col items-center gap-1 active:scale-95 transition-all">
                         <span class="text-2xl">📄</span>
                         <span class="text-[10px] font-black uppercase">Carta</span>
                     </button>
-                    <button id="btn-rps-red-scissors" onclick="submitRpsChoice('red', 'SCISSORS')" class="py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 flex flex-col items-center gap-1">
+                    <button id="btn-rps-red-scissors" onclick="submitRpsChoice('red', 'SCISSORS')" class="py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 flex flex-col items-center gap-1 active:scale-95 transition-all">
                         <span class="text-2xl">✂️</span>
                         <span class="text-[10px] font-black uppercase">Forbice</span>
                     </button>
+                </div>
+                <div id="rps-secret-red" class="hidden py-2.5 px-3 rounded-xl bg-slate-950/80 border border-slate-800 text-xs font-bold text-slate-300">
+                    🔒 Scelta segreta in corso...
                 </div>
             </div>
 
@@ -344,19 +361,22 @@
                     <span class="font-display font-black text-xs text-blue-400 uppercase">🔵 Scelta Squadra Blu</span>
                     <span id="rps-status-blue" class="text-[10px] font-bold text-amber-300">Scegli una mossa...</span>
                 </div>
-                <div class="grid grid-cols-3 gap-2">
-                    <button id="btn-rps-blue-rock" onclick="submitRpsChoice('blue', 'ROCK')" class="py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 flex flex-col items-center gap-1">
+                <div id="rps-controls-blue" class="grid grid-cols-3 gap-2">
+                    <button id="btn-rps-blue-rock" onclick="submitRpsChoice('blue', 'ROCK')" class="py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 flex flex-col items-center gap-1 active:scale-95 transition-all">
                         <span class="text-2xl">🪨</span>
                         <span class="text-[10px] font-black uppercase">Sasso</span>
                     </button>
-                    <button id="btn-rps-blue-paper" onclick="submitRpsChoice('blue', 'PAPER')" class="py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 flex flex-col items-center gap-1">
+                    <button id="btn-rps-blue-paper" onclick="submitRpsChoice('blue', 'PAPER')" class="py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 flex flex-col items-center gap-1 active:scale-95 transition-all">
                         <span class="text-2xl">📄</span>
                         <span class="text-[10px] font-black uppercase">Carta</span>
                     </button>
-                    <button id="btn-rps-blue-scissors" onclick="submitRpsChoice('blue', 'SCISSORS')" class="py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 flex flex-col items-center gap-1">
+                    <button id="btn-rps-blue-scissors" onclick="submitRpsChoice('blue', 'SCISSORS')" class="py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 flex flex-col items-center gap-1 active:scale-95 transition-all">
                         <span class="text-2xl">✂️</span>
                         <span class="text-[10px] font-black uppercase">Forbice</span>
                     </button>
+                </div>
+                <div id="rps-secret-blue" class="hidden py-2.5 px-3 rounded-xl bg-slate-950/80 border border-slate-800 text-xs font-bold text-slate-300">
+                    🔒 Scelta segreta in corso...
                 </div>
             </div>
 
@@ -690,10 +710,6 @@
         let firstHalfKickoffTeam = 'red'; // Decided by Rock-Paper-Scissors
         let currentPhase = 1; // 1: P1 (2 PA), 2: P2 (Def 1), 3: P3 (Def 2), 4: P4 (Playmaker)
 
-        // Coordinate System:
-        // RED Team is at Row 0 (GK at r=0, c=3; defends shooting zone r=1, c=2..4; attacks towards r=10).
-        // BLUE Team is at Row 11 (GK at r=11, c=3; defends shooting zone r=10, c=2..4; attacks towards r=1).
-        // Dynamic Pitch Flip rotates the pitch 180deg whenever viewing as RED so the viewer's own goal is ALWAYS at the bottom!
         let attackingTeam = 'red';
         let usePrivacyCurtain = true;
         let autoFlipPitch = true;
@@ -704,6 +720,8 @@
         let scoreBlue = 0;
         let formationRed = '4-3-3';
         let formationBlue = '4-3-3';
+        // Local draft formations so choosing a formation button never leaks to opponent before locking
+        let localDraftFormation = { red: '4-3-3', blue: '4-3-3' };
         let formationLocked = { red: false, blue: false };
 
         // Rock-Paper-Scissors State
@@ -719,13 +737,17 @@
         let p1ActionPoints = 2;
         let p4Mode = 'PASS'; // 'DRIBBLE' or 'PASS'
 
-        // Planned moves within the current turn
+        // Authoritative committed moves per phase
         let plannedMoves = {
             1: [],   // Array of { type:'move', pieceId, fromR, fromC, toR, toC }
             2: null, // { type:'move', pieceId, fromR, fromC, toR, toC }
             3: null, // { type:'move', pieceId, fromR, fromC, toR, toC }
             4: null  // { type:'move'|'pass'|'longshot', ... }
         };
+
+        // Shared Event Banner ID to avoid duplicate global toasts
+        let lastGlobalEventId = 0;
+        let latestGlobalEvent = null; // { id, msg, type, targetTeam: 'all'|'red'|'blue' }
 
         // Pending Probability Roulette State (Shared across all 4 devices)
         let pendingRoulette = {
@@ -759,7 +781,7 @@
         let localBroadcast = null;
         let lobbySlots = {};
 
-        // Secret Cards Catalog (Updated for 3-step pass & 10%/5% penalties)
+        // Secret Cards Catalog
         const CARD_CATALOG = {
             guantoni: {
                 name: "Guantoni d'Oro",
@@ -830,10 +852,11 @@
         };
 
         // =========================================================================
-        // NOTIFICATIONS (TOAST)
+        // STRICT LOCAL vs SHARED NOTIFICATIONS (NO ERROR LEAKS TO OTHER DEVICES)
         // =========================================================================
-        function showToast(msg, type = 'info') {
+        function showLocalToast(msg, type = 'info') {
             const container = document.getElementById('toast-container');
+            if (!container) return;
             const toast = document.createElement('div');
             const colors = {
                 info: 'bg-slate-900/95 border-slate-600 text-white',
@@ -848,7 +871,23 @@
                 toast.style.opacity = '0';
                 toast.style.transform = 'translateY(-8px)';
                 setTimeout(() => toast.remove(), 280);
-            }, 2800);
+            }, 2600);
+        }
+
+        // Alias for purely local feedback
+        function showToast(msg, type = 'info') {
+            showLocalToast(msg, type);
+        }
+
+        // Broadcast a shared match event (only on Host or Local) with optional team filter
+        function emitSharedMatchEvent(msg, type = 'info', targetTeam = 'all') {
+            const newId = Date.now() + Math.floor(Math.random() * 1000);
+            latestGlobalEvent = { id: newId, msg, type, targetTeam };
+            lastGlobalEventId = newId;
+            const myTeam = getMyTeamOnline();
+            if (networkMode === 'LOCAL' || targetTeam === 'all' || targetTeam === myTeam) {
+                showLocalToast(msg, type);
+            }
         }
 
         function drawRandomCardForTeam(team) {
@@ -902,16 +941,25 @@
         function initLobbySlotsStructure(count) {
             if (count === 2) {
                 lobbySlots = {
-                    red: { label: "🔴 Squadra Rossa", team: 'red', occupiedBy: null },
-                    blue: { label: "🔵 Squadra Blu", team: 'blue', occupiedBy: null }
+                    red: { label: "🔴 Squadra Rossa", team: 'red', subRole: 'A', occupiedBy: null },
+                    blue: { label: "🔵 Squadra Blu", team: 'blue', subRole: 'A', occupiedBy: null }
                 };
             } else {
                 lobbySlots = {
-                    red_A: { label: "🔴 Rosso (Gioc. A)", team: 'red', occupiedBy: null },
-                    red_B: { label: "🔴 Rosso (Gioc. B)", team: 'red', occupiedBy: null },
-                    blue_A: { label: "🔵 Blu (Gioc. A)", team: 'blue', occupiedBy: null },
-                    blue_B: { label: "🔵 Blu (Gioc. B)", team: 'blue', occupiedBy: null }
+                    red_A: { label: "🔴 Rosso (Gioc. A)", team: 'red', subRole: 'A', occupiedBy: null },
+                    red_B: { label: "🔴 Rosso (Gioc. B)", team: 'red', subRole: 'B', occupiedBy: null },
+                    blue_A: { label: "🔵 Blu (Gioc. A)", team: 'blue', subRole: 'A', occupiedBy: null },
+                    blue_B: { label: "🔵 Blu (Gioc. B)", team: 'blue', subRole: 'B', occupiedBy: null }
                 };
+            }
+        }
+
+        // Reliably derive myOnlineSlot from lobbySlots matching myPeerId
+        function syncMyIdentityFromSlots() {
+            if (networkMode !== 'ONLINE' || !myPeerId || !lobbySlots) return;
+            const foundKey = Object.keys(lobbySlots).find(k => lobbySlots[k] && lobbySlots[k].occupiedBy === myPeerId);
+            if (foundKey) {
+                myOnlineSlot = foundKey;
             }
         }
 
@@ -930,7 +978,7 @@
             roomCode = 'FC' + Array.from({ length: 3 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
             isOnlineHost = true;
             networkMode = 'ONLINE';
-            myPeerId = 'host_' + Math.random().toString(36).substring(2, 7);
+            myPeerId = 'host_' + Math.random().toString(36).substring(2, 9);
 
             initLobbySlotsStructure(onlinePlayerCount);
             const firstSlot = onlinePlayerCount === 2 ? 'red' : 'red_A';
@@ -948,7 +996,7 @@
                 if (peerInstance) peerInstance.destroy();
                 peerInstance = new Peer(`tattica-fc-pro-${roomCode}`);
                 peerInstance.on('open', () => {
-                    showToast(`Stanza ${roomCode} creata! In attesa degli altri giocatori...`, 'success');
+                    showLocalToast(`Stanza ${roomCode} creata! Condividi il codice.`, 'success');
                 });
                 peerInstance.on('connection', (conn) => {
                     hostConnections.push(conn);
@@ -956,19 +1004,19 @@
                     conn.on('open', () => broadcastFullStateFromHost());
                 });
                 peerInstance.on('error', () => {
-                    showToast("Lobby pronta (supporto P2P e multi-scheda attivo).", "info");
+                    showLocalToast("Lobby pronta (supporto P2P attivo).", "info");
                 });
             }
         }
 
         function joinOnlineRoom() {
             const input = document.getElementById('input-room-code').value.trim().toUpperCase();
-            if (input.length < 3) return showToast("Inserisci un codice stanza valido!", "warn");
+            if (input.length < 3) return showLocalToast("Inserisci un codice stanza valido!", "warn");
 
             roomCode = input;
             isOnlineHost = false;
             networkMode = 'ONLINE';
-            myPeerId = 'client_' + Math.random().toString(36).substring(2, 7);
+            myPeerId = 'client_' + Math.random().toString(36).substring(2, 9);
 
             document.getElementById('online-step-entry').classList.add('hidden');
             document.getElementById('online-step-room').classList.remove('hidden');
@@ -985,7 +1033,7 @@
                 peerInstance.on('open', () => {
                     clientConnection = peerInstance.connect(`tattica-fc-pro-${roomCode}`, { reliable: true });
                     clientConnection.on('open', () => {
-                        showToast(`Connesso alla stanza ${roomCode}!`, 'success');
+                        showLocalToast(`Connesso alla stanza ${roomCode}!`, 'success');
                         sendToHost({ type: 'JOIN_REQUEST', peerId: myPeerId });
                     });
                     clientConnection.on('data', (data) => handleIncomingNetworkMessage(data, null));
@@ -1013,20 +1061,19 @@
             temp.select();
             document.execCommand('copy');
             temp.remove();
-            showToast(`Codice ${roomCode} copiato!`, 'success');
+            showLocalToast(`Codice ${roomCode} copiato!`, 'success');
         }
 
-        // Allow choosing which team to join if a spot is free in that team
         function joinTeamAvailableSlot(teamColor) {
             const teamKeys = Object.keys(lobbySlots).filter(k => k.startsWith(teamColor));
             const alreadyInTeam = teamKeys.find(k => lobbySlots[k].occupiedBy === myPeerId);
             if (alreadyInTeam) {
-                showToast(`Sei già nella Squadra ${teamColor === 'red' ? 'Rossa' : 'Blu'}!`, 'info');
+                showLocalToast(`Sei già nella Squadra ${teamColor === 'red' ? 'Rossa' : 'Blu'}!`, 'info');
                 return;
             }
             const freeSlot = teamKeys.find(k => !lobbySlots[k].occupiedBy);
             if (!freeSlot) {
-                showToast(`La Squadra ${teamColor === 'red' ? 'Rossa' : 'Blu'} è al completo!`, 'warn');
+                showLocalToast(`La Squadra ${teamColor === 'red' ? 'Rossa' : 'Blu'} è al completo!`, 'warn');
                 return;
             }
             claimLobbySlot(freeSlot);
@@ -1048,11 +1095,12 @@
                 if (lobbySlots[k].occupiedBy === peerId) lobbySlots[k].occupiedBy = null;
             });
             lobbySlots[slotKey].occupiedBy = peerId;
-            if (peerId === myPeerId) myOnlineSlot = slotKey;
+            syncMyIdentityFromSlots();
             renderLobbySlotsUI();
         }
 
         function renderLobbySlotsUI() {
+            syncMyIdentityFromSlots();
             const container = document.getElementById('lobby-slots-container');
             if (!container) return;
             container.innerHTML = '';
@@ -1061,7 +1109,6 @@
                 const slot = lobbySlots[slotKey];
                 const isMine = slot.occupiedBy === myPeerId;
                 const isTaken = !!slot.occupiedBy && !isMine;
-                if (isMine) myOnlineSlot = slotKey;
 
                 const btn = document.createElement('button');
                 btn.className = `p-2.5 rounded-xl border text-left transition-all ${
@@ -1074,7 +1121,7 @@
                 btn.innerHTML = `
                     <div class="font-display font-black text-xs">${slot.label}</div>
                     <div class="text-[10px] font-bold mt-0.5 ${isMine ? 'text-emerald-300' : isTaken ? 'text-amber-400' : 'text-slate-400'}">
-                        ${isMine ? '✓ Tu' : isTaken ? 'Giocatore connesso' : 'Posto Libero (Clicca)'}
+                        ${isMine ? '✓ Tu (Questo dispositivo)' : isTaken ? 'Giocatore connesso' : 'Posto Libero (Tocca)'}
                     </div>
                 `;
                 if (!isTaken) {
@@ -1083,13 +1130,12 @@
                 container.appendChild(btn);
             });
 
-            // Update Team Quick-Join Buttons
             const redFree = Object.keys(lobbySlots).some(k => k.startsWith('red') && !lobbySlots[k].occupiedBy);
             const blueFree = Object.keys(lobbySlots).some(k => k.startsWith('blue') && !lobbySlots[k].occupiedBy);
             const btnJoinRed = document.getElementById('btn-join-team-red');
             const btnJoinBlue = document.getElementById('btn-join-team-blue');
-            if (btnJoinRed) btnJoinRed.innerText = redFree ? "🔴 Entra nei Rossi (Posto Libero)" : "🔴 Rossi al Completo";
-            if (btnJoinBlue) btnJoinBlue.innerText = blueFree ? "🔵 Entra nei Blu (Posto Libero)" : "🔵 Blu al Completo";
+            if (btnJoinRed) btnJoinRed.innerText = redFree ? "🔴 Entra nei Rossi (Libero)" : "🔴 Rossi al Completo";
+            if (btnJoinBlue) btnJoinBlue.innerText = blueFree ? "🔵 Entra nei Blu (Libero)" : "🔵 Blu al Completo";
 
             const totalSlots = Object.keys(lobbySlots).length;
             const filledSlots = Object.values(lobbySlots).filter(s => !!s.occupiedBy).length;
@@ -1097,7 +1143,7 @@
 
             const statusEl = document.getElementById('lobby-status-msg');
             if (allReady) {
-                statusEl.innerText = `✅ Tutti i giocatori sono in stanza (${filledSlots}/${totalSlots})! Pronti a scegliere il modulo.`;
+                statusEl.innerText = `✅ Stanza completa (${filledSlots}/${totalSlots})! Il tuo ruolo: ${getSlotDisplayName(myOnlineSlot)}.`;
                 statusEl.className = "text-xs text-center text-emerald-300 font-bold py-2 px-3 rounded-xl bg-emerald-950/60 border border-emerald-500/40 mb-3";
             } else {
                 statusEl.innerText = `⏳ In attesa che entrino tutti i giocatori: ${filledSlots}/${totalSlots} connessi...`;
@@ -1132,7 +1178,7 @@
             const totalSlots = Object.keys(lobbySlots).length;
             const filledSlots = Object.values(lobbySlots).filter(s => !!s.occupiedBy).length;
             if (filledSlots < totalSlots) {
-                showToast("Attendi che tutti i giocatori entrino nella stanza!", "warn");
+                showLocalToast("Attendi che tutti i giocatori entrino nella stanza!", "warn");
                 return;
             }
             enterPreMatchFlow('ONLINE');
@@ -1140,7 +1186,7 @@
         }
 
         // =========================================================================
-        // PRE-MATCH STEP 1: INDEPENDENT FORMATION SELECTION
+        // PRE-MATCH STEP 1: SECRET FORMATION SELECTION (FIXED FOR GUEST & LOCAL)
         // =========================================================================
         function enterPreMatchFlow(mode = 'LOCAL') {
             networkMode = mode;
@@ -1149,6 +1195,7 @@
 
             formationRed = '4-3-3';
             formationBlue = '4-3-3';
+            localDraftFormation = { red: '4-3-3', blue: '4-3-3' };
             formationLocked = { red: false, blue: false };
             rpsState = { redChoice: null, blueChoice: null, winner: null, statusText: '' };
 
@@ -1157,64 +1204,89 @@
         }
 
         function canControlTeamInPreMatch(team) {
-            if (networkMode === 'LOCAL') return true;
+            if (networkMode === 'LOCAL') {
+                // In Local Mode, Red chooses first while unlocked; once Red locks, Blue chooses
+                if (gameState === 'PREMATCH_FORMATIONS') {
+                    if (team === 'red') return !formationLocked.red;
+                    if (team === 'blue') return formationLocked.red && !formationLocked.blue;
+                }
+                return true;
+            }
+            syncMyIdentityFromSlots();
             return getMyTeamOnline() === team;
         }
 
         function selectTeamFormation(team, formKey) {
             if (!canControlTeamInPreMatch(team)) {
-                showToast(`Puoi scegliere solo il modulo della tua squadra!`, 'warn');
+                showLocalToast(`Scegli il modulo nel riquadro della tua squadra!`, 'warn');
                 return;
             }
             if (formationLocked[team]) return;
 
-            if (networkMode === 'ONLINE' && !isOnlineHost) {
-                sendOnlineAction({ kind: 'SELECT_FORMATION', team, formKey });
-                return;
+            // Keep draft selection strictly local until confirmed so opponent never sees button highlights!
+            localDraftFormation[team] = formKey;
+            if (networkMode === 'LOCAL' || isOnlineHost) {
+                if (team === 'red') formationRed = formKey;
+                else formationBlue = formKey;
             }
-
-            if (team === 'red') formationRed = formKey;
-            else formationBlue = formKey;
-
             syncPreMatchUI();
-            if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
         }
 
         function confirmTeamFormation(team) {
             if (!canControlTeamInPreMatch(team)) {
-                showToast(`Puoi confermare solo il modulo della tua squadra!`, 'warn');
+                showLocalToast(`Conferma solo il modulo della tua squadra!`, 'warn');
                 return;
             }
+            if (formationLocked[team]) return;
+
+            const chosenForm = localDraftFormation[team] || '4-3-3';
+
             if (networkMode === 'ONLINE' && !isOnlineHost) {
-                sendOnlineAction({ kind: 'CONFIRM_FORMATION', team });
+                // Optimistically show locked status locally and send atomic LOCK_FORMATION with chosen formation
+                formationLocked[team] = true;
+                syncPreMatchUI();
+                sendOnlineAction({ kind: 'LOCK_FORMATION', team, formKey: chosenForm });
                 return;
             }
 
+            applyLockFormationOnHost(team, chosenForm);
+        }
+
+        function applyLockFormationOnHost(team, formKey) {
+            if (team === 'red') formationRed = formKey || formationRed || '4-3-3';
+            else formationBlue = formKey || formationBlue || '4-3-3';
             formationLocked[team] = true;
+
             syncPreMatchUI();
 
             if (formationLocked.red && formationLocked.blue) {
+                if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
                 setTimeout(() => {
                     gameState = 'PREMATCH_RPS';
                     syncPreMatchUI();
                     if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
-                }, 350);
+                }, 400);
             } else if (networkMode === 'ONLINE' && isOnlineHost) {
                 broadcastFullStateFromHost();
             }
         }
 
         // =========================================================================
-        // PRE-MATCH STEP 2: ROCK - PAPER - SCISSORS (SASSO CARTA FORBICE)
+        // PRE-MATCH STEP 2: ROCK - PAPER - SCISSORS (SECRET UNTIL BOTH CHOOSE)
         // =========================================================================
         function submitRpsChoice(team, choice) {
-            if (!canControlTeamInPreMatch(team)) {
-                showToast(`Puoi scegliere solo per la tua squadra!`, 'warn');
+            if (networkMode === 'ONLINE' && getMyTeamOnline() !== team) {
+                showLocalToast(`Scegli Sasso, Carta o Forbice nel riquadro della tua squadra!`, 'warn');
                 return;
             }
             if (rpsState.winner) return;
+            if (team === 'red' && rpsState.redChoice) return;
+            if (team === 'blue' && rpsState.blueChoice) return;
 
             if (networkMode === 'ONLINE' && !isOnlineHost) {
+                if (team === 'red') rpsState.redChoice = choice;
+                else rpsState.blueChoice = choice;
+                syncPreMatchUI();
                 sendOnlineAction({ kind: 'RPS_CHOICE', team, choice });
                 return;
             }
@@ -1267,6 +1339,7 @@
         }
 
         function syncPreMatchUI() {
+            syncMyIdentityFromSlots();
             const screenSetup = document.getElementById('screen-setup');
             const screenPre = document.getElementById('screen-prematch');
             const stepForm = document.getElementById('prematch-step-formations');
@@ -1280,43 +1353,108 @@
             screenSetup.classList.add('hidden');
             screenPre.classList.remove('hidden');
 
+            const myTeam = getMyTeamOnline(); // 'red', 'blue', or null in LOCAL
+
             if (gameState === 'PREMATCH_FORMATIONS') {
                 stepForm.classList.remove('hidden');
                 stepRps.classList.add('hidden');
 
+                const subEl = document.getElementById('prematch-form-subtitle');
+                if (networkMode === 'ONLINE' && myTeam) {
+                    subEl.innerText = `Sei nella SQUADRA ${myTeam === 'red' ? 'ROSSA 🔴' : 'BLU 🔵'}: scegli il tuo modulo in segreto!`;
+                } else {
+                    subEl.innerText = !formationLocked.red
+                        ? "Turno Squadra Rossa: scegli e conferma il modulo in segreto"
+                        : "Turno Squadra Blu: scegli e conferma il modulo in segreto";
+                }
+
+                // Determine whether Red and Blue controls should be visible or masked as secret
+                const showRedControls = (networkMode === 'ONLINE')
+                    ? (myTeam === 'red' && !formationLocked.red)
+                    : (!formationLocked.red);
+
+                const showBlueControls = (networkMode === 'ONLINE')
+                    ? (myTeam === 'blue' && !formationLocked.blue)
+                    : (formationLocked.red && !formationLocked.blue);
+
+                document.getElementById('controls-form-red').classList.toggle('hidden', !showRedControls);
+                document.getElementById('secret-mask-red').classList.toggle('hidden', showRedControls);
+
+                document.getElementById('controls-form-blue').classList.toggle('hidden', !showBlueControls);
+                document.getElementById('secret-mask-blue').classList.toggle('hidden', showBlueControls);
+
+                // Update Secret Mask text so opponent never sees the chosen formation
+                const secRed = document.getElementById('secret-text-red');
+                if (formationLocked.red) {
+                    secRed.innerText = (networkMode === 'ONLINE' && myTeam === 'red')
+                        ? `✅ Hai confermato il modulo ${localDraftFormation.red} (Segreto per gli avversari)`
+                        : `🔒 Modulo Squadra Rossa Confermato (Segreto)`;
+                } else {
+                    secRed.innerText = `⏳ La Squadra Rossa sta scegliendo il modulo in segreto...`;
+                }
+
+                const secBlue = document.getElementById('secret-text-blue');
+                if (formationLocked.blue) {
+                    secBlue.innerText = (networkMode === 'ONLINE' && myTeam === 'blue')
+                        ? `✅ Hai confermato il modulo ${localDraftFormation.blue} (Segreto per gli avversari)`
+                        : `🔒 Modulo Squadra Blu Confermato (Segreto)`;
+                } else {
+                    secBlue.innerText = (networkMode === 'LOCAL' && !formationLocked.red)
+                        ? `🔒 In attesa che la Squadra Rossa confermi...`
+                        : `⏳ La Squadra Blu sta scegliendo il modulo in segreto...`;
+                }
+
+                // Highlight only local draft buttons for the active selector
                 ['4-3-3', '3-5-2', '4-4-2'].forEach(f => {
                     const bR = document.getElementById(`btn-form-red-${f}`);
                     const bB = document.getElementById(`btn-form-blue-${f}`);
-                    bR.className = formationRed === f
+                    bR.className = localDraftFormation.red === f
                         ? "py-2 rounded-lg font-display font-black text-xs border bg-red-500 text-white border-red-300 shadow"
                         : "py-2 rounded-lg font-display font-bold text-xs border bg-slate-800 text-slate-400 border-slate-700";
-                    bB.className = formationBlue === f
+                    bB.className = localDraftFormation.blue === f
                         ? "py-2 rounded-lg font-display font-black text-xs border bg-blue-500 text-white border-blue-300 shadow"
                         : "py-2 rounded-lg font-display font-bold text-xs border bg-slate-800 text-slate-400 border-slate-700";
                 });
 
                 const stR = document.getElementById('status-form-red');
                 const stB = document.getElementById('status-form-blue');
-                stR.innerText = formationLocked.red ? "✓ Modulo Confermato" : "In scelta...";
+                stR.innerText = formationLocked.red ? "✓ Pronto (Segreto)" : "In scelta...";
                 stR.className = formationLocked.red
                     ? "text-[10px] font-black px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300"
                     : "text-[10px] font-black px-2 py-0.5 rounded bg-amber-500/20 text-amber-300";
 
-                stB.innerText = formationLocked.blue ? "✓ Modulo Confermato" : "In scelta...";
+                stB.innerText = formationLocked.blue ? "✓ Pronto (Segreto)" : "In scelta...";
                 stB.className = formationLocked.blue
                     ? "text-[10px] font-black px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300"
                     : "text-[10px] font-black px-2 py-0.5 rounded bg-amber-500/20 text-amber-300";
 
-                document.getElementById('btn-lock-form-red').disabled = formationLocked.red || !canControlTeamInPreMatch('red');
-                document.getElementById('btn-lock-form-blue').disabled = formationLocked.blue || !canControlTeamInPreMatch('blue');
             } else if (gameState === 'PREMATCH_RPS') {
                 stepForm.classList.add('hidden');
                 stepRps.classList.remove('hidden');
 
+                const showRpsRed = (networkMode === 'ONLINE')
+                    ? (myTeam === 'red' && !rpsState.redChoice)
+                    : (!rpsState.redChoice);
+                const showRpsBlue = (networkMode === 'ONLINE')
+                    ? (myTeam === 'blue' && !rpsState.blueChoice)
+                    : (!!rpsState.redChoice && !rpsState.blueChoice);
+
+                document.getElementById('rps-controls-red').classList.toggle('hidden', !showRpsRed);
+                document.getElementById('rps-secret-red').classList.toggle('hidden', showRpsRed);
+                document.getElementById('rps-secret-red').innerText = rpsState.redChoice
+                    ? "🔒 Mossa Squadra Rossa pronta (Segreta)"
+                    : "⏳ In attesa della mossa della Squadra Rossa...";
+
+                document.getElementById('rps-controls-blue').classList.toggle('hidden', !showRpsBlue);
+                document.getElementById('rps-secret-blue').classList.toggle('hidden', showRpsBlue);
+                document.getElementById('rps-secret-blue').innerText = rpsState.blueChoice
+                    ? "🔒 Mossa Squadra Blu pronta (Segreta)"
+                    : "⏳ In attesa della mossa della Squadra Blu...";
+
                 const stR = document.getElementById('rps-status-red');
                 const stB = document.getElementById('rps-status-blue');
-                stR.innerText = rpsState.redChoice ? "✓ Scelta pronta!" : "In attesa...";
-                stB.innerText = rpsState.blueChoice ? "✓ Scelta pronta!" : "In attesa...";
+                stR.innerText = rpsState.redChoice ? "✓ Pronta!" : "In attesa...";
+                stB.innerText = rpsState.blueChoice ? "✓ Pronta!" : "In attesa...";
 
                 const banner = document.getElementById('rps-result-banner');
                 if (rpsState.statusText) {
@@ -1349,7 +1487,7 @@
         }
 
         // =========================================================================
-        // NETWORK SYNCHRONIZATION
+        // NETWORK SYNCHRONIZATION (HOST AUTHORITATIVE + ATOMIC CLIENT ACTIONS)
         // =========================================================================
         function sendToHost(payload) {
             if (clientConnection && clientConnection.open) {
@@ -1362,6 +1500,9 @@
 
         function broadcastFullStateFromHost() {
             if (!isOnlineHost) return;
+            const bothFormationsLocked = formationLocked.red && formationLocked.blue;
+            const bothRpsChosen = !!(rpsState.redChoice && rpsState.blueChoice);
+
             const statePacket = {
                 type: 'STATE_SYNC',
                 gameState,
@@ -1376,10 +1517,16 @@
                 lobbySlots,
                 scoreRed,
                 scoreBlue,
-                formationRed,
-                formationBlue,
+                // Keep formations secret on wire until both are locked!
+                formationRed: bothFormationsLocked ? formationRed : '4-3-3',
+                formationBlue: bothFormationsLocked ? formationBlue : '4-3-3',
                 formationLocked,
-                rpsState,
+                rpsState: {
+                    redChoice: bothRpsChosen ? rpsState.redChoice : (rpsState.redChoice ? 'SECRET' : null),
+                    blueChoice: bothRpsChosen ? rpsState.blueChoice : (rpsState.blueChoice ? 'SECRET' : null),
+                    winner: rpsState.winner,
+                    statusText: rpsState.statusText
+                },
                 pieces,
                 p1ActionPoints,
                 p4Mode,
@@ -1390,6 +1537,7 @@
                 activeBuffs,
                 expelledPlayers,
                 shootoutState,
+                latestGlobalEvent,
                 resolutionUI: {
                     title: document.getElementById('resolution-title')?.innerText || '',
                     titleClass: document.getElementById('resolution-title')?.className || '',
@@ -1436,7 +1584,7 @@
                     assignPeerToSlot(data.peerId, data.slotKey);
                     broadcastFullStateFromHost();
                 } else if (data.type === 'CLIENT_ACTION') {
-                    applyClientActionOnHost(data.action);
+                    applyClientActionOnHost(data.action, data.peerId);
                 }
             } else {
                 if (data.type === 'STATE_SYNC') {
@@ -1445,27 +1593,22 @@
             }
         }
 
-        function applyClientActionOnHost(act) {
+        function applyClientActionOnHost(act, senderPeerId) {
             if (!act) return;
-            if (act.kind === 'SELECT_FORMATION') {
-                if (!formationLocked[act.team]) {
-                    if (act.team === 'red') formationRed = act.formKey;
-                    else formationBlue = act.formKey;
-                    syncPreMatchUI();
-                }
-            } else if (act.kind === 'CONFIRM_FORMATION') {
-                confirmTeamFormation(act.team);
+            if (act.kind === 'LOCK_FORMATION') {
+                applyLockFormationOnHost(act.team, act.formKey);
             } else if (act.kind === 'RPS_CHOICE') {
                 submitRpsChoice(act.team, act.choice);
-            } else if (act.kind === 'CELL_CLICK') {
-                selectedPieceId = act.selectedPieceId;
-                p4Mode = act.p4Mode || p4Mode;
-                handleCellClick(act.r, act.c, true);
-            } else if (act.kind === 'STAGE_LONG_SHOT') {
-                stageLongShot(true);
-            } else if (act.kind === 'UNDO') {
-                undoPhaseMove(true);
-            } else if (act.kind === 'CONFIRM_PHASE') {
+            } else if (act.kind === 'COMMIT_PHASE_MOVE') {
+                // Atomic commit of the active player's staged moves for the phase
+                if (act.phase === 1 && Array.isArray(act.moves1)) {
+                    plannedMoves[1] = act.moves1;
+                    p1ActionPoints = Math.max(0, 2 - plannedMoves[1].length);
+                } else if ((act.phase === 2 || act.phase === 3) && act.move) {
+                    plannedMoves[act.phase] = act.move;
+                } else if (act.phase === 4 && act.move4) {
+                    plannedMoves[4] = act.move4;
+                }
                 confirmPhaseStep(true);
             } else if (act.kind === 'ROULETTE_SPIN') {
                 triggerManualRouletteSpin(act.forcedRoll);
@@ -1482,14 +1625,24 @@
             } else if (act.kind === 'FINISH_SHOOTOUT') {
                 finishShootout(true);
             } else if (act.kind === 'PLAY_CARD') {
+                // Sync any staged defensive move before playing Fallo Tattico / Fallo da Rosso
+                if (act.stagedMove && (currentPhase === 2 || currentPhase === 3)) {
+                    plannedMoves[currentPhase] = act.stagedMove;
+                }
                 triggerSecretCard(act.cardKey, act.cardIndex, act.team);
             }
             broadcastFullStateFromHost();
         }
 
         function applySyncedStateFromHost(st) {
+            const prevPhase = currentPhase;
+            const prevTurn = turnNumber;
+            const prevState = gameState;
+
             onlinePlayerCount = st.onlinePlayerCount;
             lobbySlots = st.lobbySlots || lobbySlots;
+            syncMyIdentityFromSlots();
+
             formationRed = st.formationRed;
             formationBlue = st.formationBlue;
             formationLocked = st.formationLocked || { red: false, blue: false };
@@ -1509,15 +1662,29 @@
             scoreRed = st.scoreRed;
             scoreBlue = st.scoreBlue;
             pieces = st.pieces;
-            p1ActionPoints = st.p1ActionPoints;
-            p4Mode = st.p4Mode;
-            plannedMoves = st.plannedMoves;
-            pendingRoulette = st.pendingRoulette;
-            periodEndState = st.periodEndState || periodEndState;
-            teamCards = st.teamCards;
             activeBuffs = st.activeBuffs;
             expelledPlayers = st.expelledPlayers;
+            teamCards = st.teamCards;
+            pendingRoulette = st.pendingRoulette;
+            periodEndState = st.periodEndState || periodEndState;
             shootoutState = st.shootoutState;
+
+            // Only overwrite plannedMoves if we changed phase/turn/state or it's not currently our turn to stage locally
+            if (prevPhase !== currentPhase || prevTurn !== turnNumber || prevState !== gameState || !isMyTurnOnline()) {
+                plannedMoves = st.plannedMoves;
+                p1ActionPoints = st.p1ActionPoints;
+                p4Mode = st.p4Mode;
+                selectedPieceId = null;
+            }
+
+            // Display shared match events (and never opponent error toasts)
+            if (st.latestGlobalEvent && st.latestGlobalEvent.id !== lastGlobalEventId) {
+                lastGlobalEventId = st.latestGlobalEvent.id;
+                const myTeam = getMyTeamOnline();
+                if (st.latestGlobalEvent.targetTeam === 'all' || st.latestGlobalEvent.targetTeam === myTeam) {
+                    showLocalToast(st.latestGlobalEvent.msg, st.latestGlobalEvent.type);
+                }
+            }
 
             if (gameState === 'PREMATCH_FORMATIONS' || gameState === 'PREMATCH_RPS') {
                 syncPreMatchUI();
@@ -1531,14 +1698,12 @@
                 document.getElementById('screen-game').classList.remove('hidden');
             }
 
-            // Sync Roulette Modal (All 4 players see it!)
             if (gameState === 'ROULETTE' && pendingRoulette.active) {
                 syncRouletteModalUI();
             } else {
                 document.getElementById('screen-roulette').classList.add('hidden');
             }
 
-            // Sync Non-Obstructing Resolution Dock
             if (gameState === 'RESOLUTION') {
                 document.getElementById('resolution-title').innerText = st.resolutionUI.title;
                 document.getElementById('resolution-title').className = st.resolutionUI.titleClass;
@@ -1550,14 +1715,12 @@
                 document.getElementById('dock-resolution-controls').classList.add('hidden');
             }
 
-            // Sync Shootout Screen (All 4 players see it!)
             if (gameState === 'SHOOTOUT') {
                 syncShootoutScreenUI(st.shootoutResultUI);
             } else {
                 document.getElementById('screen-shootout').classList.add('hidden');
             }
 
-            // Sync Halftime / Fulltime Screen
             if (gameState === 'PERIOD_END') {
                 syncPeriodEndModalUI();
             } else {
@@ -1605,11 +1768,12 @@
                 blue_A: 'Blu A',
                 blue_B: 'Blu B'
             };
-            return map[slotKey] || slotKey;
+            return map[slotKey] || slotKey || 'Spettatore';
         }
 
         function isMyTurnOnline() {
             if (networkMode === 'LOCAL') return true;
+            syncMyIdentityFromSlots();
             if (!myOnlineSlot) return false;
 
             if (gameState === 'SHOOTOUT') {
@@ -1625,18 +1789,16 @@
         }
 
         function getMyTeamOnline() {
+            syncMyIdentityFromSlots();
             if (!myOnlineSlot) return null;
             return myOnlineSlot.startsWith('red') ? 'red' : 'blue';
         }
 
-        // Red Goal is at Row 0 (top in raw coordinates), Blue Goal is at Row 11 (bottom in raw coordinates).
-        // So when viewing from Red's perspective, we flip the pitch 180deg so Red's goal is at the bottom!
         function shouldFlipPitchForCurrentViewer() {
             if (!autoFlipPitch) return manualFlipOverride;
             if (networkMode === 'ONLINE' && getMyTeamOnline()) {
                 return getMyTeamOnline() === 'red';
             }
-            // In Local mode during RESOLUTION, keep perspective of attacking team; during PLAYING, use active phase team
             if (gameState === 'RESOLUTION') {
                 return attackingTeam === 'red';
             }
@@ -1647,10 +1809,10 @@
             if (autoFlipPitch) {
                 autoFlipPitch = false;
                 manualFlipOverride = !shouldFlipPitchForCurrentViewer();
-                showToast("Visuale campo bloccata manualmente.", "info");
+                showLocalToast("Visuale campo bloccata manualmente.", "info");
             } else {
                 autoFlipPitch = true;
-                showToast("Visuale Dinamica ATTIVA: la tua porta è sempre in basso!", "success");
+                showLocalToast("Visuale Dinamica ATTIVA: la tua porta è sempre in basso!", "success");
             }
             updateHUD();
             renderBoard();
@@ -1681,8 +1843,8 @@
 
         function setupFormationPieces(formKeyRed, formKeyBlue, ballTeam) {
             pieces = [];
-            const fRed = FORMATIONS[formKeyRed];
-            const fBlue = FORMATIONS[formKeyBlue];
+            const fRed = FORMATIONS[formKeyRed] || FORMATIONS['4-3-3'];
+            const fBlue = FORMATIONS[formKeyBlue] || FORMATIONS['4-3-3'];
 
             let rNum = 1;
             pieces.push({ id: `R${rNum}`, num: rNum++, team: 'red', r: 0, c: 3, isGK: true, hasBall: false });
@@ -1699,12 +1861,12 @@
 
         function togglePrivacyMode() {
             if (networkMode === 'ONLINE') {
-                showToast(`Stanza Online (${getSlotDisplayName(myOnlineSlot)})`, "info");
+                showLocalToast(`Stanza Online (${getSlotDisplayName(myOnlineSlot)})`, "info");
                 return;
             }
             usePrivacyCurtain = !usePrivacyCurtain;
             updatePrivacyButtonUI();
-            showToast(usePrivacyCurtain ? "Velo Privacy ATTIVO" : "Velo Privacy DISATTIVATO", "info");
+            showLocalToast(usePrivacyCurtain ? "Velo Privacy ATTIVO" : "Velo Privacy DISATTIVATO", "info");
         }
 
         function updatePrivacyButtonUI() {
@@ -1737,10 +1899,9 @@
             document.getElementById('dock-playing-controls').classList.remove('hidden');
             document.getElementById('dock-resolution-controls').classList.add('hidden');
 
-            // Tick down red card suspensions
             expelledPlayers.forEach(e => e.turns--);
             const recovered = expelledPlayers.filter(e => e.turns <= 0);
-            recovered.forEach(e => showToast(`Giocatore #${e.num} (${e.team === 'red' ? 'Rossi' : 'Blu'}) rientra dall'espulsione!`, 'info'));
+            recovered.forEach(e => emitSharedMatchEvent(`Giocatore #${e.num} (${e.team === 'red' ? 'Rossi' : 'Blu'}) rientra dall'espulsione!`, 'info', 'all'));
             expelledPlayers = expelledPlayers.filter(e => e.turns > 0);
 
             beginPhase(1);
@@ -1820,638 +1981,12 @@
         }
 
         // =========================================================================
-        // VISIBILITY & BOARD SIMULATION PER PHASE
+        // INTERACTION HANDLER (STRICTLY LOCAL STAGING + ATOMIC CONFIRMATION)
         // =========================================================================
-        function isCellPlayable(r, c) {
-            if (r < 0 || r > 11 || c < 0 || c > 6) return false;
-            if (r === 0 || r === 11) return c === 3;
-            if (r === 1 || r === 10) return c >= 2 && c <= 4;
-            return true;
-        }
-
-        function isDefendingShootingZone(team, r, c) {
-            if (team === 'red' && r === 1 && c >= 2 && c <= 4) return true;
-            if (team === 'blue' && r === 10 && c >= 2 && c <= 4) return true;
-            return false;
-        }
-
-        function isAttackingShootingZone(team, r, c) {
-            if (team === 'red' && r === 10 && c >= 2 && c <= 4) return true;
-            if (team === 'blue' && r === 1 && c >= 2 && c <= 4) return true;
-            return false;
-        }
-
-        function getVisiblePieces(phase = currentPhase) {
-            let sim = JSON.parse(JSON.stringify(pieces)).filter(
-                p => !expelledPlayers.some(e => e.id === p.id)
-            );
-
-            const applyMove = (m) => {
-                if (!m) return;
-                if (m.type === 'move') {
-                    const p = sim.find(x => x.id === m.pieceId);
-                    if (p) { p.r = m.toR; p.c = m.toC; }
-                }
-            };
-
-            plannedMoves[1].forEach(m => applyMove(m));
-
-            if (phase === 2 || phase === 3) {
-                applyMove(plannedMoves[2]);
-            }
-            if (phase === 3) {
-                applyMove(plannedMoves[3]);
-            }
-            if (phase === 4 && plannedMoves[4] && plannedMoves[4].type === 'move') {
-                applyMove(plannedMoves[4]);
-            }
-
-            return sim;
-        }
-
-        function getVisiblePiecesForThisDevice() {
-            if (networkMode === 'ONLINE' && gameState === 'PLAYING') {
-                const myTeam = getMyTeamOnline();
-                if (myTeam === attackingTeam) {
-                    return getVisiblePieces(4);
-                }
-            }
-            return getVisiblePieces(currentPhase);
-        }
-
-        function countAttackersPastMidfield(pieceList) {
-            if (attackingTeam === 'red') {
-                return pieceList.filter(p => p.team === 'red' && p.r >= 6).length;
-            } else {
-                return pieceList.filter(p => p.team === 'blue' && p.r <= 5).length;
-            }
-        }
-
-        function didP1MovePlayer(pieceId) {
-            return plannedMoves[1].some(m => m.pieceId === pieceId);
-        }
-
-        // =========================================================================
-        // MOVEMENT & UPDATED PASSING RULES (SAFE DISTANCE = 3, -10% PER CELL, -10% SPACE PASS)
-        // =========================================================================
-        function canPlayerMoveTo(piece, targetR, targetC, visPieces) {
-            if (!isCellPlayable(targetR, targetC)) return { valid: false };
-            if (piece.isGK) return { valid: false, reason: "Il portiere non può muoversi." };
-            if (targetR === 0 || targetR === 11) {
-                return { valid: false, reason: "Nessuno può entrare nella casella del portiere." };
-            }
-            if (targetR === piece.r && targetC === piece.c) return { valid: false };
-
-            const hasTeammate = visPieces.some(x => x.team === piece.team && x.id !== piece.id && x.r === targetR && x.c === targetC);
-            if (hasTeammate) return { valid: false, reason: "Casella già occupata da un compagno." };
-
-            if (isDefendingShootingZone(piece.team, targetR, targetC)) {
-                const otherDefendersInZone = visPieces.filter(
-                    x => x.team === piece.team && x.id !== piece.id && isDefendingShootingZone(piece.team, x.r, x.c)
-                );
-                if (otherDefendersInZone.length >= 1) {
-                    return { valid: false, reason: "Massimo 1 difensore consentito nella Zona di Tiro!" };
-                }
-            }
-
-            const dr = Math.abs(targetR - piece.r);
-            const dc = Math.abs(targetC - piece.c);
-
-            // Phase 4 Ball Carrier Dribbling: 1 cell in any direction (+1 with Extra Sprint)
-            if (currentPhase === 4 && piece.hasBall) {
-                const dribbleMax = activeBuffs.extra_sprint ? 2 : 1;
-                const isOrtho = (dr === 0 && dc <= dribbleMax) || (dc === 0 && dr <= dribbleMax);
-                const isDiag = (dr === dc && dr <= (activeBuffs.extra_sprint ? 2 : 1));
-                if (isOrtho || isDiag) {
-                    return { valid: true, cost: 1 };
-                }
-                return { valid: false };
-            }
-
-            // Non-ball movement (P1, P2, P3): up to 2 orthogonal or 1 diagonal (+1 with Extra Sprint)
-            const orthoMax = activeBuffs.extra_sprint ? 3 : 2;
-            const diagMax = activeBuffs.extra_sprint ? 2 : 1;
-            const isOrtho = (dr === 0 && dc > 0 && dc <= orthoMax) || (dc === 0 && dr > 0 && dr <= orthoMax);
-            const isDiag = (dr > 0 && dr === dc && dr <= diagMax);
-
-            if (!isOrtho && !isDiag) return { valid: false };
-
-            return { valid: true, cost: 1 };
-        }
-
-        function evaluatePassTarget(ballCarrier, targetR, targetC, visPieces) {
-            if (!isCellPlayable(targetR, targetC)) return { valid: false };
-            if (targetR === 0 || targetR === 11) return { valid: false };
-            if (targetR === ballCarrier.r && targetC === ballCarrier.c) return { valid: false };
-
-            const manhattan = Math.abs(targetR - ballCarrier.r) + Math.abs(targetC - ballCarrier.c);
-            if (manhattan === 0) return { valid: false };
-
-            // 1. Direct pass to a teammate standing on (targetR, targetC)
-            const directAlly = visPieces.find(x => x.team === ballCarrier.team && x.id !== ballCarrier.id && !x.isGK && x.r === targetR && x.c === targetC);
-
-            // 2. Space pass (empty cell adjacent to a teammate)
-            let spaceAlly = null;
-            if (!directAlly) {
-                const adjAllies = visPieces.filter(x =>
-                    x.team === ballCarrier.team &&
-                    x.id !== ballCarrier.id &&
-                    !x.isGK &&
-                    Math.max(Math.abs(x.r - targetR), Math.abs(x.c - targetC)) === 1
-                );
-                adjAllies.sort((a, b) => (didP1MovePlayer(b.id) ? 1 : 0) - (didP1MovePlayer(a.id) ? 1 : 0));
-                if (adjAllies.length > 0) {
-                    spaceAlly = adjAllies[0];
-                }
-            }
-
-            const receiver = directAlly || spaceAlly;
-            if (!receiver) return { valid: false };
-
-            const isSpacePass = !directAlly && !!spaceAlly;
-            const isTriangolazione = didP1MovePlayer(receiver.id);
-
-            // UPDATED PASSING RULES:
-            // - Safe distance is 3 orthogonal steps (manhattan <= 3).
-            // - Beyond 3 steps: -10% per extra step (-5% if "Il Maestro" card is active).
-            // - Space pass (not directly on the player): -10% default feasibility!
-            const SAFE_PASS_DISTANCE = 3;
-            let successChance = 100;
-            const penaltyPerStep = activeBuffs.maestro ? 5 : 10;
-
-            let modParts = [`Dist: ${manhattan} (Max sicura: 3)`];
-
-            if (manhattan > SAFE_PASS_DISTANCE) {
-                const distPenalty = (manhattan - SAFE_PASS_DISTANCE) * penaltyPerStep;
-                successChance -= distPenalty;
-                modParts.push(`Dist. oltre 3: -${distPenalty}%${activeBuffs.maestro ? ' (Maestro)' : ''}`);
-            }
-
-            if (isSpacePass) {
-                successChance -= 10;
-                modParts.push(`Sulla Corsa: -10%`);
-            }
-
-            if (isTriangolazione && successChance < 100) {
-                successChance = Math.min(95, successChance + 10);
-                modParts.push(`Bonus 1-2: +10%`);
-            }
-
-            successChance = Math.max(5, Math.min(100, successChance));
-
-            return {
-                valid: true,
-                receiver,
-                isSpacePass,
-                isTriangolazione,
-                manhattan,
-                successChance,
-                modifiersText: modParts.join(' • ')
-            };
-        }
-
-        function evaluateLongShot(ballCarrier, visPieces) {
-            if (!ballCarrier) return { canShoot: false, reason: "Nessun portatore di palla." };
-
-            if (requireFivePastMidfield) {
-                const attackersAhead = countAttackersPastMidfield(visPieces);
-                if (attackersAhead < 5) {
-                    return {
-                        canShoot: false,
-                        chance: 0,
-                        reason: `Regola Spinta Attiva: servono 5 giocatori oltre metà campo (${attackersAhead}/5)!`
-                    };
-                }
-            }
-
-            const targetRow = attackingTeam === 'red' ? 10 : 1;
-            let minD = 999;
-            for (let c = 2; c <= 4; c++) {
-                const d = Math.abs(ballCarrier.r - targetRow) + Math.abs(ballCarrier.c - c);
-                if (d < minD) minD = d;
-            }
-
-            const penaltyPerCell = activeBuffs.bordata ? 10 : 25;
-            let chance = 100 - minD * penaltyPerCell;
-            const has12 = didP1MovePlayer(ballCarrier.id);
-            if (has12 && chance < 100) {
-                chance = Math.min(100, chance + 15);
-            }
-
-            if (chance <= 0) {
-                return { canShoot: false, chance: 0, reason: "Troppo lontano per tirare in porta!" };
-            }
-
-            let modParts = [`Distanza dall'area: ${minD} caselle`];
-            if (minD > 0) modParts.push(`Malus: -${minD * penaltyPerCell}%${activeBuffs.bordata ? ' (Bordata)' : ''}`);
-            if (has12) modParts.push(`Bonus 1-2: +15%`);
-
-            return { canShoot: true, chance, dist: minD, modifiersText: modParts.join(' • ') };
-        }
-
-        // =========================================================================
-        // HUD & BOARD RENDERING
-        // =========================================================================
-        function updateScoreboardUI() {
-            document.getElementById('score-red').innerText = scoreRed;
-            document.getElementById('score-blue').innerText = scoreBlue;
-            document.getElementById('match-clock').innerText = `${matchMinute}'`;
-            document.getElementById('match-half-label').innerText = `${currentHalf}°T • T${turnNumber}`;
-        }
-
-        function updateHUD() {
-            updateScoreboardUI();
-            updatePrivacyButtonUI();
-            applyPitchOrientationUI();
-
-            const vis = getVisiblePiecesForThisDevice();
-            const activeTeam = getActiveTeamForPhase(currentPhase);
-            const activeSlot = getRequiredSlotForPhase(currentPhase);
-            const myTurn = isMyTurnOnline();
-
-            const rRole = document.getElementById('role-red');
-            const bRole = document.getElementById('role-blue');
-            if (attackingTeam === 'red') {
-                rRole.innerText = "ATT";
-                rRole.className = "text-[9px] font-black px-1.5 py-0.5 rounded bg-red-500 text-white shadow";
-                bRole.innerText = "DIF";
-                bRole.className = "text-[9px] font-black px-1.5 py-0.5 rounded bg-slate-800 text-blue-300 border border-blue-500/30";
-            } else {
-                bRole.innerText = "ATT";
-                bRole.className = "text-[9px] font-black px-1.5 py-0.5 rounded bg-blue-500 text-white shadow";
-                rRole.innerText = "DIF";
-                rRole.className = "text-[9px] font-black px-1.5 py-0.5 rounded bg-slate-800 text-red-300 border border-red-500/30";
-            }
-
-            const midEl = document.getElementById('midfield-indicator');
-            if (requireFivePastMidfield) {
-                const attCount = countAttackersPastMidfield(vis);
-                if (attCount >= 5) {
-                    midEl.innerHTML = `<span>⚡ Spinta: ${attCount}/5 ✓</span>`;
-                    midEl.className = "px-2 py-1 rounded-lg bg-emerald-500/20 border border-emerald-500/40 font-black flex items-center gap-1 text-emerald-300 text-[10px]";
-                } else {
-                    midEl.innerHTML = `<span>⚠️ Spinta: ${attCount}/5</span>`;
-                    midEl.className = "px-2 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30 font-bold flex items-center gap-1 text-amber-300 text-[10px]";
-                }
-            } else {
-                midEl.innerHTML = `<span>⚡ Tiro Libero</span>`;
-                midEl.className = "px-2 py-1 rounded-lg bg-slate-800 border border-slate-700 font-bold flex items-center gap-1 text-emerald-400 text-[10px]";
-            }
-
-            const phasePill = document.getElementById('phase-pill');
-            const teamDot = activeTeam === 'red' ? '🔴' : '🔵';
-            if (currentPhase === 1) phasePill.innerText = `${teamDot} F1 • PA: ${p1ActionPoints}/2`;
-            if (currentPhase === 2) phasePill.innerText = `${teamDot} F2 • DIFESA 1`;
-            if (currentPhase === 3) phasePill.innerText = `${teamDot} F3 • DIFESA 2`;
-            if (currentPhase === 4) phasePill.innerText = `${teamDot} F4 • REGISTA`;
-
-            const cardTeam = (networkMode === 'ONLINE' && getMyTeamOnline()) ? getMyTeamOnline() : activeTeam;
-            const cardsArr = cardTeam === 'red' ? teamCards.red : teamCards.blue;
-            document.getElementById('cards-count-badge').innerText = cardsArr.length;
-
-            const badgesRow = document.getElementById('status-badges-row');
-            badgesRow.innerHTML = '';
-
-            if (networkMode === 'ONLINE') {
-                const turnBadgeClass = myTurn
-                    ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300'
-                    : 'bg-amber-500/20 border-amber-400 text-amber-300';
-                badgesRow.innerHTML += `<span class="px-2 py-0.5 rounded border ${turnBadgeClass} text-[10px] font-black">${myTurn ? '🟢 TOCCA A TE' : '⏳ Turno di: ' + getSlotDisplayName(activeSlot)}</span>`;
-            }
-
-            if (matchMinute === 42) {
-                badgesRow.innerHTML += `<span class="px-2 py-0.5 rounded bg-amber-500/20 border border-amber-400 text-amber-300 text-[10px] font-black">⏱️ Prossimo turno: Ultima azione 1°T (45')</span>`;
-            } else if (matchMinute === 45) {
-                badgesRow.innerHTML += `<span class="px-2 py-0.5 rounded bg-red-500/25 border border-red-400 text-red-200 text-[10px] font-black animate-pulse">🔥 ULTIMA AZIONE PRIMO TEMPO (45')!</span>`;
-            } else if (matchMinute === 90) {
-                badgesRow.innerHTML += `<span class="px-2 py-0.5 rounded bg-red-600/30 border border-red-400 text-white text-[10px] font-black animate-pulse">🚨 ULTIMA AZIONE DELLA PARTITA (90')!</span>`;
-            }
-
-            if (activeBuffs.extra_sprint) {
-                badgesRow.innerHTML += `<span class="px-2 py-0.5 rounded bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 text-[10px] font-bold">⚡ Extra Sprint (+1)</span>`;
-            }
-            if (activeBuffs.maestro) {
-                badgesRow.innerHTML += `<span class="px-2 py-0.5 rounded bg-purple-500/20 border border-purple-400/40 text-purple-300 text-[10px] font-bold">🎩 Il Maestro (-5%)</span>`;
-            }
-            if (activeBuffs.bordata) {
-                badgesRow.innerHTML += `<span class="px-2 py-0.5 rounded bg-amber-500/20 border border-amber-400/40 text-amber-300 text-[10px] font-bold">🚀 Bordata</span>`;
-            }
-            if (activeBuffs.guantoni_red || activeBuffs.guantoni_blue) {
-                badgesRow.innerHTML += `<span class="px-2 py-0.5 rounded bg-yellow-500/20 border border-yellow-400/40 text-yellow-300 text-[10px] font-bold">🧤 Guantoni d'Oro</span>`;
-            }
-            expelledPlayers.forEach(e => {
-                badgesRow.innerHTML += `<span class="px-2 py-0.5 rounded bg-red-600/30 border border-red-500/50 text-red-200 text-[10px] font-bold">🟥 #${e.num} (${e.team === 'red' ? 'R' : 'B'}): ${e.turns}t</span>`;
-            });
-
-            // Footer Instructions & Mandatory Confirmation Buttons
-            const instr = document.getElementById('instruction-text');
-            const btnUndo = document.getElementById('btn-undo-phase');
-            const btnConfirm = document.getElementById('btn-confirm-phase');
-            const p4Bar = document.getElementById('p4-action-bar');
-
-            btnUndo.classList.add('hidden');
-            btnConfirm.classList.add('hidden');
-            p4Bar.classList.add('hidden');
-
-            if (!myTurn) {
-                instr.innerText = `⏳ In attesa della mossa e conferma di ${getSlotDisplayName(activeSlot)}...`;
-                return;
-            }
-
-            if (currentPhase === 1) {
-                if (plannedMoves[1].length === 0) {
-                    instr.innerText = `P1 Attacco: Muovi fino a 2 compagni senza palla (2 PA)`;
-                } else if (p1ActionPoints > 0) {
-                    instr.innerText = `1ª mossa pronta (${p1ActionPoints} PA rimasto): muovi ancora o Conferma`;
-                    btnUndo.classList.remove('hidden');
-                    btnConfirm.classList.remove('hidden');
-                } else {
-                    instr.innerText = `2 mosse pianificate! Premi Conferma Mossa o Ripensa`;
-                    btnUndo.classList.remove('hidden');
-                    btnConfirm.classList.remove('hidden');
-                }
-            } else if (currentPhase === 2) {
-                if (!plannedMoves[2]) {
-                    instr.innerText = "P2 Difesa: Seleziona e muovi il 1° difensore";
-                } else {
-                    instr.innerText = "Mossa P2 pronta! Premi Conferma Mossa o Ripensa";
-                    btnUndo.classList.remove('hidden');
-                    btnConfirm.classList.remove('hidden');
-                }
-            } else if (currentPhase === 3) {
-                if (!plannedMoves[3]) {
-                    instr.innerText = "P3 Difesa: Seleziona e muovi un 2° difensore diverso";
-                } else {
-                    instr.innerText = "Mossa P3 pronta! Premi Conferma Mossa o Ripensa";
-                    btnUndo.classList.remove('hidden');
-                    btnConfirm.classList.remove('hidden');
-                }
-            } else if (currentPhase === 4) {
-                p4Bar.classList.remove('hidden');
-                const carrier = pieces.find(p => p.hasBall && !expelledPlayers.some(e => e.id === p.id));
-                const shotEval = evaluateLongShot(carrier, getVisiblePieces(4));
-
-                const dBtn = document.getElementById('mode-btn-dribble');
-                const pBtn = document.getElementById('mode-btn-pass');
-                const sLabel = document.getElementById('btn-shoot-label');
-
-                dBtn.className = p4Mode === 'DRIBBLE'
-                    ? "py-1.5 px-2 rounded-lg font-black text-[11px] bg-emerald-500 text-slate-950 border border-emerald-300 shadow"
-                    : "py-1.5 px-2 rounded-lg font-bold text-[11px] bg-slate-800 text-slate-300 border border-slate-700";
-
-                pBtn.className = p4Mode === 'PASS'
-                    ? "py-1.5 px-2 rounded-lg font-black text-[11px] bg-cyan-400 text-slate-950 border border-cyan-200 shadow"
-                    : "py-1.5 px-2 rounded-lg font-bold text-[11px] bg-slate-800 text-slate-300 border border-slate-700";
-
-                sLabel.innerText = shotEval.canShoot ? `🚀 Tira (${shotEval.chance}%)` : `🚀 Tira (Fuori Raggio)`;
-
-                if (plannedMoves[4]) {
-                    const m4 = plannedMoves[4];
-                    if (m4.type === 'move') instr.innerText = "Dribbling pronto! Premi Conferma Mossa o Ripensa";
-                    else if (m4.type === 'pass') instr.innerText = `Passaggio (${m4.successChance}%) pronto! Conferma o Ripensa`;
-                    else if (m4.type === 'longshot') instr.innerText = `Tiro dalla distanza (${m4.chance}%) pronto! Conferma o Ripensa`;
-                    btnUndo.classList.remove('hidden');
-                    btnConfirm.classList.remove('hidden');
-                } else {
-                    instr.innerText = p4Mode === 'PASS'
-                        ? "Scegli dove passare (Sicuro ≤3; Corsa -10%)"
-                        : "Scegli una casella adiacente per dribblare";
-                }
-            }
-        }
-
-        function setP4Mode(mode) {
-            if (!isMyTurnOnline()) return;
-            p4Mode = mode;
-            plannedMoves[4] = null;
-            const vis = getVisiblePiecesForThisDevice();
-            const carrier = vis.find(p => p.hasBall);
-            if (carrier) selectedPieceId = carrier.id;
-            updateHUD();
-            renderBoard();
-        }
-
-        function renderBoard() {
-            applyPitchOrientationUI();
-            const grid = document.getElementById('grid-container');
-            grid.innerHTML = '';
-
-            const visPieces = getVisiblePiecesForThisDevice();
-            const activeTeam = getActiveTeamForPhase(currentPhase);
-            const selectedPiece = visPieces.find(p => p.id === selectedPieceId);
-            const myTurn = isMyTurnOnline();
-
-            for (let r = 0; r < 12; r++) {
-                for (let c = 0; c < 7; c++) {
-                    const cell = document.createElement('div');
-                    cell.id = `cell-${r}-${c}`;
-                    cell.className = 'relative flex items-center justify-center w-full h-full';
-
-                    if (!isCellPlayable(r, c)) {
-                        cell.classList.add('pointer-events-none');
-                        grid.appendChild(cell);
-                        continue;
-                    }
-
-                    const isTopShoot = (r === 1 && c >= 2 && c <= 4);
-                    const isBotShoot = (r === 10 && c >= 2 && c <= 4);
-                    const isGoalCell = (r === 0 || r === 11);
-
-                    const node = document.createElement('div');
-                    if (isTopShoot || isBotShoot) {
-                        node.className = "w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 border-amber-400/90 bg-amber-400/15 shadow-[0_0_10px_rgba(251,191,36,0.5)] flex items-center justify-center pointer-events-none";
-                        node.innerHTML = `<div class="w-1.5 h-1.5 rounded-full bg-amber-300"></div>`;
-                    } else if (isGoalCell) {
-                        node.className = "w-6 h-6 rounded-md border border-white/40 bg-white/10 pointer-events-none";
-                    } else {
-                        node.className = "w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full border border-white/30 bg-black/20 pointer-events-none";
-                    }
-                    cell.appendChild(node);
-
-                    // Highlight Valid Move / Pass Targets when a piece is selected and move not yet staged
-                    if (gameState === 'PLAYING' && myTurn && selectedPiece) {
-                        if (currentPhase === 4 && selectedPiece.hasBall && !plannedMoves[4]) {
-                            if (p4Mode === 'DRIBBLE') {
-                                const mv = canPlayerMoveTo(selectedPiece, r, c, visPieces);
-                                if (mv.valid) {
-                                    const hl = document.createElement('div');
-                                    hl.className = "absolute inset-1 rounded-full bg-emerald-400/35 border-2 border-emerald-300 animate-target pointer-events-none z-20";
-                                    cell.appendChild(hl);
-                                }
-                            } else if (p4Mode === 'PASS') {
-                                const ps = evaluatePassTarget(selectedPiece, r, c, visPieces);
-                                if (ps.valid) {
-                                    const hl = document.createElement('div');
-                                    const isSafe = ps.successChance === 100;
-                                    if (ps.isSpacePass) {
-                                        hl.className = `absolute inset-1 rounded-full bg-cyan-400/30 border-cyan-300 border-2 border-dashed flex flex-col items-center justify-center pointer-events-none z-30`;
-                                        hl.innerHTML = `<span class="counter-flip text-[8px] font-black px-1 rounded bg-slate-950/90 text-cyan-300 shadow">⚡${ps.successChance}%</span>`;
-                                    } else {
-                                        hl.className = `absolute inset-0.5 rounded-full ${isSafe ? 'ring-4 ring-yellow-300 bg-yellow-400/25' : 'ring-4 ring-orange-400 bg-orange-500/25'} animate-target flex items-end justify-center pointer-events-none z-40`;
-                                        hl.innerHTML = `<span class="counter-flip -mb-1.5 text-[9px] font-black px-1 rounded bg-slate-950 text-yellow-300 border border-yellow-400/50 shadow">${ps.isTriangolazione ? '⚡' : ''}${ps.successChance}%</span>`;
-                                    }
-                                    cell.appendChild(hl);
-                                }
-                            }
-                        } else if (currentPhase <= 3) {
-                            const stageReady = (currentPhase === 1 && p1ActionPoints <= 0) || (currentPhase >= 2 && !!plannedMoves[currentPhase]);
-                            if (!stageReady) {
-                                const mv = canPlayerMoveTo(selectedPiece, r, c, visPieces);
-                                if (mv.valid) {
-                                    const hl = document.createElement('div');
-                                    hl.className = "absolute inset-1.5 rounded-full bg-emerald-400/35 border-2 border-emerald-300 animate-target pointer-events-none z-20";
-                                    cell.appendChild(hl);
-                                }
-                            }
-                        }
-                    }
-
-                    // Render Pieces on this Cell
-                    // Single piece: centered at translate(-50%, -50%) over the grid dot.
-                    // Two pieces: slightly offset (-66% / -34%) with activeTeam in foreground.
-                    const cellPieces = visPieces.filter(p => p.r === r && p.c === c);
-                    cellPieces.sort((a, b) => {
-                        if (a.team !== b.team) return a.team === activeTeam ? 1 : -1;
-                        return (a.hasBall ? 1 : 0) - (b.hasBall ? 1 : 0);
-                    });
-
-                    cellPieces.forEach((p, idx) => {
-                        const token = document.createElement('div');
-                        const isSelected = (selectedPieceId === p.id);
-                        let tClass = "board-token w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-display font-black text-xs text-white transition-transform duration-200 pointer-events-none ";
-
-                        if (p.isGK) {
-                            tClass += p.team === 'red' ? 'token-gk-red' : 'token-gk-blue';
-                        } else {
-                            tClass += p.team === 'red' ? 'token-red' : 'token-blue';
-                        }
-
-                        if (p.hasBall) tClass += " ball-aura";
-                        if (isSelected) tClass += " selected-token";
-
-                        if (cellPieces.length === 1) {
-                            token.style.transform = `translate(-50%, -50%)${isSelected ? ' scale(1.14)' : ''}`;
-                        } else {
-                            const shift = idx === 0 ? -66 : -34;
-                            token.style.transform = `translate(${shift}%, ${shift}%)${isSelected ? ' scale(1.14)' : ''}`;
-                        }
-
-                        token.style.zIndex = 20 + idx * 5 + (p.team === activeTeam ? 10 : 0) + (isSelected ? 20 : 0);
-                        token.className = tClass;
-
-                        // Inner wrapper with .counter-flip so jersey numbers and badges stay right-side-up when pitch is rotated 180deg!
-                        const innerWrap = document.createElement('div');
-                        innerWrap.className = "counter-flip relative w-full h-full flex items-center justify-center";
-                        innerWrap.innerHTML = `<span>${p.isGK ? 'GK' : p.num}</span>`;
-
-                        if (didP1MovePlayer(p.id) && !p.hasBall) {
-                            const badge12 = document.createElement('div');
-                            badge12.className = "absolute -top-1.5 -left-1.5 bg-cyan-400 text-slate-950 font-black text-[8px] px-1 rounded-full shadow border border-white";
-                            badge12.innerText = "1-2";
-                            innerWrap.appendChild(badge12);
-                        }
-
-                        if (p.hasBall) {
-                            const ball = document.createElement('div');
-                            ball.className = "ball-icon absolute -top-2 -right-2 text-xs sm:text-sm drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]";
-                            ball.innerText = "⚽";
-                            innerWrap.appendChild(ball);
-                        }
-
-                        token.appendChild(innerWrap);
-                        cell.appendChild(token);
-                    });
-
-                    cell.onclick = () => handleCellClick(r, c, false);
-                    grid.appendChild(cell);
-                }
-            }
-
-            renderArrows();
-        }
-
-        // Rotation-safe SVG Arrows using internal 700x1200 ViewBox coordinates
-        function renderArrows() {
-            const group = document.getElementById('arrows-group');
-            if (!group) return;
-            group.innerHTML = '';
-
-            const drawLine = (fromR, fromC, toR, toC, color, dashed, markerId) => {
-                let x1 = (fromC + 0.5) * 100;
-                let y1 = (fromR + 0.5) * 100;
-                let x2 = (toC + 0.5) * 100;
-                let y2 = (toR + 0.5) * 100;
-
-                const dx = x2 - x1;
-                const dy = y2 - y1;
-                const len = Math.hypot(dx, dy);
-                if (len > 28) {
-                    x2 -= (dx / len) * 24;
-                    y2 -= (dy / len) * 24;
-                }
-
-                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                line.setAttribute('x1', x1);
-                line.setAttribute('y1', y1);
-                line.setAttribute('x2', x2);
-                line.setAttribute('y2', y2);
-                line.setAttribute('stroke', color);
-                line.setAttribute('stroke-width', '7');
-                line.setAttribute('stroke-linecap', 'round');
-                if (dashed) line.setAttribute('stroke-dasharray', '12 9');
-                line.setAttribute('marker-end', `url(#${markerId})`);
-                group.appendChild(line);
-            };
-
-            const attColor = attackingTeam === 'red' ? '#f87171' : '#60a5fa';
-            const attMarker = attackingTeam === 'red' ? 'arrow-red' : 'arrow-blue';
-            const defTeam = attackingTeam === 'red' ? 'blue' : 'red';
-            const defColor = defTeam === 'red' ? '#f87171' : '#60a5fa';
-            const defMarker = defTeam === 'red' ? 'arrow-red' : 'arrow-blue';
-
-            // P1 moves are always visible
-            plannedMoves[1].forEach(m => {
-                drawLine(m.fromR, m.fromC, m.toR, m.toC, attColor, false, attMarker);
-            });
-
-            // Defensive moves visibility (hidden during Phase 4, revealed in Resolution)
-            let showDef = (currentPhase === 2 || currentPhase === 3 || gameState === 'RESOLUTION');
-            if (networkMode === 'ONLINE' && gameState === 'PLAYING' && getMyTeamOnline() === attackingTeam) {
-                showDef = false;
-            }
-
-            if (showDef && plannedMoves[2]) {
-                drawLine(plannedMoves[2].fromR, plannedMoves[2].fromC, plannedMoves[2].toR, plannedMoves[2].toC, defColor, false, defMarker);
-            }
-            if (showDef && plannedMoves[3]) {
-                drawLine(plannedMoves[3].fromR, plannedMoves[3].fromC, plannedMoves[3].toR, plannedMoves[3].toC, defColor, false, defMarker);
-            }
-
-            // Phase 4 preview arrow (when staged in Phase 4) OR final Resolution arrow
-            const showP4Arrow = (currentPhase === 4 && !!plannedMoves[4] && isMyTurnOnline()) || (gameState === 'RESOLUTION' && !!plannedMoves[4]);
-            if (showP4Arrow && plannedMoves[4]) {
-                const m4 = plannedMoves[4];
-                if (m4.type === 'move') {
-                    drawLine(m4.fromR, m4.fromC, m4.toR, m4.toC, '#facc15', false, 'arrow-pass');
-                } else if (m4.type === 'pass') {
-                    drawLine(m4.fromR, m4.fromC, m4.toR, m4.toC, '#facc15', true, 'arrow-pass');
-                    if (m4.isSpacePass) {
-                        drawLine(m4.snapFromR, m4.snapFromC, m4.toR, m4.toC, '#22d3ee', false, 'arrow-space');
-                    }
-                } else if (m4.type === 'longshot') {
-                    const targetRow = attackingTeam === 'red' ? 11 : 0;
-                    drawLine(m4.fromR, m4.fromC, targetRow, 3, '#facc15', true, 'arrow-pass');
-                }
-            }
-        }
-
-        // =========================================================================
-        // INTERACTION HANDLER (MANDATORY CONFIRMATION ON ALL MOVES)
-        // =========================================================================
-        function handleCellClick(r, c, fromNetworkHost = false) {
+        function handleCellClick(r, c) {
             if (gameState !== 'PLAYING') return;
-            if (!fromNetworkHost && !isMyTurnOnline()) {
-                showToast("Non è il tuo turno in questa fase!", "warn");
+            if (!isMyTurnOnline()) {
+                showLocalToast("Non è il tuo turno in questa fase!", "warn");
                 return;
             }
 
@@ -2460,34 +1995,25 @@
 
             const cellPieces = visPieces.filter(p => p.r === r && p.c === c);
             const activeTeamPieceInCell = cellPieces.find(p => p.team === activeTeam);
+            const opponentPieceOnly = cellPieces.length > 0 && !activeTeamPieceInCell;
 
-            if (networkMode === 'ONLINE' && !isOnlineHost && !fromNetworkHost) {
-                if (currentPhase <= 3 && activeTeamPieceInCell && !activeTeamPieceInCell.isGK && !(currentPhase === 1 && activeTeamPieceInCell.hasBall)) {
-                    selectedPieceId = (selectedPieceId === activeTeamPieceInCell.id) ? null : activeTeamPieceInCell.id;
-                    renderBoard();
-                    return;
-                }
-                if (currentPhase === 4 && activeTeamPieceInCell && activeTeamPieceInCell.hasBall && !plannedMoves[4]) {
-                    setP4Mode(p4Mode === 'PASS' ? 'DRIBBLE' : 'PASS');
-                    return;
-                }
-                sendOnlineAction({ kind: 'CELL_CLICK', r, c, selectedPieceId, p4Mode });
-                return;
-            }
-
-            // PHASE 1: P1 (Attack without ball, 2 Action Points - NEVER auto-confirms)
+            // PHASE 1: P1 (Attack without ball, 2 Action Points - staged locally until Confirm)
             if (currentPhase === 1) {
                 if (p1ActionPoints <= 0) {
-                    showToast("Hai usato i 2 PA! Premi 'Conferma Mossa ✓' o '↩ Ripensa'.", "info");
+                    showLocalToast("Hai usato i 2 PA! Premi 'Conferma Mossa ✓' o '↩ Ripensa'.", "info");
                     return;
                 }
 
                 if (activeTeamPieceInCell) {
-                    if (activeTeamPieceInCell.isGK) return showToast("Il portiere non può muoversi.", "warn");
-                    if (activeTeamPieceInCell.hasBall) return showToast("In Fase 1 muovi solo i giocatori SENZA palla!", "warn");
+                    if (activeTeamPieceInCell.isGK) return showLocalToast("Il portiere non può muoversi.", "warn");
+                    if (activeTeamPieceInCell.hasBall) return showLocalToast("In Fase 1 muovi solo i compagni SENZA palla!", "warn");
                     selectedPieceId = (selectedPieceId === activeTeamPieceInCell.id) ? null : activeTeamPieceInCell.id;
                     renderBoard();
                     return;
+                }
+
+                if (!selectedPieceId && opponentPieceOnly) {
+                    return showLocalToast("Puoi selezionare solo i giocatori della tua squadra!", "warn");
                 }
 
                 if (selectedPieceId) {
@@ -2495,7 +2021,8 @@
                     if (!piece) return;
                     const mv = canPlayerMoveTo(piece, r, c, visPieces);
                     if (!mv.valid) {
-                        if (mv.reason) showToast(mv.reason, "warn");
+                        if (mv.reason) showLocalToast(mv.reason, "warn");
+                        else showLocalToast("Casella troppo distante per questo movimento.", "warn");
                         return;
                     }
                     plannedMoves[1].push({
@@ -2510,26 +2037,29 @@
                     selectedPieceId = null;
                     updateHUD();
                     renderBoard();
-                    if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
                 }
                 return;
             }
 
-            // PHASE 2 & 3: Defense (1 move each - NEVER auto-confirms, always waits for Confirm button)
+            // PHASE 2 & 3: Defense (1 move each - staged locally until Confirm)
             if (currentPhase === 2 || currentPhase === 3) {
                 if (plannedMoves[currentPhase]) {
-                    showToast("Mossa pronta! Premi 'Conferma Mossa ✓' o '↩ Ripensa'.", "info");
+                    showLocalToast("Mossa pronta! Premi 'Conferma Mossa ✓' o '↩ Ripensa'.", "info");
                     return;
                 }
 
                 if (activeTeamPieceInCell) {
-                    if (activeTeamPieceInCell.isGK) return showToast("Il portiere non può essere mosso.", "warn");
+                    if (activeTeamPieceInCell.isGK) return showLocalToast("Il portiere non può essere mosso.", "warn");
                     if (currentPhase === 3 && plannedMoves[2]?.pieceId === activeTeamPieceInCell.id) {
-                        return showToast("In Fase 3 devi muovere un ALTRO difensore!", "warn");
+                        return showLocalToast("In Fase 3 devi muovere un ALTRO difensore!", "warn");
                     }
                     selectedPieceId = (selectedPieceId === activeTeamPieceInCell.id) ? null : activeTeamPieceInCell.id;
                     renderBoard();
                     return;
+                }
+
+                if (!selectedPieceId && opponentPieceOnly) {
+                    return showLocalToast("Seleziona un difensore della tua squadra!", "warn");
                 }
 
                 if (selectedPieceId) {
@@ -2537,7 +2067,8 @@
                     if (!piece) return;
                     const mv = canPlayerMoveTo(piece, r, c, visPieces);
                     if (!mv.valid) {
-                        if (mv.reason) showToast(mv.reason, "warn");
+                        if (mv.reason) showLocalToast(mv.reason, "warn");
+                        else showLocalToast("Casella fuori portata.", "warn");
                         return;
                     }
                     plannedMoves[currentPhase] = {
@@ -2551,15 +2082,14 @@
                     selectedPieceId = null;
                     updateHUD();
                     renderBoard();
-                    if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
                 }
                 return;
             }
 
-            // PHASE 4: Playmaker (Staged first so player can rethink or confirm!)
+            // PHASE 4: Playmaker (staged locally until Confirm)
             if (currentPhase === 4) {
                 if (plannedMoves[4]) {
-                    showToast("Azione pronta! Premi 'Conferma Mossa ✓' o '↩ Ripensa'.", "info");
+                    showLocalToast("Azione pronta! Premi 'Conferma Mossa ✓' o '↩ Ripensa'.", "info");
                     return;
                 }
 
@@ -2579,10 +2109,11 @@
                         const ps = evaluatePassTarget(carrier, r, c, baseVis);
                         if (ps.valid) {
                             setP4Mode('PASS');
-                            showToast("Modalità Passaggio attivata! Tocca di nuovo per impostare il passaggio.", "info");
+                            showLocalToast("Modalità Passaggio attivata! Tocca di nuovo per impostare il passaggio.", "info");
                             return;
                         }
-                        if (mv.reason) showToast(mv.reason, "warn");
+                        if (mv.reason) showLocalToast(mv.reason, "warn");
+                        else showLocalToast("In dribbling puoi muoverti di 1 casella.", "warn");
                         return;
                     }
                     plannedMoves[4] = {
@@ -2595,7 +2126,6 @@
                     };
                     updateHUD();
                     renderBoard();
-                    if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
                 } else {
                     const ps = evaluatePassTarget(carrier, r, c, baseVis);
                     if (!ps.valid) {
@@ -2611,10 +2141,9 @@
                             };
                             updateHUD();
                             renderBoard();
-                            if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
                             return;
                         }
-                        showToast("Bersaglio non valido per il passaggio.", "warn");
+                        showLocalToast("Bersaglio non valido per il passaggio.", "warn");
                         return;
                     }
 
@@ -2635,17 +2164,14 @@
                     };
                     updateHUD();
                     renderBoard();
-                    if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
                 }
             }
         }
 
-        function stageLongShot(fromNetworkHost = false) {
+        function stageLongShot() {
             if (gameState !== 'PLAYING' || currentPhase !== 4) return;
-            if (!fromNetworkHost && !isMyTurnOnline()) return;
-
-            if (networkMode === 'ONLINE' && !isOnlineHost && !fromNetworkHost) {
-                sendOnlineAction({ kind: 'STAGE_LONG_SHOT' });
+            if (!isMyTurnOnline()) {
+                showLocalToast("Non è il tuo turno!", "warn");
                 return;
             }
 
@@ -2654,7 +2180,7 @@
             const shotEval = evaluateLongShot(carrier, baseVis);
 
             if (!shotEval.canShoot) {
-                showToast(shotEval.reason, "error");
+                showLocalToast(shotEval.reason, "error");
                 return;
             }
 
@@ -2667,15 +2193,11 @@
             };
             updateHUD();
             renderBoard();
-            if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
         }
 
-        function undoPhaseMove(fromNetworkHost = false) {
-            if (!fromNetworkHost && !isMyTurnOnline()) return;
-            if (networkMode === 'ONLINE' && !isOnlineHost && !fromNetworkHost) {
-                sendOnlineAction({ kind: 'UNDO' });
-                return;
-            }
+        // Instantaneous local undo before confirming the phase
+        function undoPhaseMove() {
+            if (!isMyTurnOnline()) return;
             if (currentPhase === 1 && plannedMoves[1].length > 0) {
                 plannedMoves[1].pop();
                 p1ActionPoints += 1;
@@ -2691,13 +2213,23 @@
             }
             updateHUD();
             renderBoard();
-            if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
         }
 
         function confirmPhaseStep(fromNetworkHost = false) {
-            if (!fromNetworkHost && !isMyTurnOnline()) return;
+            if (!fromNetworkHost && !isMyTurnOnline()) {
+                showLocalToast("Non è il tuo turno!", "warn");
+                return;
+            }
+
+            // Send atomic COMMIT_PHASE_MOVE from Guest to Host
             if (networkMode === 'ONLINE' && !isOnlineHost && !fromNetworkHost) {
-                sendOnlineAction({ kind: 'CONFIRM_PHASE' });
+                sendOnlineAction({
+                    kind: 'COMMIT_PHASE_MOVE',
+                    phase: currentPhase,
+                    moves1: plannedMoves[1],
+                    move: plannedMoves[currentPhase],
+                    move4: plannedMoves[4]
+                });
                 return;
             }
 
@@ -2891,7 +2423,13 @@
                     cardEl.querySelector('button').onclick = () => {
                         if (networkMode === 'ONLINE' && !isOnlineHost) {
                             closeCardsModal();
-                            sendOnlineAction({ kind: 'PLAY_CARD', cardKey: key, cardIndex: idx, team: activeTeam });
+                            sendOnlineAction({
+                                kind: 'PLAY_CARD',
+                                cardKey: key,
+                                cardIndex: idx,
+                                team: activeTeam,
+                                stagedMove: (currentPhase === 2 || currentPhase === 3) ? plannedMoves[currentPhase] : null
+                            });
                         } else {
                             triggerSecretCard(key, idx, activeTeam);
                         }
@@ -2937,25 +2475,25 @@
 
             if (cardKey === 'extra_sprint') {
                 activeBuffs.extra_sprint = true;
-                showToast("⚡ EXTRA SPRINT ATTIVO! +1 casella di movimento!", "success");
+                emitSharedMatchEvent(`⚡ ${team === 'red' ? 'Rossi' : 'Blu'} attivano EXTRA SPRINT (+1 casella)!`, "success", team);
                 updateHUD();
                 renderBoard();
             } else if (cardKey === 'bordata') {
                 activeBuffs.bordata = true;
                 plannedMoves[4] = null;
-                showToast("🚀 BORDATA ATTIVA! Malus tiro ridotto al 10%!", "success");
+                emitSharedMatchEvent("🚀 BORDATA ATTIVA! Malus tiro ridotto al 10%!", "success", team);
                 updateHUD();
                 renderBoard();
             } else if (cardKey === 'maestro') {
                 activeBuffs.maestro = true;
                 plannedMoves[4] = null;
-                showToast("🎩 IL MAESTRO ATTIVO! Malus passaggio oltre 3 caselle ridotto al 5%!", "success");
+                emitSharedMatchEvent("🎩 IL MAESTRO ATTIVO! Malus passaggio oltre 3 caselle ridotto al 5%!", "success", team);
                 updateHUD();
                 renderBoard();
             } else if (cardKey === 'guantoni') {
                 if (team === 'red') activeBuffs.guantoni_red = true;
                 else activeBuffs.guantoni_blue = true;
-                showToast("🧤 GUANTONI D'ORO PRONTI! Il portiere coprirà 2 angoli sul prossimo tiro!", "success");
+                emitSharedMatchEvent("🧤 GUANTONI D'ORO PRONTI! Il portiere coprirà 2 angoli sul prossimo tiro!", "success", team);
                 updateHUD();
             } else if (cardKey === 'fallo_tattico' || cardKey === 'fallo_rosso') {
                 executeFoulCardSteal(cardKey === 'fallo_rosso');
@@ -2963,545 +2501,3 @@
 
             if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
         }
-
-        function executeFoulCardSteal(isRedCard) {
-            const mv = plannedMoves[currentPhase];
-            if (!mv) return;
-
-            const applyReal = (m) => {
-                if (!m) return;
-                const p = pieces.find(x => x.id === m.pieceId);
-                if (p) { p.r = m.toR; p.c = m.toC; }
-            };
-            plannedMoves[1].forEach(m => applyReal(m));
-            applyReal(plannedMoves[2]);
-            if (currentPhase === 3) applyReal(plannedMoves[3]);
-
-            const carrier = pieces.find(p => p.hasBall);
-            const foulingPiece = pieces.find(p => p.id === mv.pieceId);
-            const defTeam = attackingTeam === 'red' ? 'blue' : 'red';
-
-            if (carrier) carrier.hasBall = false;
-
-            if (isRedCard && foulingPiece) {
-                expelledPlayers.push({ id: foulingPiece.id, team: foulingPiece.team, num: foulingPiece.num, turns: 10 });
-                const allies = pieces.filter(p => p.team === defTeam && !p.isGK && p.id !== foulingPiece.id && !expelledPlayers.some(e => e.id === p.id));
-                allies.sort((a, b) => (Math.abs(a.r - mv.toR) + Math.abs(a.c - mv.toC)) - (Math.abs(b.r - mv.toR) + Math.abs(b.c - mv.toC)));
-                if (allies[0]) allies[0].hasBall = true;
-            } else if (foulingPiece) {
-                foulingPiece.hasBall = true;
-            }
-
-            attackingTeam = defTeam;
-            showClearTurnResolution(
-                isRedCard ? "🟥 FALLO DA ROSSO! PALLA RUBATA!" : "⚠️ FALLO TATTICO! PALLA RUBATA!",
-                "font-display text-sm font-black text-amber-400 uppercase tracking-wide",
-                isRedCard
-                    ? `Il #${foulingPiece.num} ferma l'azione ed è espulso per 10 turni! Possesso ai ${defTeam === 'red' ? 'Rossi' : 'Blu'}.`
-                    : `Intervento tattico del #${foulingPiece.num}! Possesso ai ${defTeam === 'red' ? 'Rossi' : 'Blu'}.`
-            );
-        }
-
-        // =========================================================================
-        // NON-OBSTRUCTING TURN RESOLUTION (PITCH & ARROWS FULLY CLEAR)
-        // =========================================================================
-        function showClearTurnResolution(titleText, titleClass, descText) {
-            gameState = 'RESOLUTION';
-            renderBoard();
-
-            const resTitle = document.getElementById('resolution-title');
-            const resDesc = document.getElementById('resolution-desc');
-            resTitle.innerText = titleText;
-            resTitle.className = titleClass;
-            resDesc.innerText = descText;
-
-            document.getElementById('dock-playing-controls').classList.add('hidden');
-            document.getElementById('dock-resolution-controls').classList.remove('hidden');
-
-            if (networkMode === 'ONLINE' && isOnlineHost) {
-                broadcastFullStateFromHost();
-            }
-        }
-
-        function executeResolution(isLongShotAttempt = false, rouletteSuccess = true) {
-            const defTeam = attackingTeam === 'red' ? 'blue' : 'red';
-
-            const applyRealMove = (m) => {
-                if (!m || m.type !== 'move') return;
-                const p = pieces.find(x => x.id === m.pieceId);
-                if (p) { p.r = m.toR; p.c = m.toC; }
-            };
-
-            plannedMoves[1].forEach(m => applyRealMove(m));
-            applyRealMove(plannedMoves[2]);
-            applyRealMove(plannedMoves[3]);
-
-            // If P4 attempted a Long Shot
-            if (isLongShotAttempt) {
-                const carrier = pieces.find(p => p.hasBall);
-                const tackler = pieces.find(p => p.team === defTeam && !expelledPlayers.some(e => e.id === p.id) && p.r === carrier.r && p.c === carrier.c);
-                if (tackler) {
-                    carrier.hasBall = false;
-                    tackler.hasBall = true;
-                    attackingTeam = defTeam;
-                    showClearTurnResolution(
-                        "🛡️ TIRO MURATO IN SCIVOLATA!",
-                        "font-display text-sm font-black text-amber-400 uppercase tracking-wide",
-                        `Il difensore #${tackler.num} ha coperto la casella del portatore prima del tiro! Cambio possesso.`
-                    );
-                    return;
-                }
-
-                if (!rouletteSuccess) {
-                    giveBallToDefenseAfterMiss(defTeam);
-                    attackingTeam = defTeam;
-                    showClearTurnResolution(
-                        "💨 TIRO FUORI BERSAGLIO!",
-                        "font-display text-sm font-black text-red-400 uppercase tracking-wide",
-                        `Conclusione dalla distanza fuori misura. Ripartono i ${defTeam === 'red' ? 'Rossi' : 'Blu'}!`
-                    );
-                    return;
-                } else {
-                    startShootoutPhase();
-                    return;
-                }
-            }
-
-            // Apply P4 Move or Pass
-            const m4 = plannedMoves[4];
-            let passIntercepted = false;
-            let interceptedByNum = null;
-
-            if (m4) {
-                if (m4.type === 'move') {
-                    applyRealMove(m4);
-                } else if (m4.type === 'pass') {
-                    const giver = pieces.find(x => x.id === m4.fromId);
-                    const receiver = pieces.find(x => x.id === m4.toId);
-                    if (giver) giver.hasBall = false;
-
-                    if (!rouletteSuccess) {
-                        passIntercepted = true;
-                        const activeDefs = pieces.filter(p => p.team === defTeam && !p.isGK && !expelledPlayers.some(e => e.id === p.id));
-                        activeDefs.sort((a, b) => (Math.abs(a.r - m4.toR) + Math.abs(a.c - m4.toC)) - (Math.abs(b.r - m4.toR) + Math.abs(b.c - m4.toC)));
-                        if (activeDefs[0]) {
-                            activeDefs[0].hasBall = true;
-                            interceptedByNum = activeDefs[0].num;
-                        }
-                        attackingTeam = defTeam;
-                    } else if (receiver) {
-                        receiver.hasBall = true;
-                        if (m4.isSpacePass) {
-                            receiver.r = m4.toR;
-                            receiver.c = m4.toC;
-                        }
-                    }
-                }
-            }
-
-            if (passIntercepted) {
-                showClearTurnResolution(
-                    "🛑 PASSAGGIO INTERCETTATO!",
-                    "font-display text-sm font-black text-amber-400 uppercase tracking-wide",
-                    `Passaggio impreciso: il difensore #${interceptedByNum || ''} (${defTeam === 'red' ? 'Rossi' : 'Blu'}) recupera la sfera!`
-                );
-                return;
-            }
-
-            // Check if a defender is on the exact same cell as the ball carrier (Tackle!)
-            const carrier = pieces.find(p => p.hasBall);
-            const tacklingDef = pieces.find(p =>
-                p.team === defTeam &&
-                !expelledPlayers.some(e => e.id === p.id) &&
-                p.r === carrier.r &&
-                p.c === carrier.c
-            );
-
-            if (tacklingDef) {
-                carrier.hasBall = false;
-                tacklingDef.hasBall = true;
-                attackingTeam = defTeam;
-
-                showClearTurnResolution(
-                    "⚔️ CONTRASTO VINCENTE!",
-                    "font-display text-sm font-black text-amber-400 uppercase tracking-wide",
-                    `Il difensore #${tacklingDef.num} (${defTeam === 'red' ? 'Rossi' : 'Blu'}) ha chiuso sulla casella della palla rubando il possesso!`
-                );
-                return;
-            }
-
-            // Check if Ball Carrier reached the opponent's Shooting Zone
-            if (isAttackingShootingZone(attackingTeam, carrier.r, carrier.c)) {
-                const activePieces = pieces.filter(p => !expelledPlayers.some(e => e.id === p.id));
-                const attAhead = countAttackersPastMidfield(activePieces);
-
-                if (requireFivePastMidfield && attAhead < 5) {
-                    showToast(`Tiro bloccato: servono 5 giocatori oltre metà campo (${attAhead}/5)!`, "warn");
-                    showClearTurnResolution(
-                        "⚠️ SQUADRA TROPPO LUNGA!",
-                        "font-display text-sm font-black text-orange-400 uppercase tracking-wide",
-                        `Sei in zona di tiro ma hai solo ${attAhead}/5 compagni oltre metà campo. Fai salire la squadra!`
-                    );
-                } else {
-                    startShootoutPhase();
-                }
-                return;
-            }
-
-            const actionSummary = m4?.type === 'pass'
-                ? `Passaggio completato verso il #${pieces.find(p => p.hasBall)?.num}!`
-                : `Dribbling del #${carrier.num} completato con successo!`;
-
-            showClearTurnResolution(
-                "✅ MANOVRA COMPLETATA",
-                "font-display text-sm font-black text-emerald-400 uppercase tracking-wide",
-                `${actionSummary} La ${attackingTeam === 'red' ? 'Squadra Rossa' : 'Squadra Blu'} mantiene il possesso.`
-            );
-        }
-
-        function giveBallToDefenseAfterMiss(defTeam) {
-            pieces.forEach(p => p.hasBall = false);
-            const activeDefs = pieces.filter(p => p.team === defTeam && !p.isGK && !expelledPlayers.some(e => e.id === p.id));
-            const goalRow = defTeam === 'red' ? 2 : 9;
-            activeDefs.sort((a, b) => (Math.abs(a.r - goalRow) + Math.abs(a.c - 3)) - (Math.abs(b.r - goalRow) + Math.abs(b.c - 3)));
-            if (activeDefs[0]) {
-                activeDefs[0].hasBall = true;
-            }
-        }
-
-        // =========================================================================
-        // MATCH TIMER (+3' PER TURN, 45' HALFTIME, 90' FULLTIME)
-        // =========================================================================
-        function nextTurn(fromNetworkHost = false) {
-            if (networkMode === 'ONLINE' && !isOnlineHost && !fromNetworkHost) {
-                sendOnlineAction({ kind: 'NEXT_TURN' });
-                return;
-            }
-
-            advanceClockAndProceedAfterTurn(null);
-        }
-
-        function advanceClockAndProceedAfterTurn(postGoalConcedingTeam = null) {
-            // Check if the turn that JUST finished was the 45' or 90' final action!
-            if (matchMinute === 45 && currentHalf === 1) {
-                triggerHalftimeScreen();
-                return;
-            }
-            if (matchMinute >= 90 && currentHalf === 2) {
-                triggerFulltimeScreen();
-                return;
-            }
-
-            // Otherwise advance clock by +3 minutes
-            matchMinute += 3;
-            turnNumber++;
-
-            if (matchMinute === 45 && currentHalf === 1) {
-                showToast("⏱️ 45' Minuto: ULTIMA AZIONE DEL PRIMO TEMPO!", "warn");
-            } else if (matchMinute === 90 && currentHalf === 2) {
-                showToast("🚨 90' Minuto: ULTIMA AZIONE DELLA PARTITA!", "warn");
-            }
-
-            if (postGoalConcedingTeam) {
-                resetPitchForKickoff(postGoalConcedingTeam);
-            } else {
-                startTurn();
-            }
-
-            if (networkMode === 'ONLINE' && isOnlineHost) {
-                broadcastFullStateFromHost();
-            }
-        }
-
-        function triggerHalftimeScreen() {
-            gameState = 'PERIOD_END';
-            const secondHalfTeam = firstHalfKickoffTeam === 'red' ? 'blue' : 'red';
-            periodEndState = {
-                type: 'HALFTIME',
-                title: "FINE PRIMO TEMPO (45')",
-                desc: `Squadre negli spogliatoi! Nel 2° Tempo le formazioni ripartono dal modulo iniziale e il pallone va alla Squadra ${secondHalfTeam === 'red' ? 'Rossa' : 'Blu'} (che non aveva iniziato il 1° tempo).`
-            };
-            syncPeriodEndModalUI();
-            if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
-        }
-
-        function triggerFulltimeScreen() {
-            gameState = 'PERIOD_END';
-            let verdict = "PAREGGIO SPETTACOLARE!";
-            if (scoreRed > scoreBlue) verdict = "🏆 VINCE LA SQUADRA ROSSA!";
-            if (scoreBlue > scoreRed) verdict = "🏆 VINCE LA SQUADRA BLU!";
-
-            periodEndState = {
-                type: 'FULLTIME',
-                title: "TRIPLICE FISCHIO (90')",
-                desc: `${verdict} La partita regolamentare di 90 minuti si è conclusa.`
-            };
-            syncPeriodEndModalUI();
-            if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
-        }
-
-        function syncPeriodEndModalUI() {
-            const modal = document.getElementById('screen-period-end');
-            const badge = document.getElementById('period-badge');
-            const title = document.getElementById('period-title');
-            const desc = document.getElementById('period-desc');
-            const btn = document.getElementById('btn-period-action');
-
-            document.getElementById('period-score-red').innerText = scoreRed;
-            document.getElementById('period-score-blue').innerText = scoreBlue;
-
-            title.innerText = periodEndState.title;
-            desc.innerText = periodEndState.desc;
-
-            if (periodEndState.type === 'HALFTIME') {
-                badge.innerText = "⏱️ INTERVALLO • 45'";
-                btn.innerText = "INIZIA SECONDO TEMPO (45') ➔";
-            } else {
-                badge.innerText = "🏁 FINE PARTITA • 90'";
-                btn.innerText = "TORNA ALLA LOBBY / RIVINCITA ➔";
-            }
-
-            modal.classList.remove('hidden');
-        }
-
-        function handlePeriodContinue(fromNetworkHost = false) {
-            if (networkMode === 'ONLINE' && !isOnlineHost && !fromNetworkHost) {
-                sendOnlineAction({ kind: 'PERIOD_CONTINUE' });
-                return;
-            }
-
-            document.getElementById('screen-period-end').classList.add('hidden');
-
-            if (periodEndState.type === 'HALFTIME') {
-                currentHalf = 2;
-                turnNumber++;
-                const secondHalfStarter = firstHalfKickoffTeam === 'red' ? 'blue' : 'red';
-                resetPitchForKickoff(secondHalfStarter);
-            } else {
-                // Fulltime -> return to Pre-Match Formation Selection for a rematch
-                enterPreMatchFlow(networkMode);
-            }
-
-            if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
-        }
-
-        // =========================================================================
-        // INTERACTIVE 3D GOAL SHOOTOUT (LIVE VIEW FOR ALL 4 PLAYERS + BONUS CARD ON GOAL)
-        // =========================================================================
-        function startShootoutPhase() {
-            gameState = 'SHOOTOUT';
-            shootoutState = { step: 'ATTACK', attChoice: null, defChoices: [], outcome: null };
-            syncShootoutScreenUI({ hidden: true, title: '', titleClass: '', desc: '' });
-            if (networkMode === 'ONLINE' && isOnlineHost) {
-                broadcastFullStateFromHost();
-            }
-        }
-
-        function syncShootoutScreenUI(resUI) {
-            const defTeam = attackingTeam === 'red' ? 'blue' : 'red';
-            const gkBody = document.getElementById('shootout-gk-body');
-            gkBody.className = `w-12 h-12 rounded-full ${defTeam === 'red' ? 'token-gk-red' : 'token-gk-blue'} border-2 border-white flex items-center justify-center shadow-2xl`;
-
-            const gkEl = document.getElementById('shootout-gk');
-            const ballEl = document.getElementById('shootout-ball');
-
-            const myTurnInShootout = isMyTurnOnline();
-            const attSlotName = getSlotDisplayName(getRequiredSlotForPhase(4));
-            const defSlotName = getSlotDisplayName(getRequiredSlotForPhase(3));
-
-            if (shootoutState.step === 'ATTACK') {
-                gkEl.style.transform = 'translate(-50%, 0) rotate(0deg)';
-                ballEl.style.transform = 'translate(-50%, 0) scale(1)';
-                document.getElementById('shootout-result-box').classList.add('hidden');
-                document.getElementById('btn-shootout-guantoni').classList.add('hidden');
-
-                ['L', 'C', 'R'].forEach(dir => {
-                    const btn = document.getElementById(`shot-btn-${dir}`);
-                    btn.disabled = !myTurnInShootout;
-                    btn.classList.remove('ring-4', 'ring-emerald-400', 'opacity-40');
-                });
-
-                document.getElementById('shootout-badge').innerText = `⚽ TIRO IN PORTA IN DIRETTA (${attackingTeam === 'red' ? 'ROSSI' : 'BLU'})`;
-                document.getElementById('shootout-title').innerText = myTurnInShootout
-                    ? "ATTACCANTE: SCEGLI L'ANGOLO"
-                    : `👀 ${attSlotName} STA MIRANDO...`;
-                document.getElementById('shootout-subtitle').innerText = myTurnInShootout
-                    ? "Tocca Sinistra, Centro o Destra per calciare"
-                    : "Visualizzazione condivisa in tempo reale per tutti i giocatori";
-            } else if (shootoutState.step === 'DEFEND') {
-                const hasGuantoniActive = defTeam === 'red' ? activeBuffs.guantoni_red : activeBuffs.guantoni_blue;
-                const defCards = defTeam === 'red' ? teamCards.red : teamCards.blue;
-                const hasGuantoniInHand = defCards.includes('guantoni');
-
-                ['L', 'C', 'R'].forEach(dir => {
-                    const btn = document.getElementById(`shot-btn-${dir}`);
-                    btn.disabled = !myTurnInShootout;
-                    if (myTurnInShootout && shootoutState.defChoices.includes(dir)) {
-                        btn.classList.add('ring-4', 'ring-emerald-400');
-                    } else {
-                        btn.classList.remove('ring-4', 'ring-emerald-400');
-                    }
-                });
-
-                document.getElementById('shootout-badge').innerText = `🧤 PARATA PORTIERE ${defTeam === 'red' ? 'ROSSO' : 'BLU'} IN DIRETTA`;
-                document.getElementById('shootout-title').innerText = myTurnInShootout
-                    ? (hasGuantoniActive ? "GUANTONI D'ORO: SCEGLI 2 ZONE!" : "PORTIERE: SCEGLI DOVE TUFFARTI")
-                    : `👀 IL PORTIERE (${defSlotName}) SI STA PREPARANDO...`;
-                document.getElementById('shootout-subtitle').innerText = myTurnInShootout
-                    ? (hasGuantoniActive ? "Seleziona 2 angoli su 3 da coprire" : "Scegli Sinistra, Centro o Destra per parare")
-                    : "Tutti i dispositivi assistono in diretta al rigore!";
-
-                const btnG = document.getElementById('btn-shootout-guantoni');
-                if (myTurnInShootout && !hasGuantoniActive && hasGuantoniInHand) {
-                    btnG.classList.remove('hidden');
-                } else {
-                    btnG.classList.add('hidden');
-                }
-            } else if (shootoutState.step === 'DONE' && resUI && !resUI.hidden) {
-                ['L', 'C', 'R'].forEach(d => document.getElementById(`shot-btn-${d}`).disabled = true);
-                const attDir = shootoutState.attChoice;
-                const defDirs = shootoutState.defChoices;
-                const isSaved = defDirs.includes(attDir);
-
-                const xBall = attDir === 'L' ? '-115px' : (attDir === 'R' ? '95px' : '-12px');
-                ballEl.style.transform = `translate(${xBall}, -125px) scale(0.75)`;
-
-                const gkDir = isSaved ? attDir : (defDirs[0] || 'C');
-                const xGk = gkDir === 'L' ? '-110px' : (gkDir === 'R' ? '75px' : '-50%');
-                const rotGk = gkDir === 'L' ? '-28deg' : (gkDir === 'R' ? '28deg' : '0deg');
-                gkEl.style.transform = `translate(${xGk}, -15px) rotate(${rotGk})`;
-
-                document.getElementById('shootout-res-title').innerText = resUI.title;
-                document.getElementById('shootout-res-title').className = resUI.titleClass;
-                document.getElementById('shootout-res-desc').innerText = resUI.desc;
-                document.getElementById('shootout-result-box').classList.remove('hidden');
-            }
-
-            document.getElementById('screen-shootout').classList.remove('hidden');
-        }
-
-        function handleShootoutChoice(dir, fromNetworkHost = false) {
-            if (!fromNetworkHost && !isMyTurnOnline() && networkMode === 'ONLINE') return;
-            if (networkMode === 'ONLINE' && !isOnlineHost && !fromNetworkHost) {
-                sendOnlineAction({ kind: 'SHOOTOUT_CHOICE', dir });
-                return;
-            }
-
-            const defTeam = attackingTeam === 'red' ? 'blue' : 'red';
-
-            if (shootoutState.step === 'ATTACK') {
-                shootoutState.attChoice = dir;
-                shootoutState.step = 'DEFEND';
-                syncShootoutScreenUI({ hidden: true });
-                if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
-                return;
-            }
-
-            if (shootoutState.step === 'DEFEND') {
-                const hasGuantoniActive = defTeam === 'red' ? activeBuffs.guantoni_red : activeBuffs.guantoni_blue;
-                if (!shootoutState.defChoices.includes(dir)) {
-                    shootoutState.defChoices.push(dir);
-                    document.getElementById(`shot-btn-${dir}`).classList.add('ring-4', 'ring-emerald-400');
-                }
-
-                const needed = hasGuantoniActive ? 2 : 1;
-                if (shootoutState.defChoices.length < needed) {
-                    showToast("Guantoni d'Oro: scegli la 2ª zona da coprire!", "info");
-                    if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
-                    return;
-                }
-
-                if (defTeam === 'red') activeBuffs.guantoni_red = false;
-                else activeBuffs.guantoni_blue = false;
-                document.getElementById('btn-shootout-guantoni').classList.add('hidden');
-
-                animateAndResolveShootout();
-            }
-        }
-
-        function activateGuantoniInShootout(fromNetworkHost = false) {
-            if (networkMode === 'ONLINE' && !isOnlineHost && !fromNetworkHost) {
-                sendOnlineAction({ kind: 'ACTIVATE_GUANTONI_SHOOTOUT' });
-                return;
-            }
-            const defTeam = attackingTeam === 'red' ? 'blue' : 'red';
-            const cards = defTeam === 'red' ? teamCards.red : teamCards.blue;
-            const idx = cards.indexOf('guantoni');
-            if (idx !== -1) {
-                cards.splice(idx, 1);
-                if (defTeam === 'red') activeBuffs.guantoni_red = true;
-                else activeBuffs.guantoni_blue = true;
-                syncShootoutScreenUI({ hidden: true });
-                showToast("🧤 Guantoni d'Oro attivati! Scegli 2 zone!", "success");
-                if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
-            }
-        }
-
-        function animateAndResolveShootout() {
-            shootoutState.step = 'DONE';
-            ['L', 'C', 'R'].forEach(d => document.getElementById(`shot-btn-${d}`).disabled = true);
-
-            const attDir = shootoutState.attChoice;
-            const defDirs = shootoutState.defChoices;
-            const isSaved = defDirs.includes(attDir);
-
-            const ballEl = document.getElementById('shootout-ball');
-            const xBall = attDir === 'L' ? '-115px' : (attDir === 'R' ? '95px' : '-12px');
-            ballEl.style.transform = `translate(${xBall}, -125px) scale(0.75)`;
-
-            const gkDir = isSaved ? attDir : defDirs[0];
-            const gkEl = document.getElementById('shootout-gk');
-            const xGk = gkDir === 'L' ? '-110px' : (gkDir === 'R' ? '75px' : '-50%');
-            const rotGk = gkDir === 'L' ? '-28deg' : (gkDir === 'R' ? '28deg' : '0deg');
-            gkEl.style.transform = `translate(${xGk}, -15px) rotate(${rotGk})`;
-
-            const defTeam = attackingTeam === 'red' ? 'blue' : 'red';
-            const resBox = document.getElementById('shootout-result-box');
-            const resTitle = document.getElementById('shootout-res-title');
-            const resDesc = document.getElementById('shootout-res-desc');
-
-            setTimeout(() => {
-                if (isSaved) {
-                    resTitle.innerText = "🧤 MIRACOLO DEL PORTIERE!";
-                    resTitle.className = "font-display text-2xl sm:text-3xl font-black mb-1 text-sky-400";
-                    resDesc.innerText = `Angolo intuito! Le posizioni restano invariate e la palla va alla Squadra ${defTeam === 'red' ? 'Rossa' : 'Blu'}.`;
-                    giveBallToDefenseAfterMiss(defTeam);
-                    shootoutState.outcome = 'SAVED';
-                    shootoutState.nextAttackingTeam = defTeam;
-                } else {
-                    if (attackingTeam === 'red') scoreRed++;
-                    else scoreBlue++;
-
-                    // Catch-up Mechanic: Award 1 new Secret Card to the team that conceded the goal!
-                    const bonusCard = drawRandomCardForTeam(defTeam);
-
-                    resTitle.innerText = "⚽ GOOOOOL!!";
-                    resTitle.className = "font-display text-3xl sm:text-4xl font-black mb-1 text-emerald-400";
-                    resDesc.innerText = `Rete dei ${attackingTeam === 'red' ? 'Rossi' : 'Blu'}! I ${defTeam === 'red' ? 'Rossi' : 'Blu'} ripartono da centrocampo e pescano 1 nuova Carta (${bonusCard.icon} ${bonusCard.name})!`;
-
-                    shootoutState.outcome = 'GOAL';
-                    shootoutState.concedingTeam = defTeam;
-                }
-                resBox.classList.remove('hidden');
-                if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
-            }, 480);
-        }
-
-        function finishShootout(fromNetworkHost = false) {
-            if (networkMode === 'ONLINE' && !isOnlineHost && !fromNetworkHost) {
-                sendOnlineAction({ kind: 'FINISH_SHOOTOUT' });
-                return;
-            }
-            document.getElementById('screen-shootout').classList.add('hidden');
-
-            if (shootoutState.outcome === 'GOAL') {
-                const kickoffTeam = shootoutState.concedingTeam || (attackingTeam === 'red' ? 'blue' : 'red');
-                advanceClockAndProceedAfterTurn(kickoffTeam);
-            } else {
-                attackingTeam = shootoutState.nextAttackingTeam || (attackingTeam === 'red' ? 'blue' : 'red');
-                advanceClockAndProceedAfterTurn(null);
-            }
-        }
-    </script>
-</body>
-</html>
