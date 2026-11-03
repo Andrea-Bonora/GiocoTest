@@ -3065,7 +3065,11 @@
         // =========================================================================
         // SHARED PROBABILITY ROULETTE MODAL (SOLO "SUCCESSO"/"FALLITO" + REROLL MERLO)
         // =========================================================================
-        function openManualRouletteModal(titleText, modifiersText, threshold, isLongShot) {
+        // =========================================================================
+        // SHARED PROBABILITY ROULETTE MODAL (TIRI, PASSAGGI, VAR & MAROTTA LEAGUE)
+        // =========================================================================
+        function openManualRouletteModal(titleText, modifiersText, threshold, isLongShot, context = 'PLAYMAKER', meta = null) {
+            const prevReturnState = (gameState === 'SHOOTOUT' || gameState === 'ROULETTE') ? gameState : 'PLAYING';
             gameState = 'ROULETTE';
             resetReadyConfirmations('ROULETTE');
             pendingRoulette = {
@@ -3074,6 +3078,8 @@
                 modifiersText: modifiersText || '',
                 threshold,
                 isLongShot,
+                context, // 'PLAYMAKER' | 'VAR_CHECK' | 'MAROTTA'
+                meta: meta ? { ...meta, prevReturnState } : { prevReturnState },
                 spinning: false,
                 spinId: 0,
                 rolled: false,
@@ -3108,6 +3114,18 @@
             }, 55);
         }
 
+        function getRequiredSlotForCurrentRoulette() {
+            if (pendingRoulette.context === 'VAR_CHECK' && pendingRoulette.meta) {
+                if (pendingRoulette.meta.cardKey === 'guantoni') return getRequiredSlotForPhase(3);
+                if (pendingRoulette.meta.cardKey === 'merlo_bingo') return getRequiredSlotForPhase(4);
+                return getRequiredSlotForPhase(currentPhase);
+            }
+            if (pendingRoulette.context === 'MAROTTA') {
+                return getRequiredSlotForPhase(4);
+            }
+            return getRequiredSlotForPhase(4);
+        }
+
         function syncRouletteModalUI() {
             const modal = document.getElementById('screen-roulette');
             const title = document.getElementById('roulette-title');
@@ -3126,10 +3144,12 @@
             bar.style.width = `${pendingRoulette.threshold}%`;
             thEl.innerText = `${pendingRoulette.threshold}%`;
 
-            const p4Slot = getRequiredSlotForPhase(4);
-            const canSpin = (networkMode === 'LOCAL') || (myOnlineSlot === p4Slot);
-            const attCards = attackingTeam === 'red' ? teamCards.red : teamCards.blue;
-            const hasMerloCard = attCards.includes('merlo_bingo');
+            const activeRollerSlot = getRequiredSlotForCurrentRoulette();
+            const canSpin = (networkMode === 'LOCAL') || (myOnlineSlot === activeRollerSlot);
+            const rollerTeam = (pendingRoulette.meta && pendingRoulette.meta.team) ? pendingRoulette.meta.team : attackingTeam;
+            const rollerCards = rollerTeam === 'red' ? teamCards.red : teamCards.blue;
+            // Merlo al Bingo può essere usato per ritirare il dado su passaggi, tiri e Marotta League (non sul controllo VAR)
+            const hasMerloCard = (pendingRoulette.context !== 'VAR_CHECK') && rollerCards.includes('merlo_bingo');
 
             if ((pendingRoulette.spinning || pendingRoulette.rolled) && pendingRoulette.spinId && pendingRoulette.spinId !== lastAnimatedSpinId) {
                 lastAnimatedSpinId = pendingRoulette.spinId;
@@ -3148,7 +3168,7 @@
                 rollEl.innerText = `--`;
                 outEl.innerText = canSpin
                     ? "Premi per estrarre!"
-                    : `👀 ${getSlotDisplayName(p4Slot)} sta estraendo...`;
+                    : `👀 ${getSlotDisplayName(activeRollerSlot)} sta estraendo...`;
                 outEl.className = "text-lg font-display font-black min-h-[32px] text-amber-300 mb-4";
                 spinBtn.classList.toggle('hidden', !canSpin);
                 spinBtn.disabled = false;
@@ -3157,7 +3177,6 @@
             } else if (pendingRoulette.rolled) {
                 cursor.style.left = `${pendingRoulette.finalRoll}%`;
                 rollEl.innerText = `${pendingRoulette.finalRoll}`;
-                // Mostra SOLO "Successo" o "Fallito" senza numeri aggiuntivi!
                 if (pendingRoulette.success) {
                     outEl.innerText = "SUCCESSO";
                     outEl.className = "text-2xl font-display font-black min-h-[32px] text-emerald-400 mb-4 tracking-wider";
@@ -3166,7 +3185,6 @@
                     outEl.className = "text-2xl font-display font-black min-h-[32px] text-red-400 mb-4 tracking-wider";
                 }
                 spinBtn.classList.add('hidden');
-                // Se ha Merlo al Bingo in mano, può attivarlo per ritirare il dado!
                 merloBtn.classList.toggle('hidden', !(canSpin && hasMerloCard));
                 contBtn.classList.remove('hidden');
                 updateConfirmButtonLabel('btn-roulette-continue', 'ROULETTE', "CONFERMA ESITO ➔");
@@ -3176,36 +3194,47 @@
         }
 
         function activateMerloInRoulette(fromNetworkHost = false) {
-            const p4Slot = getRequiredSlotForPhase(4);
-            if (!fromNetworkHost && networkMode === 'ONLINE' && myOnlineSlot !== p4Slot) return;
+            const activeRollerSlot = getRequiredSlotForCurrentRoulette();
+            if (!fromNetworkHost && networkMode === 'ONLINE' && myOnlineSlot !== activeRollerSlot) return;
 
             if (networkMode === 'ONLINE' && !isOnlineHost && !fromNetworkHost) {
                 sendOnlineAction({ kind: 'ACTIVATE_MERLO_ROULETTE' });
                 return;
             }
 
-            const arr = attackingTeam === 'red' ? teamCards.red : teamCards.blue;
+            const rollerTeam = (pendingRoulette.meta && pendingRoulette.meta.team) ? pendingRoulette.meta.team : attackingTeam;
+            const arr = rollerTeam === 'red' ? teamCards.red : teamCards.blue;
             const idx = arr.indexOf('merlo_bingo');
             if (idx === -1) return;
             arr.splice(idx, 1);
 
-            // Controlla se l'avversario aveva Revisione VAR attiva!
-            const oppTeam = attackingTeam === 'red' ? 'blue' : 'red';
+            // Se l'avversario aveva Revisione VAR attiva, apriamo l'estrattore del VAR per Merlo al Bingo!
+            const oppTeam = rollerTeam === 'red' ? 'blue' : 'red';
             const oppHasVar = oppTeam === 'red' ? activeBuffs.var_red : activeBuffs.var_blue;
             if (oppHasVar) {
                 if (oppTeam === 'red') activeBuffs.var_red = false;
                 else activeBuffs.var_blue = false;
+
                 emitCardPlayedShowcase('revisione_var', oppTeam);
-                const varRoll = Math.floor(Math.random() * 100) + 1;
-                if (varRoll <= customSettings.varChance) {
-                    emitSharedMatchEvent(`📺 REVISIONE VAR RIUSCITA! "Merlo al Bingo" è ANNULLATA!`, 'error', 'all');
-                    syncRouletteModalUI();
-                    if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
-                    return;
-                }
+                const savedParentRoulette = JSON.parse(JSON.stringify(pendingRoulette));
+                const cardSurvivalChance = Math.max(5, 100 - customSettings.varChance);
+
+                openManualRouletteModal(
+                    `📺 VAR SU "MERLO AL BINGO"`,
+                    `Revisione VAR avversaria (-${customSettings.varChance}%): la carta riesce con ≤ ${cardSurvivalChance}%`,
+                    cardSurvivalChance,
+                    false,
+                    'VAR_CHECK',
+                    { cardKey: 'merlo_bingo', team: rollerTeam, subMode: null, savedParentRoulette }
+                );
+                return;
             }
 
-            emitCardPlayedShowcase('merlo_bingo', attackingTeam);
+            applyMerloRerollEffect(rollerTeam);
+        }
+
+        function applyMerloRerollEffect(rollerTeam) {
+            emitCardPlayedShowcase('merlo_bingo', rollerTeam);
             emitSharedMatchEvent(`🐦 MERLO AL BINGO ATTIVATO! Si ritira il dado della probabilità!`, 'success', 'all');
             resetReadyConfirmations('ROULETTE');
             pendingRoulette.rolled = false;
@@ -3215,8 +3244,8 @@
         }
 
         function triggerManualRouletteSpin(forcedRollFromNet = null, fromNetworkHost = false) {
-            const p4Slot = getRequiredSlotForPhase(4);
-            if (!fromNetworkHost && networkMode === 'ONLINE' && myOnlineSlot !== p4Slot) {
+            const activeRollerSlot = getRequiredSlotForCurrentRoulette();
+            if (!fromNetworkHost && networkMode === 'ONLINE' && myOnlineSlot !== activeRollerSlot) {
                 showLocalToast("Solo il giocatore che effettua l'azione può estrarre la probabilità!", "warn");
                 return;
             }
@@ -3276,7 +3305,65 @@
 
             document.getElementById('screen-roulette').classList.add('hidden');
             pendingRoulette.active = false;
-            executeResolution(pendingRoulette.isLongShot, pendingRoulette.success);
+
+            const ctx = pendingRoulette.context || 'PLAYMAKER';
+            const succeeded = pendingRoulette.success;
+            const meta = pendingRoulette.meta || {};
+
+            if (ctx === 'VAR_CHECK') {
+                // Se il controllo VAR era su "Merlo al Bingo" dentro una roulette precedente:
+                if (meta.cardKey === 'merlo_bingo' && meta.savedParentRoulette) {
+                    pendingRoulette = meta.savedParentRoulette;
+                    pendingRoulette.active = true;
+                    gameState = 'ROULETTE';
+                    if (succeeded) {
+                        applyMerloRerollEffect(meta.team);
+                    } else {
+                        emitSharedMatchEvent(`📺 REVISIONE VAR! La carta "Merlo al Bingo" è ANNULLATA!`, 'error', 'all');
+                        resetReadyConfirmations('ROULETTE');
+                        syncRouletteModalUI();
+                        if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
+                    }
+                    return;
+                }
+
+                // Se il controllo VAR era su "Batto GK" dentro lo Shootout:
+                if (meta.cardKey === 'guantoni') {
+                    gameState = 'SHOOTOUT';
+                    if (succeeded) {
+                        if (meta.team === 'red') activeBuffs.guantoni_red = true;
+                        else activeBuffs.guantoni_blue = true;
+                        emitCardPlayedShowcase('guantoni', meta.team);
+                        emitSharedMatchEvent(`🧤 "Batto GK" supera il controllo VAR! Il portiere copre 2 zone!`, 'success', 'all');
+                    } else {
+                        emitSharedMatchEvent(`📺 REVISIONE VAR! La carta "Batto GK" è ANNULLATA!`, 'error', 'all');
+                    }
+                    syncShootoutScreenUI();
+                    if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
+                    return;
+                }
+
+                // Qualsiasi altra carta giocata durante la fase di movimento/azione:
+                gameState = 'PLAYING';
+                if (succeeded) {
+                    emitSharedMatchEvent(`✅ Controllo VAR superato! La carta "${CARD_CATALOG[meta.cardKey].name}" è valida!`, 'success', 'all');
+                    executeCardEffectAfterVarCheck(meta.cardKey, meta.team, meta.subMode);
+                } else {
+                    emitSharedMatchEvent(`📺 REVISIONE VAR! La carta "${CARD_CATALOG[meta.cardKey].name}" di ${meta.team === 'red' ? 'Rossi' : 'Blu'} è ANNULLATA!`, 'error', 'all');
+                    updateHUD();
+                    renderBoard();
+                    if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
+                }
+                return;
+            }
+
+            if (ctx === 'MAROTTA') {
+                resolveMarottaLeagueOutcome(meta.team, succeeded);
+                return;
+            }
+
+            // Default: 'PLAYMAKER' (Passaggio o Tiro)
+            executeResolution(pendingRoulette.isLongShot, succeeded);
         }
 
         // =========================================================================
@@ -3426,7 +3513,7 @@
 
             const oppTeam = team === 'red' ? 'blue' : 'red';
 
-            // 1. CARTE SEGRETE PREVENTIVE (The Wall & Revisione VAR): non svelate all'avversario e NON alterano currentPhase!
+            // 1. CARTE SEGRETE PREVENTIVE (The Wall & Revisione VAR): non svelate all'avversario!
             if (cardKey === 'the_wall') {
                 if (team === 'red') activeBuffs.the_wall_red = true;
                 else activeBuffs.the_wall_blue = true;
@@ -3447,26 +3534,32 @@
                 return;
             }
 
-            // 2. CONTROLLO TRAPPOLA "REVISIONE VAR" AVVERSARIA (80%)
+            // 2. CONTROLLO TRAPPOLA "REVISIONE VAR" AVVERSARIA CON ESTRATTORE INTERATTIVO!
             const oppHasVar = oppTeam === 'red' ? activeBuffs.var_red : activeBuffs.var_blue;
             if (oppHasVar) {
                 if (oppTeam === 'red') activeBuffs.var_red = false;
                 else activeBuffs.var_blue = false;
 
                 emitCardPlayedShowcase('revisione_var', oppTeam);
-                const varRoll = Math.floor(Math.random() * 100) + 1;
-                if (varRoll <= customSettings.varChance) {
-                    emitSharedMatchEvent(`📺 REVISIONE VAR RIUSCITA! La carta "${CARD_CATALOG[cardKey].name}" è ANNULLATA!`, 'error', 'all');
-                    updateHUD();
-                    renderBoard();
-                    if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
-                    return;
-                } else {
-                    emitSharedMatchEvent(`📺 REVISIONE VAR FALLITA! La carta "${CARD_CATALOG[cardKey].name}" resta valida!`, 'info', 'all');
-                }
+                const cardSurvivalChance = Math.max(5, 100 - customSettings.varChance);
+                emitSharedMatchEvent(`📺 TRAPPOLA VAR ATTIVATA DA ${oppTeam === 'red' ? 'ROSSI' : 'BLU'}! Estrazione per "${CARD_CATALOG[cardKey].name}" (${cardSurvivalChance}% di riuscita)!`, 'warn', 'all');
+
+                openManualRouletteModal(
+                    `📺 REVISIONE VAR: ${CARD_CATALOG[cardKey].name.toUpperCase()}`,
+                    `Intervento VAR (-${customSettings.varChance}%): la carta ha il ${cardSurvivalChance}% di riuscita`,
+                    cardSurvivalChance,
+                    false,
+                    'VAR_CHECK',
+                    { cardKey, team, subMode }
+                );
+                return;
             }
 
-            // 3. Animazione globale della carta giocata
+            // 3. Nessun VAR attivo: esegui direttamente l'effetto della carta
+            executeCardEffectAfterVarCheck(cardKey, team, subMode);
+        }
+
+        function executeCardEffectAfterVarCheck(cardKey, team, subMode = null) {
             emitCardPlayedShowcase(cardKey, team);
 
             if (cardKey === 'extra_sprint') {
@@ -3499,11 +3592,13 @@
                 }
             } else if (cardKey === 'rissa') {
                 pendingCardInteraction = { type: 'RISSA_OWN', team, ownPieceId: null };
-                emitSharedMatchEvent(`🥊 RISSA: Tocca prima un TUO giocatore e poi un AVVERSARIO entro 3 caselle ortogonali!`, "warn", team);
+                emitSharedMatchEvent(`🥊 RISSA: Tocca prima un TUO giocatore e poi un AVVERSARIO entro 3 caselle!`, "warn", team);
             } else if (cardKey === 'marotta_league') {
                 executeMarottaLeagueCard(team);
+                return;
             } else if (cardKey === 'fallo_tattico' || cardKey === 'fallo_rosso') {
                 executeFoulCardSteal(cardKey === 'fallo_rosso');
+                return;
             }
 
             updateHUD();
@@ -3512,7 +3607,7 @@
         }
 
         function executeMarottaLeagueCard(team) {
-            const defTeam = team === 'red' ? 'blue' : 'red';
+            // Applica i movimenti pianificati di P1, P2, P3 prima di aprire l'estrattore del rigore
             plannedMoves[1].forEach(m => {
                 const p = pieces.find(x => x.id === m.pieceId);
                 if (p) { p.r = m.toR; p.c = m.toC; }
@@ -3524,10 +3619,25 @@
                 });
             });
 
+            const baseChance = 50;
+            const threshold = Math.max(5, activeBuffs.pioggia_wembley ? (baseChance - customSettings.pioggiaPenalty) : baseChance);
+            const mods = activeBuffs.pioggia_wembley
+                ? `Base Rigore: 50% • Pioggia a Wembley: -${customSettings.pioggiaPenalty}%`
+                : `Possibilità Rigore: 50% (Successo = Rigore • Fallito = Giallo 🟨 + Cambio possesso)`;
+
+            openManualRouletteModal(
+                "⚖️ MAROTTA LEAGUE (RIGORE?)",
+                mods,
+                threshold,
+                false,
+                'MAROTTA',
+                { team }
+            );
+        }
+
+        function resolveMarottaLeagueOutcome(team, success) {
+            const defTeam = team === 'red' ? 'blue' : 'red';
             const carrier = pieces.find(p => p.hasBall && p.team === team);
-            const roll = Math.floor(Math.random() * 100) + 1;
-            const threshold = activeBuffs.pioggia_wembley ? (50 - customSettings.pioggiaPenalty) : 50;
-            const success = roll <= threshold;
 
             if (success) {
                 emitSharedMatchEvent(`⚖️ MAROTTA LEAGUE A SEGNO! CALCIO DI RIGORE ASSEGNATO!`, 'success', 'all');
@@ -3547,7 +3657,7 @@
                 if (cardRes.sentOff) {
                     showResolutionBanner(
                         "🟨🟨 = 🟥 SIMULAZIONE E DOPPIA AMMONIZIONE!",
-                        `#${carrier.num} prende il 2° giallo ed è ESPULSO per 10 turni! Palla e contropiede ai ${defTeam === 'red' ? 'ROSSI' : 'BLU'}.`,
+                        `#${carrier ? carrier.num : ''} prende il 2° giallo ed è ESPULSO per 10 turni! Palla e contropiede ai ${defTeam === 'red' ? 'ROSSI' : 'BLU'}.`,
                         "text-red-400"
                     );
                 } else {
@@ -3559,6 +3669,7 @@
                 }
                 updateHUD();
                 renderBoard();
+                if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
             }
         }
 
@@ -4401,19 +4512,25 @@
             if (idx !== -1) {
                 arr.splice(idx, 1);
 
-                // Controllo eventuale Revisione VAR dell'attacco!
+                // Controllo eventuale Revisione VAR dell'attacco con Estrattore di Probabilità!
                 const oppHasVar = attackingTeam === 'red' ? activeBuffs.var_red : activeBuffs.var_blue;
                 if (oppHasVar) {
                     if (attackingTeam === 'red') activeBuffs.var_red = false;
                     else activeBuffs.var_blue = false;
+
                     emitCardPlayedShowcase('revisione_var', attackingTeam);
-                    const varRoll = Math.floor(Math.random() * 100) + 1;
-                    if (varRoll <= customSettings.varChance) {
-                        emitSharedMatchEvent(`📺 REVISIONE VAR RIUSCITA! "Batto GK" è ANNULLATA!`, 'error', 'all');
-                        syncShootoutScreenUI();
-                        if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
-                        return;
-                    }
+                    const cardSurvivalChance = Math.max(5, 100 - customSettings.varChance);
+                    document.getElementById('screen-shootout').classList.add('hidden');
+
+                    openManualRouletteModal(
+                        `📺 VAR SU "BATTO GK"`,
+                        `Revisione VAR avversaria (-${customSettings.varChance}%): Batto GK riesce con ≤ ${cardSurvivalChance}%`,
+                        cardSurvivalChance,
+                        false,
+                        'VAR_CHECK',
+                        { cardKey: 'guantoni', team: defTeam, subMode: null }
+                    );
+                    return;
                 }
 
                 if (defTeam === 'red') activeBuffs.guantoni_red = true;
@@ -4423,7 +4540,7 @@
                 syncShootoutScreenUI();
                 if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
             }
-        }
+        }   
 
         function handleShootoutChoice(dir, fromNetworkHost = false) {
             if (!fromNetworkHost && !isMyTurnOnline()) {
