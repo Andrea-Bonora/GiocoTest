@@ -2107,7 +2107,7 @@
             startTurn();
         }
 
-        ffunction setupFormationPieces(formKeyRed, formKeyBlue, ballTeam) {
+        function setupFormationPieces(formKeyRed, formKeyBlue, ballTeam) {
             // Conserviamo le ammonizioni accumulate dai giocatori nella partita
             const prevYellows = {};
             pieces.forEach(p => { if (p.yellowCards) prevYellows[p.id] = p.yellowCards; });
