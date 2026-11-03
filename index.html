@@ -471,6 +471,66 @@
 
     <!-- SCREEN 1B: INDEPENDENT FORMATION SELECTION & ROCK-PAPER-SCISSORS -->
     <div id="screen-prematch" class="absolute inset-0 z-50 flex flex-col items-center justify-center p-4 bg-slate-950/95 backdrop-blur-xl hidden overflow-y-auto">
+        <!-- STEP 0: PERSONALIZZAZIONE SQUADRE -->
+        <div id="prematch-step-kits" class="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-2xl">
+            <div class="text-center mb-4">
+                <span class="px-3 py-1 rounded-full bg-purple-500/15 border border-purple-500/30 text-purple-300 text-[10px] font-black uppercase tracking-widest">FASE PRE-PARTITA</span>
+                <h2 class="font-display text-2xl font-black text-white mt-2">CREA LA TUA SQUADRA</h2>
+                <p class="text-xs text-slate-400">Scegli il nome e i colori della tua divisa</p>
+            </div>
+
+            <div id="kit-box-red" class="p-3 rounded-xl bg-red-950/25 border border-red-500/30 mb-3">
+                <div class="flex justify-between items-center mb-2">
+                    <strong class="text-red-400 text-sm">🔴 SQUADRA ROSSA</strong>
+                    <span id="kit-status-red" class="text-xs text-amber-300">In scelta...</span>
+                </div>
+                <div id="kit-controls-red">
+                    <input id="kit-name-red" maxlength="18" value="ROSSI"
+                        placeholder="Nome squadra"
+                        class="w-full mb-3 p-2 rounded-lg bg-slate-950 border border-slate-700 text-white text-sm">
+
+                    <div class="text-xs text-slate-400 mb-2">Colore divisa</div>
+                    <div id="kit-colors-red" class="grid grid-cols-3 gap-2 mb-3"></div>
+
+                    <div class="text-xs text-slate-400 mb-2">Secondo colore (facoltativo, per le righe)</div>
+                    <div id="kit-secondary-red" class="grid grid-cols-3 gap-2 mb-3"></div>
+
+                    <button onclick="confirmTeamKit('red')"
+                        class="w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-black text-xs">
+                        CONFERMA DIVISA ROSSA ✓
+                    </button>
+                </div>
+                <div id="kit-secret-red" class="hidden text-center text-xs text-slate-300 py-3">
+                    🔒 Divisa confermata
+                </div>
+            </div>
+
+            <div id="kit-box-blue" class="p-3 rounded-xl bg-blue-950/25 border border-blue-500/30">
+                <div class="flex justify-between items-center mb-2">
+                    <strong class="text-blue-400 text-sm">🔵 SQUADRA BLU</strong>
+                    <span id="kit-status-blue" class="text-xs text-amber-300">In scelta...</span>
+                </div>
+                <div id="kit-controls-blue">
+                    <input id="kit-name-blue" maxlength="18" value="BLU"
+                        placeholder="Nome squadra"
+                        class="w-full mb-3 p-2 rounded-lg bg-slate-950 border border-slate-700 text-white text-sm">
+
+                    <div class="text-xs text-slate-400 mb-2">Colore divisa</div>
+                    <div id="kit-colors-blue" class="grid grid-cols-3 gap-2 mb-3"></div>
+
+                    <div class="text-xs text-slate-400 mb-2">Secondo colore (facoltativo, per le righe)</div>
+                    <div id="kit-secondary-blue" class="grid grid-cols-3 gap-2 mb-3"></div>
+
+                    <button onclick="confirmTeamKit('blue')"
+                        class="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs">
+                        CONFERMA DIVISA BLU ✓
+                    </button>
+                </div>
+                <div id="kit-secret-blue" class="hidden text-center text-xs text-slate-300 py-3">
+                    🔒 Divisa confermata
+                </div>
+            </div>
+        </div>
         <!-- STEP A: SECRET FORMATION SELECTION -->
         <div id="prematch-step-formations" class="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-2xl">
             <div class="text-center mb-4">
@@ -753,7 +813,7 @@
                 <!-- Red Team -->
                 <div class="flex items-center gap-2">
                     <div class="w-4 h-4 sm:w-5 sm:h-5 rounded-full token-red"></div>
-                    <span class="font-display font-black text-base sm:text-xl text-white tracking-wide">ROSSI</span>
+                    <span id="team-name-red" class="font-display font-black text-base sm:text-xl text-white tracking-wide">ROSSI</span>
                     <span id="role-red" class="text-[10px] font-black px-2 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30">ATT</span>
                 </div>
 
@@ -770,7 +830,7 @@
                 <!-- Blue Team & Tasto Info -->
                 <div class="flex items-center gap-2">
                     <span id="role-blue" class="text-[10px] font-black px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">DIF</span>
-                    <span class="font-display font-black text-base sm:text-xl text-white tracking-wide">BLU</span>
+                    <span id="team-name-blue" class="font-display font-black text-base sm:text-xl text-white tracking-wide">BLU</span>
                     <div class="w-4 h-4 sm:w-5 sm:h-5 rounded-full token-blue"></div>
                     <button onclick="openGameInfoModal()" title="Info Tattiche" class="ml-1 w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-xs font-black text-emerald-400 flex items-center justify-center shadow">
                         ℹ️
@@ -924,6 +984,27 @@
         let formationBlue = '4-3-3';
         let localDraftFormation = { red: '4-3-3', blue: '4-3-3' };
         let formationLocked = { red: false, blue: false };
+
+        // Personalizzazione squadre
+        const KIT_COLORS = {
+            red: '#dc2626',
+            black: '#171717',
+            blue: '#2563eb',
+            white: '#f8fafc',
+            purple: '#9333ea',
+            lightblue: '#38bdf8'
+        };
+
+        let teamKits = {
+            red: { name: 'ROSSI', primary: 'red', secondary: null },
+            blue: { name: 'BLU', primary: 'blue', secondary: null }
+        };
+
+        let teamKitLocked = { red: false, blue: false };
+        let localDraftKit = {
+            red: { name: 'ROSSI', primary: 'red', secondary: null },
+            blue: { name: 'BLU', primary: 'blue', secondary: null }
+        };
 
         let rpsState = {
             redChoice: null,
@@ -1735,7 +1816,19 @@
             formationLocked = { red: false, blue: false };
             rpsState = { redChoice: null, blueChoice: null, winner: null, statusText: '', animating: false };
 
-            gameState = 'PREMATCH_FORMATIONS';
+            teamKits = {
+                red: { name: 'ROSSI', primary: 'red', secondary: null },
+                blue: { name: 'BLU', primary: 'blue', secondary: null }
+            };
+
+            localDraftKit = {
+                red: { ...teamKits.red },
+                blue: { ...teamKits.blue }
+            };
+
+            teamKitLocked = { red: false, blue: false };
+
+            gameState = 'PREMATCH_KITS';
             syncPreMatchUI();
         }
 
@@ -1885,6 +1978,134 @@
             }, 950);
         }
 
+        function renderKitChoices(team) {
+            const colors = [
+                ['red', 'Rosso'],
+                ['black', 'Nero'],
+                ['blue', 'Blu'],
+                ['white', 'Bianco'],
+                ['purple', 'Viola'],
+                ['lightblue', 'Azzurro']
+            ];
+
+            const draft = localDraftKit[team];
+
+            ['kit-colors-', 'kit-secondary-'].forEach((prefix, index) => {
+                const container = document.getElementById(prefix + team);
+                if (!container) return;
+                container.innerHTML = '';
+
+                const selected = index === 0 ? draft.primary : draft.secondary;
+
+                const none = index === 1
+                    ? `<button type="button" onclick="selectKitColor('${team}', null, true)"
+                        class="rounded-lg p-2 text-xs font-bold border ${!selected ? 'border-emerald-400 bg-emerald-900/40 text-white' : 'border-slate-700 bg-slate-800 text-slate-300'}">Nessuna</button>`
+                    : '';
+
+                container.innerHTML = none;
+
+                colors.forEach(([key, label]) => {
+                    const active = selected === key;
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = `rounded-lg p-2 text-xs font-bold border ${active ? 'border-emerald-400 ring-2 ring-emerald-400/40' : 'border-slate-700'}`;
+                    button.style.background = KIT_COLORS[key];
+                    button.style.color = key === 'white' || key === 'lightblue' ? '#111827' : '#ffffff';
+                    button.textContent = label;
+                    button.onclick = () => selectKitColor(team, key, index === 1);
+                    container.appendChild(button);
+                });
+            });
+        }
+
+        function selectKitColor(team, color, secondary) {
+            if (!canControlTeamKit(team)) return;
+
+            if (secondary) {
+                localDraftKit[team].secondary = color === localDraftKit[team].primary ? null : color;
+            } else {
+                localDraftKit[team].primary = color;
+                if (localDraftKit[team].secondary === color) {
+                    localDraftKit[team].secondary = null;
+                }
+            }
+
+            renderKitChoices(team);
+        }
+
+        function canControlTeamKit(team) {
+            if (teamKitLocked[team]) return false;
+
+            if (networkMode === 'ONLINE') {
+                syncMyIdentityFromSlots();
+                return getMyTeamOnline() === team;
+            }
+
+            return team === 'red'
+                ? !teamKitLocked.red
+                : teamKitLocked.red && !teamKitLocked.blue;
+        }
+
+        function confirmTeamKit(team) {
+            if (!canControlTeamKit(team)) return;
+
+            const nameInput = document.getElementById(`kit-name-${team}`);
+            const name = (nameInput.value || '').trim().slice(0, 18);
+
+            if (!name) {
+                showLocalToast('Inserisci il nome della squadra.', 'warn');
+                return;
+            }
+
+            const kit = {
+                name,
+                primary: localDraftKit[team].primary,
+                secondary: localDraftKit[team].secondary
+            };
+
+            if (networkMode === 'ONLINE' && !isOnlineHost) {
+                teamKitLocked[team] = true;
+                teamKits[team] = kit;
+                syncPreMatchUI();
+                sendOnlineAction({ kind: 'LOCK_TEAM_KIT', team, kit });
+                return;
+            }
+
+            applyTeamKitOnHost(team, kit);
+        }
+
+        function applyTeamKitOnHost(team, kit) {
+            if (!kit || !KIT_COLORS[kit.primary] || teamKitLocked[team]) return;
+
+            teamKits[team] = {
+                name: String(kit.name || (team === 'red' ? 'ROSSI' : 'BLU')).slice(0, 18),
+                primary: kit.primary,
+                secondary: KIT_COLORS[kit.secondary] ? kit.secondary : null
+            };
+
+            localDraftKit[team] = { ...teamKits[team] };
+            teamKitLocked[team] = true;
+
+            syncPreMatchUI();
+
+            if (teamKitLocked.red && teamKitLocked.blue) {
+                gameState = 'PREMATCH_FORMATIONS';
+                syncPreMatchUI();
+            }
+
+            if (networkMode === 'ONLINE' && isOnlineHost) {
+                broadcastFullStateFromHost();
+            }
+        }
+
+        function renderTeamKitOnHUD() {
+            const redName = document.getElementById('team-name-red');
+            const blueName = document.getElementById('team-name-blue');
+
+            if (redName) redName.innerText = teamKits.red.name;
+            if (blueName) blueName.innerText = teamKits.blue.name;
+        }
+
         function renderFormationButtonsForTeam(team) {
             const container = document.getElementById(`grid-form-${team}`);
             if (!container) return;
@@ -1911,12 +2132,14 @@
         function syncPreMatchUI() {
             syncMyIdentityFromSlots();
             syncDisconnectOverlayUI();
+
             const screenSetup = document.getElementById('screen-setup');
             const screenPre = document.getElementById('screen-prematch');
+            const stepKits = document.getElementById('prematch-step-kits');
             const stepForm = document.getElementById('prematch-step-formations');
             const stepRps = document.getElementById('prematch-step-rps');
 
-            if (gameState !== 'PREMATCH_FORMATIONS' && gameState !== 'PREMATCH_RPS') {
+            if (!['PREMATCH_KITS', 'PREMATCH_FORMATIONS', 'PREMATCH_RPS'].includes(gameState)) {
                 screenPre.classList.add('hidden');
                 return;
             }
@@ -1924,7 +2147,30 @@
             screenSetup.classList.add('hidden');
             screenPre.classList.remove('hidden');
 
+            stepKits.classList.toggle('hidden', gameState !== 'PREMATCH_KITS');
+            stepForm.classList.toggle('hidden', gameState !== 'PREMATCH_FORMATIONS');
+            stepRps.classList.toggle('hidden', gameState !== 'PREMATCH_RPS');
+
             const myTeam = getMyTeamOnline();
+
+            if (gameState === 'PREMATCH_KITS') {
+                ['red', 'blue'].forEach(team => {
+                    const show = networkMode === 'ONLINE'
+                        ? myTeam === team && !teamKitLocked[team]
+                        : canControlTeamKit(team);
+
+                    document.getElementById(`kit-controls-${team}`).classList.toggle('hidden', !show);
+                    document.getElementById(`kit-secret-${team}`).classList.toggle('hidden', show);
+                    document.getElementById(`kit-status-${team}`).innerText =
+                        teamKitLocked[team] ? '✓ Pronta' : 'In scelta...';
+
+                    if (show) {
+                        document.getElementById(`kit-name-${team}`).value = localDraftKit[team].name;
+                        renderKitChoices(team);
+                    }
+                });
+                return;
+            }
 
             if (gameState === 'PREMATCH_FORMATIONS') {
                 stepForm.classList.remove('hidden');
@@ -2061,6 +2307,8 @@
                 formationRed: bothFormationsLocked ? formationRed : '4-3-3',
                 formationBlue: bothFormationsLocked ? formationBlue : '4-3-3',
                 formationLocked,
+                teamKits,
+                teamKitLocked,
                 rpsState: {
                     redChoice: bothRpsChosen ? rpsState.redChoice : (rpsState.redChoice ? 'SECRET' : null),
                     blueChoice: bothRpsChosen ? rpsState.blueChoice : (rpsState.blueChoice ? 'SECRET' : null),
@@ -2148,7 +2396,19 @@
             if (!act) return;
             const resolvedSlot = senderSlot || Object.keys(lobbySlots).find(k => lobbySlots[k].occupiedBy === senderPeerId);
 
-            if (act.kind === 'LOCK_FORMATION') {
+            if (act.kind === 'LOCK_TEAM_KIT') {
+                const assignedTeam = lobbySlots[resolvedSlot]?.team;
+
+                if (
+                    assignedTeam === act.team &&
+                    !teamKitLocked[act.team]
+                ) {
+                    applyTeamKitOnHost(act.team, act.kit);
+                }
+
+                broadcastFullStateFromHost();
+                return;
+            } else if (act.kind === 'LOCK_FORMATION') {
                 applyLockFormationOnHost(act.team, act.formKey);
             } else if (act.kind === 'RPS_CHOICE') {
                 applyRpsChoiceOnHost(act.team, act.choice);
@@ -2203,6 +2463,13 @@
             formationRed = st.formationRed;
             formationBlue = st.formationBlue;
             formationLocked = st.formationLocked || { red: false, blue: false };
+            teamKits = st.teamKits || teamKits;
+            teamKitLocked = st.teamKitLocked || teamKitLocked;
+
+            localDraftKit = {
+                red: { ...teamKits.red },
+                blue: { ...teamKits.blue }
+            };
             rpsState = st.rpsState || rpsState;
             requireFivePastMidfield = st.requireFivePastMidfield;
 
@@ -2257,7 +2524,11 @@
 
             syncDisconnectOverlayUI();
 
-            if (gameState === 'PREMATCH_FORMATIONS' || gameState === 'PREMATCH_RPS') {
+            if (
+                gameState === 'PREMATCH_KITS' ||
+                gameState === 'PREMATCH_FORMATIONS' ||
+                gameState === 'PREMATCH_RPS'
+            ) {
                 syncPreMatchUI();
                 return;
             } else {
@@ -4674,6 +4945,8 @@
                 rRole.innerText = "DIF 🛡️";
                 rRole.className = "text-[10px] font-black px-2 py-0.5 rounded bg-red-500/20 text-red-300 border border-red-500/30";
             }
+
+            renderTeamKitOnHUD();
         }
 
         function updateHUD() {
