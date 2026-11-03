@@ -797,7 +797,14 @@
                     <rect x="255" y="1100" width="190" height="80" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="3"/>
                 </svg>
 
-                <!-- TASTO CARTE VERTICALE: A DESTRA DELL'AREA AVVERSARIA (Su righe 0-1 col 5-6 che sono fuori dalle celle giocabili!) -->
+                <!-- BANNER PERMANENTE "TUO TURNO": A SINISTRA DELL'AREA AVVERSARIA (Visibile solo a chi deve muovere) -->
+                <div id="my-turn-pitch-banner" class="hidden absolute top-[1.2%] left-[2.5%] w-[23%] h-[13.5%] z-40 rounded-2xl bg-gradient-to-b from-emerald-500/95 to-teal-700/95 border-2 border-emerald-200/80 shadow-[0_0_20px_rgba(16,185,129,0.65)] flex flex-col items-center justify-center gap-0.5 pointer-events-none animate-pulse">
+                    <span class="text-lg sm:text-xl leading-none drop-shadow">⚡</span>
+                    <span class="font-display font-black text-[9px] sm:text-[10px] uppercase tracking-wider text-slate-950 text-center leading-tight px-1">TUO<br>TURNO</span>
+                    <span id="my-turn-phase-tag" class="px-1.5 py-0.2 rounded-full bg-slate-950/90 text-emerald-300 font-display font-black text-[9px] border border-emerald-400/40">F1</span>
+                </div>
+
+                <!-- TASTO CARTE VERTICALE: A DESTRA DELL'AREA AVVERSARIA -->
                 <button onclick="openCardsModal()" id="btn-open-cards" class="absolute top-[1.2%] right-[2.5%] w-[23%] h-[13.5%] z-40 rounded-2xl bg-gradient-to-b from-purple-600/95 to-indigo-700/95 hover:from-purple-500 hover:to-indigo-600 border-2 border-purple-300/60 shadow-[0_6px_20px_rgba(147,51,234,0.6)] flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-all">
                     <span class="text-xl sm:text-2xl leading-none drop-shadow">🃏</span>
                     <span class="font-display font-black text-[9px] sm:text-[10px] uppercase tracking-wider text-purple-100">Carte</span>
@@ -827,38 +834,39 @@
                 </svg>
             </div>
 
-            <!-- FLOATING LIQUID GLASS BOTTOM NAVBAR (SOLO PULSANTI, ZERO SCRITTE ISTRUZIONE) -->
-            <div class="fixed bottom-3 left-1/2 -translate-x-1/2 z-40 flex flex-col items-center gap-2 w-auto max-w-[95vw]">
+            <!-- FLOATING LIQUID GLASS BOTTOM NAVBAR (ALLUNGATA E SENZA A CAPO) -->
+            <div class="fixed bottom-3 left-1/2 -translate-x-1/2 z-40 flex flex-col items-center gap-2 w-[94vw] max-w-md">
                 <!-- Playing Controls Pill -->
-                <div id="dock-playing-controls" class="liquid-glass px-3 py-2 rounded-2xl flex items-center gap-2">
-                    <!-- Phase 4 Mode Buttons -->
-                    <div id="p4-action-bar" class="hidden flex items-center gap-1.5 pr-1 border-r border-white/15">
-                        <button id="mode-btn-dribble" onclick="setP4Mode('DRIBBLE')" class="py-2 px-3 rounded-xl font-bold text-xs border transition-all">
+                <div id="dock-playing-controls" class="liquid-glass w-full px-3 py-2 rounded-2xl flex items-center justify-center gap-2">
+                    <!-- Phase 4 Mode Buttons (Visibili solo quando NON hai ancora impostato la mossa P4) -->
+                    <div id="p4-action-bar" class="hidden w-full grid grid-cols-3 gap-2">
+                        <button id="mode-btn-dribble" onclick="setP4Mode('DRIBBLE')" class="py-2.5 px-2 rounded-xl font-bold text-xs border whitespace-nowrap flex items-center justify-center gap-1 transition-all">
                             🏃 Dribbling
                         </button>
-                        <button id="mode-btn-pass" onclick="setP4Mode('PASS')" class="py-2 px-3 rounded-xl font-bold text-xs border transition-all">
+                        <button id="mode-btn-pass" onclick="setP4Mode('PASS')" class="py-2.5 px-2 rounded-xl font-bold text-xs border whitespace-nowrap flex items-center justify-center gap-1 transition-all">
                             🎯 Passa
                         </button>
-                        <button id="mode-btn-shoot" onclick="stageLongShot()" class="py-2 px-3 rounded-xl font-black text-xs bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 shadow active:scale-95 transition-all">
-                            <span id="btn-shoot-label">🚀 Tira</span>
+                        <button id="mode-btn-shoot" onclick="stageLongShot()" class="py-2.5 px-3 rounded-xl font-black text-xs bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 shadow whitespace-nowrap flex items-center justify-center gap-1 active:scale-95 transition-all">
+                            <span id="btn-shoot-label" class="whitespace-nowrap">🚀 Tira</span>
                         </button>
                     </div>
 
-                    <button id="btn-undo-phase" onclick="undoPhaseMove()" class="hidden px-4 py-2 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-slate-500/60 text-xs font-black text-amber-300 shadow">
+                    <!-- Undo & Confirm Buttons -->
+                    <button id="btn-undo-phase" onclick="undoPhaseMove()" class="hidden flex-1 py-2.5 px-4 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-slate-500/60 text-xs font-black text-amber-300 shadow whitespace-nowrap">
                         ↩ Ripensa
                     </button>
-                    <button id="btn-confirm-phase" onclick="confirmPhaseStep()" class="hidden px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-display font-black uppercase tracking-wider shadow-[0_0_18px_rgba(16,185,129,0.5)] animate-pulse">
+                    <button id="btn-confirm-phase" onclick="confirmPhaseStep()" class="hidden flex-[1.4] py-2.5 px-5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-display font-black uppercase tracking-wider shadow-[0_0_18px_rgba(16,185,129,0.5)] whitespace-nowrap animate-pulse">
                         CONFERMA MOSSA ✓
                     </button>
                 </div>
 
                 <!-- Resolution Controls Pill -->
-                <div id="dock-resolution-controls" class="hidden liquid-glass px-4 py-2.5 rounded-2xl flex items-center gap-3">
+                <div id="dock-resolution-controls" class="hidden liquid-glass w-full px-4 py-2.5 rounded-2xl flex items-center justify-between gap-3">
                     <div class="hidden sm:block">
                         <div id="resolution-title" class="font-display text-xs font-black text-emerald-400 uppercase"></div>
                         <div id="resolution-desc" class="text-[10px] text-slate-300"></div>
                     </div>
-                    <button id="btn-next-turn" onclick="nextTurn()" class="bg-white hover:bg-slate-100 text-slate-950 text-xs font-display font-black py-2.5 px-5 rounded-xl shadow-lg transition-all active:scale-95 uppercase tracking-wider">
+                    <button id="btn-next-turn" onclick="nextTurn()" class="w-full sm:w-auto bg-white hover:bg-slate-100 text-slate-950 text-xs font-display font-black py-2.5 px-5 rounded-xl shadow-lg transition-all active:scale-95 uppercase tracking-wider whitespace-nowrap">
                         CONFERMA FINE TURNO (+3') ➔
                     </button>
                 </div>
@@ -2389,11 +2397,12 @@
             const flip = shouldFlipPitchForCurrentViewer();
             pitchBox.classList.toggle('flipped-pitch', flip);
 
-            // Contro-ruota il pulsante Carte quando il campo è ruotato di 180°, e posizionalo sempre a destra dell'area avversaria!
+            // Posiziona Tasto Carte (a destra dell'area avversaria) e Banner Tuo Turno (a sinistra dell'area avversaria)
             const btnCards = document.getElementById('btn-open-cards');
+            const turnBanner = document.getElementById('my-turn-pitch-banner');
+
             if (btnCards) {
                 if (flip) {
-                    // Quando il campo è ruotato di 180° (Rossi), la porta avversaria (r=11) si trova visivamente in alto!
                     btnCards.style.top = 'auto';
                     btnCards.style.bottom = '1.2%';
                     btnCards.style.right = 'auto';
@@ -2405,6 +2414,22 @@
                     btnCards.style.right = '2.5%';
                     btnCards.style.left = 'auto';
                     btnCards.classList.remove('counter-flip');
+                }
+            }
+
+            if (turnBanner) {
+                if (flip) {
+                    turnBanner.style.top = 'auto';
+                    turnBanner.style.bottom = '1.2%';
+                    turnBanner.style.left = 'auto';
+                    turnBanner.style.right = '2.5%';
+                    turnBanner.classList.add('counter-flip');
+                } else {
+                    turnBanner.style.top = '1.2%';
+                    turnBanner.style.bottom = 'auto';
+                    turnBanner.style.left = '2.5%';
+                    turnBanner.style.right = 'auto';
+                    turnBanner.classList.remove('counter-flip');
                 }
             }
 
@@ -2664,6 +2689,16 @@
             return true;
         }
 
+        // Calcola se due giocatori sono entro 3 caselle totali (orizzontali + verticali, es. 2 orizzontali + 1 verticale = 3)
+        // escludendo le diagonali pure (dr === dc)
+        function isWithinRissaRange(p1, p2) {
+            if (!p1 || !p2) return false;
+            const dr = Math.abs(p1.r - p2.r);
+            const dc = Math.abs(p1.c - p2.c);
+            const manhattan = dr + dc;
+            return manhattan >= 1 && manhattan <= 3 && (dr !== dc);
+        }
+
         function handleCardGridClickOnHost(r, c, team) {
             if (!pendingCardInteraction || pendingCardInteraction.team !== team) return;
             const mode = pendingCardInteraction.type;
@@ -2696,10 +2731,10 @@
                 const ownP = vis.find(p => p.id === pendingCardInteraction.ownPieceId);
                 const oppP = vis.find(p => p.team !== team && !p.isGK && !p.hasBall && p.r === r && p.c === c);
                 if (!ownP || !oppP) return;
-                const dr = Math.abs(ownP.r - oppP.r);
-                const dc = Math.abs(ownP.c - oppP.c);
-                const isOrthoDist3 = (dr === 0 && dc <= 3) || (dc === 0 && dr <= 3);
-                if (!isOrthoDist3) return;
+                if (!isWithinRissaRange(ownP, oppP)) {
+                    showLocalToast("L'avversario deve essere entro 3 caselle (orizzontali/verticali, no diagonale)!", "warn");
+                    return;
+                }
 
                 expelledPlayers.push({ id: ownP.id, num: ownP.num, team: ownP.team, turns: 10 });
                 expelledPlayers.push({ id: oppP.id, num: oppP.num, team: oppP.team, turns: 10 });
@@ -3356,11 +3391,7 @@
                 const vis = getVisiblePieces(currentPhase);
                 const ownList = vis.filter(p => p.team === team && !p.isGK && !p.hasBall);
                 const oppList = vis.filter(p => p.team !== team && !p.isGK && !p.hasBall);
-                return ownList.some(o => oppList.some(e => {
-                    const dr = Math.abs(o.r - e.r);
-                    const dc = Math.abs(o.c - e.c);
-                    return (dr === 0 && dc <= 3) || (dc === 0 && dr <= 3);
-                }));
+                return ownList.some(o => oppList.some(e => isWithinRissaRange(o, e)));
             }
             if (cardKey === 'marotta_league') {
                 if (currentPhase !== 4) return false;
@@ -4449,7 +4480,7 @@
                     else scoreBlue++;
 
                     const newCard = drawRandomCardForTeam(defTeam);
-                    const cardMsg = newCard ? `riceve +1 Carta (${newCard.icon} ${newCard.name}) e ` : '';
+                    const cardMsg = newCard ? `riceve +1 Carta e ` : '';
 
                     resTitle.innerText = "⚽ GOOOL!! RETE!";
                     resTitle.className = "font-display text-3xl font-black mb-1 text-emerald-400";
@@ -4584,14 +4615,25 @@
                 badgesRow.innerHTML += `<span class="px-2 py-0.5 rounded bg-red-600/30 border border-red-400/40 text-red-200 text-[9px] font-black">🟥 #${ep.num} (${ep.turns}t)</span>`;
             });
 
+            // Gestione Banner Permanente "TUO TURNO" in alto a sinistra dell'area
+            const myTurn = isMyTurnOnline();
+            const turnBanner = document.getElementById('my-turn-pitch-banner');
+            const turnPhaseTag = document.getElementById('my-turn-phase-tag');
+            if (turnBanner) {
+                const showBanner = (gameState === 'PLAYING' && myTurn);
+                turnBanner.classList.toggle('hidden', !showBanner);
+                if (turnPhaseTag) {
+                    turnPhaseTag.innerText = `FASE ${currentPhase}/4`;
+                }
+            }
+
             // Floating Liquid Glass Dock Controls
             const btnUndo = document.getElementById('btn-undo-phase');
             const btnConfirm = document.getElementById('btn-confirm-phase');
             const p4Bar = document.getElementById('p4-action-bar');
             const dockPlaying = document.getElementById('dock-playing-controls');
 
-            const myTurn = isMyTurnOnline();
-            if (!myTurn || pendingCardInteraction) {
+            if (!myTurn || pendingCardInteraction || gameState !== 'PLAYING') {
                 btnUndo.classList.add('hidden');
                 btnConfirm.classList.add('hidden');
                 p4Bar.classList.add('hidden');
@@ -4599,39 +4641,44 @@
                 return;
             }
 
-            if (gameState === 'PLAYING') {
-                dockPlaying.classList.remove('hidden');
-            }
-
             if (currentPhase === 1) {
                 p4Bar.classList.add('hidden');
                 const used = plannedMoves[1].length;
+                dockPlaying.classList.toggle('hidden', used === 0);
                 btnUndo.classList.toggle('hidden', used === 0);
                 btnConfirm.classList.toggle('hidden', used === 0);
             } else if (currentPhase === 2 || currentPhase === 3) {
                 p4Bar.classList.add('hidden');
                 const used = (plannedMoves[currentPhase] || []).length;
+                dockPlaying.classList.toggle('hidden', used === 0);
                 btnUndo.classList.toggle('hidden', used === 0);
                 btnConfirm.classList.toggle('hidden', used === 0);
             } else if (currentPhase === 4) {
-                p4Bar.classList.remove('hidden');
+                dockPlaying.classList.remove('hidden');
                 const hasMove4 = !!plannedMoves[4];
+
+                // Mutua esclusione in Fase 4:
+                // - Se NON hai ancora scelto la mossa (hasMove4 === false): vedi SOLO [Dribbling, Passa, Tira]
+                // - Se HAI scelto la mossa (hasMove4 === true): scompaiono i 3 tasti e vedi SOLO [Ripensa, CONFERMA MOSSA]
+                p4Bar.classList.toggle('hidden', hasMove4);
                 btnUndo.classList.toggle('hidden', !hasMove4);
                 btnConfirm.classList.toggle('hidden', !hasMove4);
 
-                const bDrib = document.getElementById('mode-btn-dribble');
-                const bPass = document.getElementById('mode-btn-pass');
-                bDrib.className = p4Mode === 'DRIBBLE'
-                    ? "py-2 px-3 rounded-xl font-black text-xs border bg-emerald-500 text-slate-950 border-emerald-300 shadow"
-                    : "py-2 px-3 rounded-xl font-bold text-xs border bg-slate-800/80 text-slate-300 border-slate-700";
-                bPass.className = p4Mode === 'PASS'
-                    ? "py-2 px-3 rounded-xl font-black text-xs border bg-amber-400 text-slate-950 border-amber-200 shadow"
-                    : "py-2 px-3 rounded-xl font-bold text-xs border bg-slate-800/80 text-slate-300 border-slate-700";
+                if (!hasMove4) {
+                    const bDrib = document.getElementById('mode-btn-dribble');
+                    const bPass = document.getElementById('mode-btn-pass');
+                    bDrib.className = p4Mode === 'DRIBBLE'
+                        ? "py-2.5 px-2 rounded-xl font-black text-xs border bg-emerald-500 text-slate-950 border-emerald-300 shadow whitespace-nowrap flex items-center justify-center gap-1"
+                        : "py-2.5 px-2 rounded-xl font-bold text-xs border bg-slate-800/80 text-slate-300 border-slate-700 whitespace-nowrap flex items-center justify-center gap-1";
+                    bPass.className = p4Mode === 'PASS'
+                        ? "py-2.5 px-2 rounded-xl font-black text-xs border bg-amber-400 text-slate-950 border-amber-200 shadow whitespace-nowrap flex items-center justify-center gap-1"
+                        : "py-2.5 px-2 rounded-xl font-bold text-xs border bg-slate-800/80 text-slate-300 border-slate-700 whitespace-nowrap flex items-center justify-center gap-1";
 
-                const baseVis = getVisiblePieces(1);
-                const carrier = baseVis.find(p => p.hasBall);
-                const shotEval = evaluateLongShot(carrier, baseVis);
-                document.getElementById('btn-shoot-label').innerText = shotEval.canShoot ? `🚀 Tira (${shotEval.chance}%)` : `🚀 Tira`;
+                    const baseVis = getVisiblePieces(1);
+                    const carrier = baseVis.find(p => p.hasBall);
+                    const shotEval = evaluateLongShot(carrier, baseVis);
+                    document.getElementById('btn-shoot-label').innerText = shotEval.canShoot ? `🚀 Tira (${shotEval.chance}%)` : `🚀 Tira`;
+                }
             }
         }
 
@@ -4732,14 +4779,14 @@
                             if (pendingCardInteraction.type === 'CLEAN_YELLOW' && p.team === activeTeam && p.yellowCards > 0) {
                                 isCardTargetToken = true;
                             } else if (pendingCardInteraction.type === 'RISSA_OWN' && p.team === activeTeam && !p.isGK && !p.hasBall) {
-                                isCardTargetToken = true;
+                                // Illumina solo i tuoi giocatori che hanno almeno un avversario a portata di Rissa!
+                                const oppList = visPieces.filter(e => e.team !== activeTeam && !e.isGK && !e.hasBall);
+                                if (oppList.some(e => isWithinRissaRange(p, e))) {
+                                    isCardTargetToken = true;
+                                }
                             } else if (pendingCardInteraction.type === 'RISSA_OPP' && p.team !== activeTeam && !p.isGK && !p.hasBall) {
                                 const ownP = visPieces.find(x => x.id === pendingCardInteraction.ownPieceId);
-                                if (ownP) {
-                                    const dr = Math.abs(ownP.r - p.r);
-                                    const dc = Math.abs(ownP.c - p.c);
-                                    if ((dr === 0 && dc <= 3) || (dc === 0 && dr <= 3)) isCardTargetToken = true;
-                                }
+                                if (isWithinRissaRange(ownP, p)) isCardTargetToken = true;
                             }
                         }
 
