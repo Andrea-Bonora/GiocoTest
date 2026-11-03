@@ -1840,8 +1840,9 @@
                 }
                 return true;
             }
+
             syncMyIdentityFromSlots();
-            return getMyTeamOnline() === team;
+            return isPreMatchLeader(team);
         }
 
         function selectTeamFormation(team, formKey) {
@@ -1901,7 +1902,7 @@
         // PRE-MATCH STEP 2: ROCK - PAPER - SCISSORS (CON ANIMAZIONE VISIVA)
         // =========================================================================
         function submitRpsChoice(team, choice) {
-            if (networkMode === 'ONLINE' && getMyTeamOnline() !== team) {
+            if (networkMode === 'ONLINE' && !canControlTeamInPreMatch(team)) {
                 showLocalToast(`Scegli Sasso, Carta o Forbice nel riquadro della tua squadra!`, 'warn');
                 return;
             }
@@ -2180,11 +2181,11 @@
                 renderFormationButtonsForTeam('blue');
 
                 const showRedControls = (networkMode === 'ONLINE')
-                    ? (myTeam === 'red' && !formationLocked.red)
+                    ? (canControlTeamInPreMatch('red') && !formationLocked.red)
                     : (!formationLocked.red);
 
                 const showBlueControls = (networkMode === 'ONLINE')
-                    ? (myTeam === 'blue' && !formationLocked.blue)
+                    ? (canControlTeamInPreMatch('blue') && !formationLocked.blue)
                     : (formationLocked.red && !formationLocked.blue);
 
                 document.getElementById('controls-form-red').classList.toggle('hidden', !showRedControls);
@@ -2211,10 +2212,11 @@
                 stepRps.classList.remove('hidden');
 
                 const showRpsRed = (networkMode === 'ONLINE')
-                    ? (myTeam === 'red' && !rpsState.redChoice)
+                    ? (canControlTeamInPreMatch('red') && !rpsState.redChoice)
                     : (!rpsState.redChoice);
+
                 const showRpsBlue = (networkMode === 'ONLINE')
-                    ? (myTeam === 'blue' && !rpsState.blueChoice)
+                    ? (canControlTeamInPreMatch('blue') && !rpsState.blueChoice)
                     : (!!rpsState.redChoice && !rpsState.blueChoice);
 
                 document.getElementById('rps-controls-red').classList.toggle('hidden', !showRpsRed);
@@ -2396,10 +2398,29 @@
             if (!act) return;
             const resolvedSlot = senderSlot || Object.keys(lobbySlots).find(k => lobbySlots[k].occupiedBy === senderPeerId);
 
+            // Solo P1 e P3 possono effettuare le selezioni iniziali in modalità a 4.
+            if (act.kind === 'LOCK_FORMATION' || act.kind === 'RPS_CHOICE') {
+                const actualSlot = Object.keys(lobbySlots).find(
+                    k => lobbySlots[k] && lobbySlots[k].occupiedBy === senderPeerId
+                );
+
+                const authorized = isPreMatchLeader(act.team, actualSlot);
+
+                if (!authorized) {
+                    broadcastFullStateFromHost();
+                    return;
+                }
+            }
+
             if (act.kind === 'LOCK_TEAM_KIT') {
-                const assignedTeam = lobbySlots[resolvedSlot]?.team;
+                const actualSlot = Object.keys(lobbySlots).find(
+                    k => lobbySlots[k] && lobbySlots[k].occupiedBy === senderPeerId
+                );
+
+                const assignedTeam = lobbySlots[actualSlot]?.team;
 
                 if (
+                    isPreMatchLeader(act.team, actualSlot) &&
                     assignedTeam === act.team &&
                     !teamKitLocked[act.team]
                 ) {
@@ -2636,6 +2657,20 @@
             syncMyIdentityFromSlots();
             if (!myOnlineSlot) return null;
             return myOnlineSlot.startsWith('red') ? 'red' : 'blue';
+        }
+
+        function isPreMatchLeader(team, slot = myOnlineSlot) {
+            if (networkMode !== 'ONLINE') return true;
+
+            if (onlinePlayerCount === 4) {
+                return team === 'red'
+                    ? slot === 'red_A'   // P1
+                    : slot === 'blue_B'; // P3
+            }
+
+            return team === 'red'
+                ? slot === 'red'
+                : slot === 'blue';
         }
 
         function shouldFlipPitchForCurrentViewer() {
@@ -5180,8 +5215,17 @@
                             }
                         }
 
+                        const kit = teamKits?.[p.team];
+                        const primaryColor = KIT_COLORS[kit?.primary] ||
+                            (p.team === 'red' ? '#dc2626' : '#2563eb');
+                        const secondaryColor = kit?.secondary
+                            ? KIT_COLORS[kit.secondary]
+                            : null;
+
                         let colorCls = p.team === 'red' ? 'token-red' : 'token-blue';
-                        if (p.isGK) colorCls = p.team === 'red' ? 'token-gk-red' : 'token-gk-blue';
+                        if (p.isGK) {
+                            colorCls = p.team === 'red' ? 'token-gk-red' : 'token-gk-blue';
+                        }
 
                         // Pedine leggermente più grandi (w-8 h-8 sm:w-9 sm:h-9) e perfettamente centrate!
                         tok.className = `board-token w-8 h-8 sm:w-9 sm:h-9 rounded-full ${colorCls} flex items-center justify-center cursor-pointer transition-all duration-200 ${
@@ -5189,6 +5233,12 @@
                         } ${p.hasBall ? 'ball-aura' : ''} ${
                             (isPassTargetPlayer || isCardTargetToken) ? 'ring-4 ring-white shadow-[0_0_20px_#fff] animate-token-target' : ''
                         }`;
+                        // Applica i colori della divisa scelta prima della partita
+                        tok.style.background = secondaryColor
+                            ? `repeating-linear-gradient(135deg, ${primaryColor} 0 7px, ${secondaryColor} 7px 14px)`
+                            : primaryColor;
+
+                        tok.style.borderColor = 'rgba(255,255,255,0.9)';
 
                         if (!hasOverlap) {
                             if (!isSelected && !isPassTargetPlayer && !isCardTargetToken) {
