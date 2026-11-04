@@ -236,15 +236,15 @@
         @keyframes card-fly-reveal {
             0% {
                 opacity: 0;
-                transform: translateY(35px) rotateY(90deg) scale(.5);
+                transform: perspective(600px) translateY(35px) rotateX(0deg) rotateY(90deg) scale(.5);
             }
             65% {
                 opacity: 1;
-                transform: translateY(-8px) rotateY(-10deg) scale(1.08);
+                transform: perspective(600px) translateY(-8px) rotateX(0deg) rotateY(-10deg) scale(1.08);
             }
             100% {
                 opacity: 1;
-                transform: translateY(0) rotateY(0) scale(1);
+                transform: perspective(600px) translateY(0) rotateX(0deg) rotateY(0) scale(1);
             }
         }
 
@@ -400,6 +400,16 @@
                     </div>
                 </div>
 
+                <!-- Durata Partita -->
+                <div class="space-y-2 bg-slate-950/70 p-3 rounded-xl border border-slate-800">
+                    <div class="font-bold text-blue-400 uppercase text-[10px]">Durata Partita</div>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button id="btn-dur-30" onclick="setMatchDuration(30)" class="py-2 rounded-lg font-bold text-xs border border-blue-400 bg-blue-500/20 text-blue-300">30 Turni</button>
+                        <button id="btn-dur-15" onclick="setMatchDuration(15)" class="py-2 rounded-lg font-bold text-xs border border-slate-700 bg-slate-900 text-slate-400">15 Turni</button>
+                        <button id="btn-dur-10" onclick="setMatchDuration(10)" class="py-2 rounded-lg font-bold text-xs border border-slate-700 bg-slate-900 text-slate-400">10 Turni</button>
+                    </div>
+                </div>
+
                 <!-- Percentuali Bonus / Malus -->
                 <div class="space-y-2 bg-slate-950/70 p-3 rounded-xl border border-slate-800">
                     <div class="font-bold text-amber-400 uppercase text-[10px]">Percentuali Bonus & Malus (%)</div>
@@ -546,30 +556,39 @@
                 PITCH & PAWNS
             </h1>
 
-            <!-- Mode Tabs: LOCALE vs ONLINE -->
-            <div class="w-full grid grid-cols-2 gap-1.5 bg-slate-900 p-1.5 rounded-2xl border border-slate-800 mb-3">
-                <button id="tab-btn-local" onclick="switchSetupTab('LOCAL')" class="py-2.5 rounded-xl font-display font-black text-xs uppercase tracking-wider bg-emerald-500 text-slate-950 shadow transition-all">
+            <!-- MENU PRINCIPALE -->
+            <div id="main-menu-buttons" class="w-full flex flex-col gap-3 mb-3">
+                <button onclick="navigateSetup('LOCAL_CHOICE')" class="w-full py-4 rounded-2xl font-display font-black text-sm uppercase tracking-wider bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all">
                     📱 Gioco Locale
                 </button>
-                <button id="tab-btn-online" onclick="switchSetupTab('ONLINE')" class="py-2.5 rounded-xl font-display font-black text-xs uppercase tracking-wider text-slate-300 hover:text-white transition-all">
-                    🌐 Online (2/4 Disp.)
+                <button onclick="navigateSetup('MULTIPLAYER')" class="w-full py-4 rounded-2xl font-display font-black text-sm uppercase tracking-wider bg-sky-500 hover:bg-sky-400 text-slate-950 shadow-[0_0_20px_rgba(14,165,233,0.3)] transition-all">
+                    🌐 Multiplayer Online
                 </button>
             </div>
 
-            <!-- Local Start Box -->
-            <div id="setup-match-settings" class="w-full bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-2xl mb-3">
-                <div class="flex items-center justify-between mb-3">
-                    <span class="text-xs font-bold text-slate-300">Partita Rapida su questo dispositivo</span>
-                    <button onclick="openSettingsModal()" class="text-[11px] font-bold text-emerald-400 underline">Personalizza regole ⚙️</button>
+            <!-- SCELTA GIOCO LOCALE -->
+            <div id="panel-local-choice" class="hidden w-full bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-2xl mb-3">
+                <div class="flex items-center gap-2 mb-4">
+                    <button onclick="navigateSetup('MAIN')" class="p-2 rounded-lg bg-slate-800 text-white font-bold text-xs">↩ Indietro</button>
+                    <span class="text-sm font-bold text-slate-200">Seleziona Modalità</span>
                 </div>
-                <button id="btn-start-local" onclick="enterPreMatchFlow('LOCAL')" class="w-full py-3.5 rounded-xl font-display font-black text-sm tracking-wider uppercase bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-slate-950 shadow-[0_0_25px_rgba(16,185,129,0.4)] active:scale-95 transition-all">
-                    VAI ALLA SCELTA MODULI (LOCALE) ➔
-                </button>
+                <div class="flex flex-col gap-3">
+                    <button disabled class="w-full py-3.5 rounded-xl font-display font-bold text-sm uppercase bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed flex justify-center items-center gap-2">
+                        🤖 Gioca vs AI <span>🔒</span>
+                    </button>
+                    <button onclick="enterPreMatchFlow('LOCAL')" class="w-full py-3.5 rounded-xl font-display font-black text-sm uppercase bg-gradient-to-r from-emerald-500 to-green-600 text-slate-950 shadow active:scale-95 transition-all">
+                        🤝 Gioca vs Amico (Stesso Disp.)
+                    </button>
+                </div>
             </div>
 
             <!-- ONLINE MULTIPLAYER PANEL -->
             <div id="panel-online-lobby" class="w-full bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-2xl mb-3 hidden">
                 <div id="online-step-entry">
+                    <div class="flex justify-between items-center mb-3">
+                        <button onclick="navigateSetup('MAIN')" class="px-3 py-1.5 rounded-lg bg-slate-800 text-white font-bold text-xs">↩ Indietro</button>
+                        <button onclick="openRulesModal()" class="px-3 py-1.5 rounded-lg bg-sky-500/20 border border-sky-400 text-sky-300 font-bold text-xs">📖 Regole Attive</button>
+                    </div>
                     <div class="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-2">Lobby Multiplayer P2P</div>
                     
                     <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 mb-3">
@@ -1150,27 +1169,6 @@
                     </defs>
                     <g id="arrows-group"></g>
                 </svg>
-
-                <div id="resolution-replay-pitch"
-                    class="relative w-full aspect-[7/12] rounded-lg overflow-hidden border-2 border-white/40"
-                    style="background: repeating-linear-gradient(180deg,#155d27 0%,#155d27 8.333%,#1b7431 8.333%,#1b7431 16.666%);">
-
-                    <div class="absolute inset-0 border border-white/30"></div>
-
-                    <div class="absolute top-1/2 left-0 w-full border-t border-white/40"></div>
-
-                    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 rounded-full border border-white/40"></div>
-
-                    <div id="resolution-replay-tokens"
-                        class="absolute inset-0">
-                    </div>
-
-                    <div id="resolution-replay-ball"
-                        class="absolute hidden text-sm z-20 transition-all duration-700"
-                        style="transform:translate(-50%,-50%)">
-                        ⚽
-                    </div>
-                </div>
             </div>
 
             <!-- REPLAY ANIMATO DI FINE TURNO -->
@@ -1262,8 +1260,9 @@
         let customSettings = {
             initialCardsCount: 5,
             maxCardsInHand: 8,
-            maxDuplicatesPerCard: 2, // Max copie della stessa carta in mano
-            drawCardEveryTurns: 2,   // Pesca 1 carta per squadra ogni 2 turni (0 = disabilitato)
+            maxDuplicatesPerCard: 2,
+            drawCardEveryTurns: 2,
+            matchDuration: 30, // Nuova impostazione (10, 15 o 30)
             passForwardPenalty: 20,
             passLateralBackPenalty: 10,
             passSpacePenalty: 10,
@@ -1821,9 +1820,68 @@
             customSettings.misterBonus = Math.max(5, Math.min(50, parseInt(document.getElementById('set-mister-bonus').value) || 20));
             customSettings.varChance = Math.max(10, Math.min(100, parseInt(document.getElementById('set-var-chance').value) || 80));
 
+            saveSettingsToLocal();
+
             if (networkMode === 'ONLINE' && isOnlineHost) {
                 broadcastFullStateFromHost();
             }
+        }
+
+        function setMatchDuration(turns) {
+            customSettings.matchDuration = turns;
+            [30, 15, 10].forEach(t => {
+                const btn = document.getElementById(`btn-dur-${t}`);
+                if (btn) {
+                    btn.className = (t === turns)
+                        ? "py-2 rounded-lg font-bold text-xs border border-blue-400 bg-blue-500/20 text-blue-300"
+                        : "py-2 rounded-lg font-bold text-xs border border-slate-700 bg-slate-900 text-slate-400";
+                }
+            });
+            onSettingsChanged();
+        }
+
+        function saveSettingsToLocal() {
+            localStorage.setItem('pitchPawnsSettings', JSON.stringify(customSettings));
+            localStorage.setItem('pitchPawnsRequireFive', requireFivePastMidfield);
+            localStorage.setItem('pitchPawnsPrivacy', usePrivacyCurtain);
+        }
+
+        function loadSettingsFromLocal() {
+            try {
+                const saved = localStorage.getItem('pitchPawnsSettings');
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    customSettings = { ...customSettings, ...parsed }; // Mantiene defaults per chiavi mancanti
+                }
+                requireFivePastMidfield = localStorage.getItem('pitchPawnsRequireFive') === 'true';
+                const priv = localStorage.getItem('pitchPawnsPrivacy');
+                usePrivacyCurtain = priv !== null ? (priv === 'true') : true;
+
+                // Aggiorna UI HTML
+                document.getElementById('toggle-five-rule').checked = requireFivePastMidfield;
+                document.getElementById('toggle-privacy-init').checked = usePrivacyCurtain;
+                document.getElementById('set-initial-cards').value = customSettings.initialCardsCount;
+                document.getElementById('set-max-cards').value = customSettings.maxCardsInHand;
+                document.getElementById('set-max-duplicates').value = customSettings.maxDuplicatesPerCard;
+                document.getElementById('set-draw-every-turns').value = customSettings.drawCardEveryTurns;
+                document.getElementById('set-pass-fwd-pen').value = customSettings.passForwardPenalty;
+                document.getElementById('set-pass-lat-pen').value = customSettings.passLateralBackPenalty;
+                document.getElementById('set-pass-space-pen').value = customSettings.passSpacePenalty;
+                document.getElementById('set-shot-dist-pen').value = customSettings.shotDistPenalty;
+                document.getElementById('set-mister-bonus').value = customSettings.misterBonus;
+                document.getElementById('set-var-chance').value = customSettings.varChance;
+                setMatchDuration(customSettings.matchDuration || 30);
+            } catch(e) { console.warn("Errore caricamento impostazioni", e); }
+        }
+
+        function navigateSetup(view) {
+            document.getElementById('main-menu-buttons').classList.add('hidden');
+            document.getElementById('panel-local-choice').classList.add('hidden');
+            document.getElementById('panel-online-lobby').classList.add('hidden');
+
+            if (view === 'MAIN') document.getElementById('main-menu-buttons').classList.remove('hidden');
+            if (view === 'LOCAL_CHOICE') document.getElementById('panel-local-choice').classList.remove('hidden');
+            if (view === 'MULTIPLAYER') document.getElementById('panel-online-lobby').classList.remove('hidden');
         }
 
         function drawRandomCardForTeam(team) {
@@ -5735,40 +5793,26 @@
             if (resolutionReplayRunning) return;
 
             resolutionReplayRunning = true;
-
             const generation = ++resolutionReplayGeneration;
 
             const panel = document.getElementById('resolution-replay-panel');
-            const tokensContainer = document.getElementById('resolution-replay-tokens');
-            const ball = document.getElementById('resolution-replay-ball');
             const status = document.getElementById('resolution-replay-status');
-
             panel.classList.remove('hidden');
 
+            // 1. Raccogliamo tutti i movimenti del turno in sequenza
             const moves = [];
-
             [1, 2, 3].forEach(phase => {
                 (plannedMoves[phase] || []).forEach(move => {
-                    moves.push({
-                        ...move,
-                        replayType: 'move'
-                    });
+                    moves.push({ ...move, replayType: 'move' });
                 });
             });
 
             const move4 = plannedMoves[4];
-
             if (move4 && move4.type === 'move') {
-                moves.push({
-                    ...move4,
-                    replayType: 'move'
-                });
+                moves.push({ ...move4, replayType: 'move' });
             }
 
-            const pass = move4 && move4.type === 'pass'
-                ? move4
-                : null;
-
+            const pass = move4 && move4.type === 'pass' ? move4 : null;
             if (pass) {
                 moves.push({
                     pieceId: pass.toId,
@@ -5780,111 +5824,64 @@
                 });
             }
 
-            // Ricostruisce le posizioni iniziali partendo da quelle finali.
-            const initialPieces = pieces.map(piece => ({ ...piece }));
-
+            // 2. Calcoliamo la posizione iniziale delle pedine prima di questo turno
+            const initialPieces = JSON.parse(JSON.stringify(pieces));
             [...moves].reverse().forEach(move => {
                 const piece = initialPieces.find(p => p.id === move.pieceId);
-
                 if (piece) {
                     piece.r = move.fromR;
                     piece.c = move.fromC;
                 }
             });
 
-            // Il pallone, in caso di passaggio, parte dalla posizione del mittente.
-            // Ricava la posizione iniziale del pallone all'inizio della Fase 4 (su passaggio, dribbling o tiro)
-            const initialBall = move4
-                ? { r: move4.fromR, c: move4.fromC }
-                : null;
+            // 3. Forziamo il render del campo allo stato iniziale
+            const tempCurrentPieces = pieces; 
+            pieces = initialPieces;
+            
+            // Disegniamo il campo pulito
+            renderBoard(); 
+            
+            // Applichiamo la transizione CSS lenta alle pedine reali sul campo
+            const allTokens = document.querySelectorAll('.board-token');
+            allTokens.forEach(t => t.style.transition = 'all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94)');
 
-            async function playSequence() {
-                tokensContainer.innerHTML = '';
+            await replayWait(500);
 
-                const tokenElements = {};
-
-                initialPieces.forEach(piece => {
-                    const token = document.createElement('div');
-
-                    token.className =
-                        'absolute w-5 h-5 rounded-full border-2 border-white shadow-lg flex items-center justify-center text-[7px] font-black text-white transition-all duration-700';
-
-                    applyTeamKitVisual(token, piece.team, 'token');
-
-                    token.innerText = piece.isGK ? 'GK' : piece.num;
-
-                    setReplayPosition(token, piece.r, piece.c);
-
-                    tokensContainer.appendChild(token);
-
-                    tokenElements[piece.id] = token;
+            // 4. Eseguiamo la sequenza
+            for (const move of moves) {
+                if (generation !== resolutionReplayGeneration || gameState !== 'RESOLUTION') break;
+                
+                // Ricrea l'ID fittizio della pedina per trovarla nel DOM (è renderizzata con ordine in grid-container)
+                // Nel tuo renderBoard() originale non ci sono ID sui token. Lo cerchiamo tramite innerText e classi.
+                const teamClass = initialPieces.find(p => p.id === move.pieceId)?.team === 'red' ? 'token-red' : 'token-blue';
+                const numText = initialPieces.find(p => p.id === move.pieceId)?.isGK ? 'GK' : initialPieces.find(p => p.id === move.pieceId)?.num;
+                
+                let targetDOMNode = null;
+                allTokens.forEach(node => {
+                    if (node.classList.contains(teamClass) && node.innerText.includes(numText)) {
+                        targetDOMNode = node;
+                    }
                 });
 
-                ball.classList.add('hidden');
-
-                if (initialBall) {
-                    setReplayPosition(ball, initialBall.r, initialBall.c);
-                    ball.classList.remove('hidden');
+                if (targetDOMNode) {
+                    // Calcolo della percentuale CSS basato sulla griglia 7x12
+                    targetDOMNode.style.left = `calc(${((move.toC + 0.5) / 7) * 100}% - 50%)`; // compensiamo il translate(-50%, -50%)
+                    targetDOMNode.style.top = `calc(${((move.toR + 0.5) / 12) * 100}% - 50%)`;
                 }
 
-                await replayWait(600);
+                status.innerText = (move.replayType === 'receiver') ? '📥 RICEZIONE' : '🏃 MOVIMENTO';
+                await replayWait(850);
+            }
 
-                if (pass) {
-                    status.innerText = '⚽ PASSAGGIO IN CORSO...';
-
-                    ball.classList.remove('hidden');
-                    setReplayPosition(ball, pass.toR, pass.toC);
-
-                    await replayWait(800);
-                }
-
-                for (const move of moves) {
-                    if (generation !== resolutionReplayGeneration) return;
-                    if (gameState !== 'RESOLUTION') return;
-
-                    if (move.replayType === 'receiver' && pass) {
-                        const receiver = tokenElements[move.pieceId];
-
-                        if (receiver) {
-                            setReplayPosition(receiver, move.toR, move.toC);
-                        }
-
-                        status.innerText = '📥 RICEZIONE DEL PALLONE';
-                    } else {
-                        const token = tokenElements[move.pieceId];
-                        if (token) {
-                            setReplayPosition(token, move.toR, move.toC);
-                        }
-                        if (move4 && move4.type === 'move' && move.pieceId === move4.pieceId) {
-                            ball.classList.remove('hidden');
-                            setReplayPosition(ball, move.toR, move.toC);
-                        }
-                        status.innerText = '🏃 MOVIMENTO DEI GIOCATORI';
-                    }
-
-                    await replayWait(850);
-                }
-
+            if (generation === resolutionReplayGeneration && gameState === 'RESOLUTION') {
                 status.innerText = '✓ SEQUENZA COMPLETATA';
-
-                await replayWait(2500);
+                await replayWait(1500);
             }
 
-            while (
-                generation === resolutionReplayGeneration &&
-                gameState === 'RESOLUTION'
-            ) {
-                await playSequence();
-
-                if (
-                    generation !== resolutionReplayGeneration ||
-                    gameState !== 'RESOLUTION'
-                ) {
-                    break;
-                }
-            }
-
+            // 5. Ripristino stato reale e pulizia
             if (generation === resolutionReplayGeneration) {
+                pieces = tempCurrentPieces;
+                renderBoard(); // Ridisegna lo stato finale corretto in modo pulito
                 resolutionReplayRunning = false;
                 panel.classList.add('hidden');
             }
@@ -6162,7 +6159,9 @@
 
         function advanceClockAndCheckPeriod(isAfterGoal, kickoffTeamIfGoal) {
             stopResolutionReplay();
-            matchMinute += 3;
+            // Incremento proporzionale (es. 90/30=3', 90/15=6', 90/10=9')
+            const increment = 90 / (customSettings.matchDuration || 30);
+            matchMinute += increment;
             turnNumber += 1;
 
             // Pesca periodica di 1 nuova carta per squadra ogni N turni (es. ogni 2 turni completati)
@@ -6986,6 +6985,7 @@
         }
 
         window.onload = () => {
+            loadSettingsFromLocal(); // CARICA LE IMPOSTAZIONI SALVATE (Durata compresa)
             updatePrivacyButtonUI();
             renderSettingsDynamicLists();
             setupAppleTouchIconFromSVG();
