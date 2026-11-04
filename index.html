@@ -1055,7 +1055,7 @@
                     class="hidden absolute inset-0 z-[90] flex flex-col items-center justify-center
                             rounded-xl bg-slate-950/75 backdrop-blur-sm p-3">
 
-                    <div class="w-full max-w-[260px] rounded-2xl border-2 border-purple-400
+                    <div class="counter-flip w-full max-w-[260px] rounded-2xl border-2 border-purple-400
                                 bg-slate-950/95 p-4 text-center shadow-[0_0_35px_rgba(168,85,247,0.6)]">
 
                         <div id="card-draw-team-badge"
@@ -1169,30 +1169,6 @@
                     </defs>
                     <g id="arrows-group"></g>
                 </svg>
-            </div>
-
-            <!-- REPLAY ANIMATO DI FINE TURNO -->
-            <div id="resolution-replay-panel"
-                class="hidden fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[35] w-[230px] p-3 rounded-2xl bg-slate-950/95 border-2 border-amber-400/70 shadow-[0_0_35px_rgba(250,204,21,0.35)] pointer-events-none">
-                <div class="w-[72%] max-w-[230px] p-3 rounded-2xl
-                    bg-slate-950/95 border-2 border-amber-400/70
-                    shadow-[0_0_35px_rgba(250,204,21,0.55)]">
-
-                <div class="text-center mb-2">
-                    <div class="font-display font-black text-sm text-amber-300">
-                        📽️ RIEPILOGO DEL TURNO
-                    </div>
-                    <div class="text-[9px] text-slate-400">
-                        Movimenti e azioni appena effettuati
-                    </div>
-                </div>
-
-                <div id="resolution-replay-status"
-                    class="text-center text-[10px] text-amber-300 font-bold mt-2">
-                    Riproduzione delle azioni...
-                </div>
-
-                </div>
             </div>
 
             <!-- FLOATING LIQUID GLASS BOTTOM NAVBAR (ALLUNGATA E SENZA A CAPO) -->
@@ -1464,7 +1440,7 @@
             rissa: {
                 name: "Rissa",
                 icon: "🥊",
-                desc: "Scegli un tuo giocatore e uno avversario a max 3 caselle ortogonali (no diagonali): entrambi vengono espulsi per 10 turni!"
+                desc: "Scegli un tuo giocatore e uno avversario a max 2 caselle ortogonali (no diagonali): entrambi vengono espulsi per 10 turni!"
             }
         };
 
@@ -4115,14 +4091,14 @@
             return true;
         }
 
-        // Calcola se due giocatori sono entro 3 caselle totali (orizzontali + verticali, es. 2 orizzontali + 1 verticale = 3)
-        // escludendo le diagonali pure (dr === dc)
+        // Calcola se due giocatori sono entro 2 caselle usando la Manhattan distance (|dr| + |dc| <= 2)
+        // Include: 1 casella ortogonale (dist=1), 2 caselle ortogonali (dist=2) e 1 casella in diagonale (1+1=2)
         function isWithinRissaRange(p1, p2) {
             if (!p1 || !p2) return false;
             const dr = Math.abs(p1.r - p2.r);
             const dc = Math.abs(p1.c - p2.c);
             const manhattan = dr + dc;
-            return manhattan >= 1 && manhattan <= 3 && (dr !== dc);
+            return manhattan >= 1 && manhattan <= 2;
         }
 
         function handleCardGridClickOnHost(r, c, team) {
@@ -4155,7 +4131,7 @@
                 if (!ownP) return;
                 const oppList = vis.filter(e => e.team !== team && !e.isGK && !e.hasBall);
                 if (!oppList.some(e => isWithinRissaRange(ownP, e))) {
-                    showLocalToast("Questo giocatore non ha avversari entro 3 caselle!", "warn");
+                    showLocalToast("Questo giocatore non ha avversari entro 2 caselle!", "warn");
                     return;
                 }
                 pendingCardInteraction.type = 'RISSA_OPP';
@@ -4186,7 +4162,7 @@
                 const oppP = vis.find(p => p.team !== team && !p.isGK && !p.hasBall && p.r === r && p.c === c);
                 if (!ownP || !oppP) return;
                 if (!isWithinRissaRange(ownP, oppP)) {
-                    showLocalToast("L'avversario deve essere entro 3 caselle (orizzontali/verticali, no diagonale)!", "warn");
+                    showLocalToast("L'avversario deve essere entro 2 caselle (orizzontali/verticali, no diagonale)!", "warn");
                     return;
                 }
 
@@ -5306,7 +5282,7 @@
                 }
             } else if (cardKey === 'rissa') {
                 pendingCardInteraction = { type: 'RISSA_OWN', team, ownPieceId: null };
-                emitSharedMatchEvent(`🥊 RISSA: Tocca prima un TUO giocatore e poi un AVVERSARIO entro 3 caselle!`, "warn", team);
+                emitSharedMatchEvent(`🥊 RISSA: Tocca prima un TUO giocatore e poi un AVVERSARIO entro 2 caselle!`, "warn", team);
             } else if (cardKey === 'marotta_league') {
                 executeMarottaLeagueCard(team);
                 return;
@@ -5773,19 +5749,10 @@
         function stopResolutionReplay() {
             resolutionReplayGeneration++;
             resolutionReplayRunning = false;
-
             const panel = document.getElementById('resolution-replay-panel');
-
             if (panel) panel.classList.add('hidden');
-        }
-
-        function replayWait(ms) {
-            return new Promise(resolve => setTimeout(resolve, ms));
-        }
-
-        function setReplayPosition(element, r, c) {
-            element.style.left = `${((c + 0.5) / 7) * 100}%`;
-            element.style.top = `${((r + 0.5) / 12) * 100}%`;
+            const arrowsLayer = document.getElementById('arrows-layer');
+            if (arrowsLayer) arrowsLayer.style.opacity = '1';
         }
 
         async function startResolutionReplay() {
@@ -5795,96 +5762,120 @@
             resolutionReplayRunning = true;
             const generation = ++resolutionReplayGeneration;
 
+            // Assicura che il vecchio banner "Riepilogo del turno" resti sempre nascosto
             const panel = document.getElementById('resolution-replay-panel');
-            const status = document.getElementById('resolution-replay-status');
-            panel.classList.remove('hidden');
+            if (panel) panel.classList.add('hidden');
 
-            // 1. Raccogliamo tutti i movimenti del turno in sequenza
+            // Costruisce la lista ordinata dei movimenti effettuati nel turno
             const moves = [];
             [1, 2, 3].forEach(phase => {
                 (plannedMoves[phase] || []).forEach(move => {
-                    moves.push({ ...move, replayType: 'move' });
+                    if (move && (move.fromR !== move.toR || move.fromC !== move.toC)) {
+                        moves.push({ ...move, replayType: 'move' });
+                    }
                 });
             });
 
             const move4 = plannedMoves[4];
-            if (move4 && move4.type === 'move') {
+            if (move4 && move4.type === 'move' && (move4.fromR !== move4.toR || move4.fromC !== move4.toC)) {
                 moves.push({ ...move4, replayType: 'move' });
-            }
-
-            const pass = move4 && move4.type === 'pass' ? move4 : null;
-            if (pass) {
+            } else if (move4 && move4.type === 'pass' && move4.isSpacePass && (move4.snapFromR !== move4.toR || move4.snapFromC !== move4.toC)) {
                 moves.push({
-                    pieceId: pass.toId,
-                    fromR: pass.snapFromR,
-                    fromC: pass.snapFromC,
-                    toR: pass.toR,
-                    toC: pass.toC,
+                    pieceId: move4.toId,
+                    fromR: move4.snapFromR,
+                    fromC: move4.snapFromC,
+                    toR: move4.toR,
+                    toC: move4.toC,
                     replayType: 'receiver'
                 });
             }
 
-            // 2. Calcoliamo la posizione iniziale delle pedine prima di questo turno
-            const initialPieces = JSON.parse(JSON.stringify(pieces));
-            [...moves].reverse().forEach(move => {
-                const piece = initialPieces.find(p => p.id === move.pieceId);
-                if (piece) {
-                    piece.r = move.fromR;
-                    piece.c = move.fromC;
-                }
-            });
+            if (moves.length === 0) {
+                resolutionReplayRunning = false;
+                return;
+            }
 
-            // 3. Forziamo il render del campo allo stato iniziale
-            const tempCurrentPieces = pieces; 
-            pieces = initialPieces;
-            
-            // Disegniamo il campo pulito
-            renderBoard(); 
-            
-            // Applichiamo la transizione CSS lenta alle pedine reali sul campo
-            const allTokens = document.querySelectorAll('.board-token');
-            allTokens.forEach(t => t.style.transition = 'all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94)');
+            // Salva lo stato finale reale delle pedine
+            const finalPiecesSnapshot = JSON.parse(JSON.stringify(pieces));
 
-            await replayWait(500);
-
-            // 4. Eseguiamo la sequenza
-            for (const move of moves) {
-                if (generation !== resolutionReplayGeneration || gameState !== 'RESOLUTION') break;
-                
-                // Ricrea l'ID fittizio della pedina per trovarla nel DOM (è renderizzata con ordine in grid-container)
-                // Nel tuo renderBoard() originale non ci sono ID sui token. Lo cerchiamo tramite innerText e classi.
-                const teamClass = initialPieces.find(p => p.id === move.pieceId)?.team === 'red' ? 'token-red' : 'token-blue';
-                const numText = initialPieces.find(p => p.id === move.pieceId)?.isGK ? 'GK' : initialPieces.find(p => p.id === move.pieceId)?.num;
-                
-                let targetDOMNode = null;
-                allTokens.forEach(node => {
-                    if (node.classList.contains(teamClass) && node.innerText.includes(numText)) {
-                        targetDOMNode = node;
+            async function playRealTokensSequence() {
+                // 1. Riporta temporaneamente le coordinate delle pedine all'inizio del turno
+                const startState = JSON.parse(JSON.stringify(finalPiecesSnapshot));
+                [...moves].reverse().forEach(mv => {
+                    const p = startState.find(x => x.id === mv.pieceId);
+                    if (p) {
+                        p.r = mv.fromR;
+                        p.c = mv.fromC;
                     }
                 });
 
-                if (targetDOMNode) {
-                    // Calcolo della percentuale CSS basato sulla griglia 7x12
-                    targetDOMNode.style.left = `calc(${((move.toC + 0.5) / 7) * 100}% - 50%)`; // compensiamo il translate(-50%, -50%)
-                    targetDOMNode.style.top = `calc(${((move.toR + 0.5) / 12) * 100}% - 50%)`;
+                // Se c'è stato un passaggio completato, rimetti temporaneamente la palla al passatore
+                if (move4 && move4.type === 'pass') {
+                    const sender = startState.find(x => x.id === move4.fromId);
+                    const rec = startState.find(x => x.id === move4.toId);
+                    if (sender && rec && rec.hasBall) {
+                        rec.hasBall = false;
+                        sender.hasBall = true;
+                    }
                 }
 
-                status.innerText = (move.replayType === 'receiver') ? '📥 RICEZIONE' : '🏃 MOVIMENTO';
-                await replayWait(850);
+                pieces = startState;
+                renderBoard();
+
+                // Nasconde temporaneamente le frecce tattiche per far godere il movimento pulito sul campo
+                const arrowsLayer = document.getElementById('arrows-layer');
+                if (arrowsLayer) arrowsLayer.style.opacity = '0';
+
+                await replayWait(450);
+
+                // 2. Anima in sequenza ogni pedina reale lungo il campo usando transform CSS
+                const cumulativeDelta = {}; // tiene traccia dello spostamento se una pedina si muove
+                for (const mv of moves) {
+                    if (generation !== resolutionReplayGeneration || gameState !== 'RESOLUTION') return;
+
+                    const tokEl = document.querySelector(`.board-token[data-piece-id="${mv.pieceId}"]`);
+                    if (tokEl) {
+                        const prev = cumulativeDelta[mv.pieceId] || { dR: 0, dC: 0 };
+                        const dR = prev.dR + (mv.toR - mv.fromR);
+                        const dC = prev.dC + (mv.toC - mv.fromC);
+                        cumulativeDelta[mv.pieceId] = { dR, dC };
+
+                        tokEl.style.transition = 'transform 0.65s cubic-bezier(0.22, 1, 0.36, 1)';
+                        tokEl.style.zIndex = '48';
+                        tokEl.style.transform = `translate(calc(-50% + ${dC * 100}%), calc(-50% + ${dR * 100}%))`;
+                    }
+
+                    await replayWait(720);
+                }
+
+                // 3. Allinea allo stato finale reale (con eventuale cambio possesso/palla e frecce)
+                if (generation !== resolutionReplayGeneration || gameState !== 'RESOLUTION') return;
+                pieces = JSON.parse(JSON.stringify(finalPiecesSnapshot));
+                renderBoard();
+                if (arrowsLayer) arrowsLayer.style.opacity = '1';
+
+                await replayWait(2200);
             }
 
-            if (generation === resolutionReplayGeneration && gameState === 'RESOLUTION') {
-                status.innerText = '✓ SEQUENZA COMPLETATA';
-                await replayWait(1500);
+            while (generation === resolutionReplayGeneration && gameState === 'RESOLUTION') {
+                await playRealTokensSequence();
             }
 
-            // 5. Ripristino stato reale e pulizia
-            if (generation === resolutionReplayGeneration) {
-                pieces = tempCurrentPieces;
-                renderBoard(); // Ridisegna lo stato finale corretto in modo pulito
-                resolutionReplayRunning = false;
-                panel.classList.add('hidden');
-            }
+            // Ripristino garantito dello stato finale reale quando si esce dalla Risoluzione
+            pieces = finalPiecesSnapshot;
+            const arrowsLayer = document.getElementById('arrows-layer');
+            if (arrowsLayer) arrowsLayer.style.opacity = '1';
+            renderBoard();
+            resolutionReplayRunning = false;
+        }
+
+        function replayWait(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function setReplayPosition(element, r, c) {
+            element.style.left = `${((c + 0.5) / 7) * 100}%`;
+            element.style.top = `${((r + 0.5) / 12) * 100}%`;
         }
 
         function findNearestDefenderTo(r, c, defTeam) {
@@ -6813,6 +6804,7 @@
 
                     cellPieces.forEach((p) => {
                         const tok = document.createElement('div');
+                        tok.dataset.pieceId = p.id;
                         const isSelected = p.id === selectedPieceId;
                         const isPassTargetPlayer = passInfo && !passInfo.isSpacePass && passInfo.receiver.id === p.id;
 
