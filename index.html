@@ -213,6 +213,44 @@
         .animate-card-reveal {
             animation: card-flip-reveal 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
         }
+
+        @keyframes card-draw-shuffle {
+            0%, 100% {
+                transform: translateY(0) rotate(0deg);
+            }
+            25% {
+                transform: translateY(-8px) rotate(-7deg);
+            }
+            50% {
+                transform: translateY(3px) rotate(7deg);
+            }
+            75% {
+                transform: translateY(-5px) rotate(-4deg);
+            }
+        }
+
+        .animate-deck-shuffle {
+            animation: card-draw-shuffle 0.35s infinite ease-in-out;
+        }
+
+        @keyframes card-fly-reveal {
+            0% {
+                opacity: 0;
+                transform: translateY(35px) rotateY(90deg) scale(.5);
+            }
+            65% {
+                opacity: 1;
+                transform: translateY(-8px) rotateY(-10deg) scale(1.08);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) rotateY(0) scale(1);
+            }
+        }
+
+        .animate-card-reveal {
+            animation: card-fly-reveal .7s cubic-bezier(.22,1,.36,1) forwards;
+        }
     </style>
 </head>
 <body class="text-white h-screen w-screen flex flex-col overflow-hidden select-none">
@@ -992,6 +1030,79 @@
         <!-- PITCH AREA -->
         <main class="flex-1 relative flex items-center justify-center p-2 pb-16 overflow-hidden">
             <div id="pitch-box" class="pitch-container rounded-xl">
+                
+                <!-- ANIMAZIONE PESCA CARTA DIRETTAMENTE SUL CAMPO -->
+                <div id="modal-card-draw"
+                    class="hidden absolute inset-0 z-[90] flex flex-col items-center justify-center
+                            rounded-xl bg-slate-950/75 backdrop-blur-sm p-3">
+
+                    <div class="w-full max-w-[260px] rounded-2xl border-2 border-purple-400
+                                bg-slate-950/95 p-4 text-center shadow-[0_0_35px_rgba(168,85,247,0.6)]">
+
+                        <div id="card-draw-team-badge"
+                            class="inline-block px-3 py-1 rounded-full text-[10px] font-black uppercase mb-2">
+                            🃏 MAZZO SEGRETO
+                        </div>
+
+                        <h3 id="card-draw-title"
+                            class="font-display text-xl font-black text-white mb-1">
+                            PESCA 1 CARTA
+                        </h3>
+
+                        <p id="card-draw-reason"
+                        class="text-[10px] text-slate-400 mb-4"></p>
+
+                        <!-- MAZZO -->
+                        <div class="h-36 flex items-center justify-center">
+
+                            <div id="card-draw-deck-back"
+                                class="w-24 h-32 rounded-xl border-2 border-purple-300
+                                        bg-gradient-to-br from-purple-700 via-indigo-900 to-slate-950
+                                        shadow-xl flex flex-col items-center justify-center">
+
+                                <div class="text-4xl">🃏</div>
+                                <div class="text-[9px] font-black tracking-widest mt-2">
+                                    PITCH & PAWNS
+                                </div>
+                            </div>
+
+                            <!-- CARTA ESTRATTA -->
+                            <div id="card-draw-revealed-box"
+                                class="hidden w-28 min-h-[130px] rounded-xl border-2 border-amber-400
+                                        bg-gradient-to-br from-amber-100 to-amber-300
+                                        text-slate-950 p-3 shadow-2xl">
+
+                                <div id="card-draw-rev-icon" class="text-4xl mb-2">🃏</div>
+
+                                <div id="card-draw-rev-name"
+                                    class="font-display font-black text-sm uppercase"></div>
+
+                                <div id="card-draw-rev-desc"
+                                    class="text-[9px] mt-2 leading-tight"></div>
+                            </div>
+
+                        </div>
+
+                        <p id="card-draw-wait-msg"
+                        class="text-[10px] text-amber-300 font-bold my-3">
+                        </p>
+
+                        <button id="btn-trigger-card-draw"
+                                onclick="triggerTeamCardDraw()"
+                                class="w-full py-3 rounded-xl bg-purple-500 text-white
+                                    font-display font-black text-xs uppercase shadow-lg">
+                            🃏 ESTRAI LA CARTA
+                        </button>
+
+                        <button id="btn-close-card-draw"
+                                onclick="acknowledgeCardDrawModal()"
+                                class="hidden w-full mt-3 py-3 rounded-xl bg-emerald-500
+                                    text-slate-950 font-display font-black text-xs uppercase">
+                            HO VISTO LA CARTA ✓
+                        </button>
+
+                    </div>
+                </div>
                 <!-- Pitch Markings (SVG Background Lines) -->
                 <svg class="absolute inset-0 w-full h-full pointer-events-none z-0 rounded-xl overflow-hidden" viewBox="0 0 700 1200" preserveAspectRatio="none">
                     <rect x="20" y="20" width="660" height="1160" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="4"/>
@@ -1039,20 +1150,6 @@
                     </defs>
                     <g id="arrows-group"></g>
                 </svg>
-            </div>
-
-            <!-- REPLAY ANIMATO DI FINE TURNO -->
-            <div id="resolution-replay-panel"
-                class="hidden fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[35] w-[230px] p-3 rounded-2xl bg-slate-950/95 border-2 border-amber-400/70 shadow-[0_0_35px_rgba(250,204,21,0.35)] pointer-events-none">
-
-                <div class="text-center mb-2">
-                    <div class="font-display font-black text-sm text-amber-300">
-                        📽️ RIEPILOGO DEL TURNO
-                    </div>
-                    <div class="text-[9px] text-slate-400">
-                        Movimenti e azioni appena effettuati
-                    </div>
-                </div>
 
                 <div id="resolution-replay-pitch"
                     class="relative w-full aspect-[7/12] rounded-lg overflow-hidden border-2 border-white/40"
@@ -1074,10 +1171,29 @@
                         ⚽
                     </div>
                 </div>
+            </div>
+
+            <!-- REPLAY ANIMATO DI FINE TURNO -->
+            <div id="resolution-replay-panel"
+                class="hidden fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[35] w-[230px] p-3 rounded-2xl bg-slate-950/95 border-2 border-amber-400/70 shadow-[0_0_35px_rgba(250,204,21,0.35)] pointer-events-none">
+                <div class="w-[72%] max-w-[230px] p-3 rounded-2xl
+                    bg-slate-950/95 border-2 border-amber-400/70
+                    shadow-[0_0_35px_rgba(250,204,21,0.55)]">
+
+                <div class="text-center mb-2">
+                    <div class="font-display font-black text-sm text-amber-300">
+                        📽️ RIEPILOGO DEL TURNO
+                    </div>
+                    <div class="text-[9px] text-slate-400">
+                        Movimenti e azioni appena effettuati
+                    </div>
+                </div>
 
                 <div id="resolution-replay-status"
                     class="text-center text-[10px] text-amber-300 font-bold mt-2">
                     Riproduzione delle azioni...
+                </div>
+
                 </div>
             </div>
 
@@ -1843,16 +1959,45 @@
                 waitMsg.classList.remove('hidden');
                 waitMsg.innerText = "✨ Estrazione della carta segreta in corso...";
             } else if (activeDraw.status === 'REVEALED' && activeDraw.cardKey) {
+
                 const info = CARD_CATALOG[activeDraw.cardKey];
+
                 titleEl.innerText = "CARTA ESTRATTA!";
+
                 deckBack.classList.add('hidden');
                 deckBack.classList.remove('animate-deck-shuffle');
+
                 revBox.classList.remove('hidden');
-                document.getElementById('card-draw-rev-icon').innerText = info ? info.icon : '🃏';
-                document.getElementById('card-draw-rev-name').innerText = info ? info.name : '';
-                document.getElementById('card-draw-rev-desc').innerText = info ? info.desc : '';
+                revBox.classList.remove('animate-card-reveal');
+
+                void revBox.offsetWidth;
+
+                revBox.classList.add('animate-card-reveal');
+
+                document.getElementById('card-draw-rev-icon').innerText =
+                    info ? info.icon : '🃏';
+
+                document.getElementById('card-draw-rev-name').innerText =
+                    info ? info.name : '';
+
+                document.getElementById('card-draw-rev-desc').innerText =
+                    info ? info.desc : '';
+
                 btnTrigger.classList.add('hidden');
                 waitMsg.classList.add('hidden');
+                btnClose.classList.remove('hidden');
+
+            } else if (activeDraw.status === 'FAILED') {
+
+                titleEl.innerText = "PESCA NON DISPONIBILE";
+
+                deckBack.classList.add('hidden');
+                revBox.classList.add('hidden');
+
+                waitMsg.classList.remove('hidden');
+                waitMsg.innerText = "Non ci sono carte disponibili.";
+
+                btnTrigger.classList.add('hidden');
                 btnClose.classList.remove('hidden');
             }
 
@@ -1860,42 +2005,90 @@
         }
 
         function triggerTeamCardDraw(fromNetworkHost = false, senderSlot = null) {
-            const activeDraw = getActiveVisibleCardDraw() || pendingCardDraws.find(d => d.status === 'WAITING');
+
+            let activeDraw;
+
+            if (fromNetworkHost && senderSlot) {
+                activeDraw = pendingCardDraws.find(d =>
+                    d.status === 'WAITING' &&
+                    d.drawerSlot === senderSlot
+                );
+            } else {
+                activeDraw = getActiveVisibleCardDraw();
+            }
+
             if (!activeDraw || activeDraw.status !== 'WAITING') return;
 
             if (!fromNetworkHost && !canCurrentDeviceClickCardDraw(activeDraw)) {
-                showLocalToast("Solo il giocatore di Fase 3 o Fase 4 può premere per estrarre!", "warn");
+                showLocalToast("Non sei autorizzato a pescare!", "warn");
                 return;
             }
 
             if (networkMode === 'ONLINE' && !isOnlineHost && !fromNetworkHost) {
-                sendOnlineAction({ kind: 'TRIGGER_CARD_DRAW', drawId: activeDraw.id });
+                sendOnlineAction({
+                    kind: 'TRIGGER_CARD_DRAW',
+                    drawId: activeDraw.id
+                });
                 return;
             }
 
-            if (networkMode === 'ONLINE' && isOnlineHost && fromNetworkHost && senderSlot && senderSlot !== activeDraw.drawerSlot) {
-                return;
-            }
+            if (fromNetworkHost && senderSlot !== activeDraw.drawerSlot) return;
 
+            // Blocca richieste duplicate
             activeDraw.status = 'ROLLING';
+
             syncCardDrawModalUI();
-            if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
+
+            if (networkMode === 'ONLINE' && isOnlineHost) {
+                broadcastFullStateFromHost();
+            }
+
+            const drawId = activeDraw.id;
 
             setTimeout(() => {
-                const currentHand = teamCards[activeDraw.team] || [];
-                const enabledKeys = Object.keys(CARD_CATALOG).filter(k => customSettings.enabledCards[k] !== false);
-                const maxDup = customSettings.maxDuplicatesPerCard || 2;
-                const validKeys = enabledKeys.filter(k => currentHand.filter(c => c === k).length < maxDup);
 
-                if (validKeys.length > 0 && currentHand.length < customSettings.maxCardsInHand) {
-                    const chosenKey = validKeys[Math.floor(Math.random() * validKeys.length)];
-                    currentHand.push(chosenKey);
-                    activeDraw.cardKey = chosenKey;
+                const draw = pendingCardDraws.find(d => d.id === drawId);
+
+                if (!draw || draw.status !== 'ROLLING') return;
+
+                const currentHand = teamCards[draw.team] || [];
+                teamCards[draw.team] = currentHand;
+
+                const enabledKeys = Object.keys(CARD_CATALOG)
+                    .filter(k => customSettings.enabledCards[k] !== false);
+
+                const maxDup = customSettings.maxDuplicatesPerCard || 2;
+
+                const validKeys = enabledKeys.filter(k =>
+                    currentHand.filter(c => c === k).length < maxDup
+                );
+
+                if (
+                    currentHand.length >= customSettings.maxCardsInHand ||
+                    validKeys.length === 0
+                ) {
+                    draw.status = 'FAILED';
+                    draw.cardKey = null;
+                } else {
+
+                    const chosenKey = validKeys[
+                        Math.floor(Math.random() * validKeys.length)
+                    ];
+
+                    // AGGIUNTA EFFETTIVA ALLA MANO
+                    teamCards[draw.team].push(chosenKey);
+
+                    draw.cardKey = chosenKey;
+                    draw.status = 'REVEALED';
                 }
-                activeDraw.status = 'REVEALED';
+
                 updateHUD();
                 syncCardDrawModalUI();
-                if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
+
+                if (networkMode === 'ONLINE' && isOnlineHost) {
+                    broadcastFullStateFromHost();
+                }
+
             }, 1100);
         }
 
@@ -3221,12 +3414,14 @@
                     return;
                 }
 
-                // Verifica i movimenti delle fasi 1, 2 e 3.
+                // Verifica obbligatoria dei PA anche sul dispositivo Host.
                 if (act.phase >= 1 && act.phase <= 3) {
 
-                    if (!validateUniqueTurnMoves(act.phase, act.moves)) {
+                    if (!Array.isArray(act.moves) ||
+                        !validateUniqueTurnMoves(act.phase, act.moves)) {
+
                         showLocalToast(
-                            "Movimento rifiutato: un calciatore è già stato mosso!",
+                            "Movimento rifiutato: calciatore già utilizzato!",
                             "error"
                         );
 
@@ -3234,16 +3429,35 @@
                         return;
                     }
 
+                    const requiredPA = act.phase === 1
+                        ? p1ActionPoints
+                        : act.phase === 2
+                            ? p2ActionPoints
+                            : p3ActionPoints;
+
+                    if (act.moves.length < requiredPA) {
+
+                        showLocalToast(
+                            `Conferma rifiutata: devi utilizzare tutti i ${requiredPA} PA!`,
+                            "warn"
+                        );
+
+                        broadcastFullStateFromHost();
+                        return;
+                    }
+
+                    plannedMoves[act.phase] = act.moves;
+
                     if (act.phase === 1) {
-                        plannedMoves[1] = act.moves;
                         p1ActionPoints = 0;
-                    } else {
-                        plannedMoves[act.phase] = act.moves;
                     }
 
                 } else if (act.phase === 4 && act.move4) {
+
                     plannedMoves[4] = act.move4;
+
                 } else {
+
                     broadcastFullStateFromHost();
                     return;
                 }
@@ -4282,19 +4496,61 @@
             renderBoard();
         }
 
+        function validatePhaseActionPoints(phase, moves, remainingP1 = p1ActionPoints) {
+
+            if (phase === 1) {
+                return remainingP1 <= 0;
+            }
+
+            if (phase === 2) {
+                return (moves || []).length >= p2ActionPoints;
+            }
+
+            if (phase === 3) {
+                return (moves || []).length >= p3ActionPoints;
+            }
+
+            return true;
+        }
+
         function confirmPhaseStep(fromNetworkHost = false) {
+
             if (!fromNetworkHost && !isMyTurnOnline()) {
                 showLocalToast("Non è il tuo turno!", "warn");
                 return;
             }
 
+            // CONTROLLO OBBLIGATORIO PA
+            if (
+                currentPhase <= 3 &&
+                !validatePhaseActionPoints(
+                    currentPhase,
+                    plannedMoves[currentPhase]
+                )
+            ) {
+                const remaining = currentPhase === 1
+                    ? p1ActionPoints
+                    : currentPhase === 2
+                        ? p2ActionPoints - plannedMoves[2].length
+                        : p3ActionPoints - plannedMoves[3].length;
+
+                showLocalToast(
+                    `Devi ancora utilizzare ${remaining} PA prima di confermare!`,
+                    "warn"
+                );
+
+                return;
+            }
+
             if (networkMode === 'ONLINE' && !isOnlineHost && !fromNetworkHost) {
+
                 sendOnlineAction({
                     kind: 'COMMIT_PHASE_MOVE',
                     phase: currentPhase,
                     moves: plannedMoves[currentPhase],
                     move4: plannedMoves[4]
                 });
+
                 return;
             }
 
@@ -4302,16 +4558,24 @@
 
             if (currentPhase === 1) {
                 beginPhase(2);
+
             } else if (currentPhase === 2) {
                 beginPhase(3);
+
             } else if (currentPhase === 3) {
                 beginPhase(4);
+
             } else if (currentPhase === 4) {
+
                 const m4 = plannedMoves[4];
+
                 if (!m4) return;
+
                 if (m4.type === 'move') {
                     executeResolution(false, true);
+
                 } else if (m4.type === 'pass') {
+
                     if (m4.successChance < 100) {
                         openManualRouletteModal(
                             m4.isSpacePass ? "PASSAGGIO NELLO SPAZIO" : "PASSAGGIO FILTRANTE",
@@ -4322,11 +4586,17 @@
                     } else {
                         executeResolution(false, true);
                     }
+
                 } else if (m4.type === 'longshot') {
+
                     const defTeam = attackingTeam === 'red' ? 'blue' : 'red';
-                    const wallActive = defTeam === 'red' ? activeBuffs.the_wall_red : activeBuffs.the_wall_blue;
+
+                    const wallActive = defTeam === 'red'
+                        ? activeBuffs.the_wall_red
+                        : activeBuffs.the_wall_blue;
 
                     if (wallActive && m4.minDist > 0) {
+
                         if (defTeam === 'red') activeBuffs.the_wall_red = false;
                         else activeBuffs.the_wall_blue = false;
 
@@ -4334,7 +4604,12 @@
                         m4.modifiersText += ` • 🧱 THE WALL (÷2!)`;
 
                         emitCardPlayedShowcase('the_wall', defTeam);
-                        emitSharedMatchEvent(`🧱 TRAPPOLA RIVELATA! ${getTeamDisplayName(defTeam)} avevano attivato THE WALL: probabilità tiro dimezzata al ${m4.chance}%!`, 'warn', 'all');
+
+                        emitSharedMatchEvent(
+                            `🧱 TRAPPOLA RIVELATA! ${getTeamDisplayName(defTeam)} avevano attivato THE WALL: probabilità tiro dimezzata al ${m4.chance}%!`,
+                            'warn',
+                            'all'
+                        );
                     }
 
                     if (m4.chance < 100) {
@@ -6392,21 +6667,36 @@
             btnUndo.innerText = "↩ Ripensa";
 
             if (currentPhase === 1) {
+
                 p4Bar.classList.add('hidden');
+
                 const usedMoves = plannedMoves[1].length;
-                const maxInitialP1 = (counterattackBonusTeam === attackingTeam ? 3 : 2) + (activeBuffs.fartlek_used ? 1 : 0);
-                const spentAnyAP = (usedMoves > 0) || (p1ActionPoints < maxInitialP1);
-                dockPlaying.classList.toggle('hidden', !spentAnyAP);
+
+                const spentAllAP = p1ActionPoints <= 0;
+
+                dockPlaying.classList.toggle('hidden', !spentAllAP);
+
                 btnUndo.classList.toggle('hidden', usedMoves === 0);
-                btnConfirm.classList.toggle('hidden', !spentAnyAP);
+
+                btnConfirm.classList.toggle('hidden', !spentAllAP);
+
             } else if (currentPhase === 2 || currentPhase === 3) {
+
                 p4Bar.classList.add('hidden');
+
                 const usedMoves = (plannedMoves[currentPhase] || []).length;
-                const maxAllowedDef = (currentPhase === 2 ? p2ActionPoints : p3ActionPoints);
-                const spentAnyDef = (usedMoves > 0) || (pendingCardInteraction === null && usedMoves === 0); // Permette di confermare anche se il difensore mosso è uscito dalla griglia per rissa
+
+                const requiredPA = currentPhase === 2
+                    ? p2ActionPoints
+                    : p3ActionPoints;
+
+                const spentAllAP = usedMoves >= requiredPA;
+
                 dockPlaying.classList.remove('hidden');
+
                 btnUndo.classList.toggle('hidden', usedMoves === 0);
-                btnConfirm.classList.remove('hidden'); // Il tasto conferma resta sempre accessibile in difesa per chiudere la fase
+
+                btnConfirm.classList.toggle('hidden', !spentAllAP);
             } else if (currentPhase === 4) {
                 dockPlaying.classList.remove('hidden');
                 const hasMove4 = !!plannedMoves[4];
