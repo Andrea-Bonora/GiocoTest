@@ -1096,8 +1096,6 @@
                                 <div id="card-draw-rev-name"
                                     class="font-display font-black text-sm uppercase"></div>
 
-                                <div id="card-draw-rev-desc"
-                                    class="text-[9px] mt-2 leading-tight"></div>
                             </div>
 
                         </div>
@@ -2013,9 +2011,6 @@
 
                 document.getElementById('card-draw-rev-name').innerText =
                     info ? info.name : '';
-
-                document.getElementById('card-draw-rev-desc').innerText =
-                    info ? info.desc : '';
 
                 btnTrigger.classList.add('hidden');
                 waitMsg.classList.add('hidden');
@@ -5762,11 +5757,10 @@
             resolutionReplayRunning = true;
             const generation = ++resolutionReplayGeneration;
 
-            // Assicura che il vecchio banner "Riepilogo del turno" resti sempre nascosto
             const panel = document.getElementById('resolution-replay-panel');
             if (panel) panel.classList.add('hidden');
 
-            // Costruisce la lista ordinata dei movimenti effettuati nel turno
+            // 1. Raccogliamo le mosse del turno in ordine cronologico
             const moves = [];
             [1, 2, 3].forEach(phase => {
                 (plannedMoves[phase] || []).forEach(move => {
@@ -5778,15 +5772,26 @@
 
             const move4 = plannedMoves[4];
             if (move4 && move4.type === 'move' && (move4.fromR !== move4.toR || move4.fromC !== move4.toC)) {
-                moves.push({ ...move4, replayType: 'move' });
-            } else if (move4 && move4.type === 'pass' && move4.isSpacePass && (move4.snapFromR !== move4.toR || move4.snapFromC !== move4.toC)) {
+                moves.push({ ...move4, replayType: 'dribble' });
+            } else if (move4 && move4.type === 'pass') {
+                moves.push({ ...move4, replayType: 'pass' });
+                if (move4.isSpacePass && (move4.snapFromR !== move4.toR || move4.snapFromC !== move4.toC)) {
+                    moves.push({
+                        pieceId: move4.toId,
+                        fromR: move4.snapFromR,
+                        fromC: move4.snapFromC,
+                        toR: move4.toR,
+                        toC: move4.toC,
+                        replayType: 'receiver'
+                    });
+                }
+            } else if (move4 && move4.type === 'longshot') {
                 moves.push({
-                    pieceId: move4.toId,
-                    fromR: move4.snapFromR,
-                    fromC: move4.snapFromC,
-                    toR: move4.toR,
-                    toC: move4.toC,
-                    replayType: 'receiver'
+                    fromR: move4.fromR,
+                    fromC: move4.fromC,
+                    toR: (move4.targetGoalRow !== undefined) ? move4.targetGoalRow : (attackingTeam === 'red' ? 11 : 0),
+                    toC: 3,
+                    replayType: 'shot'
                 });
             }
 
@@ -5795,60 +5800,135 @@
                 return;
             }
 
-            // Salva lo stato finale reale delle pedine
             const finalPiecesSnapshot = JSON.parse(JSON.stringify(pieces));
 
+            // Restituisce il delta esatto in pixel (nel sistema di coordinate del campo) tra due celle
+            function getCellDeltaPixels(fromR, fromC, toR, toC) {
+                const grid = document.getElementById('grid-container');
+                const pitchBox = document.getElementById('pitch-box');
+                if (!grid || !pitchBox) return { dx: 0, dy: 0 };
+                const cellFrom = grid.children[fromR * 7 + fromC];
+                const cellTo = grid.children[toR * 7 + toC];
+                if (!cellFrom || !cellTo) return { dx: 0, dy: 0 };
+
+                const rectFrom = cellFrom.getBoundingClientRect();
+                const rectTo = cellTo.getBoundingClientRect();
+                const isFlipped = pitchBox.classList.contains('flipped-pitch');
+                const sign = isFlipped ? -1 : 1;
+
+                return {
+                    dx: ((rectTo.left + rectTo.width / 2) - (rectFrom.left + rectFrom.width / 2)) * sign,
+                    dy: ((rectTo.top + rectTo.height / 2) - (rectFrom.top + rectFrom.height / 2)) * sign
+                };
+            }
+
+            // Anima il volo del pallone dal centro della cella (fromR, fromC) al centro di (toR, toC)
+            async function animateBallOnGrid(fromR, fromC, toR, toC) {
+                const grid = document.getElementById('grid-container');
+                if (!grid) return;
+                const startCell = grid.children[fromR * 7 + fromC];
+                if (!startCell) return;
+
+                const flyingBall = document.createElement('div');
+                flyingBall.className = ' absolute top-1/2 left-1/2 z-[60] pointer-events-none text-base sm:text-lg drop-shadow-[0_4px_8px_rgba(0,0,0,0.95)]';
+                flyingBall.style.transform = 'translate(-50%, -50%)';
+                flyingBall.innerHTML = `<div class="counter-flip">⚽</div>`;
+                startCell.appendChild(flyingBall);
+
+                void flyingBall.offsetWidth;
+                const { dx, dy } = getCellDeltaPixels(fromR, fromC, toR, toC);
+                flyingBall.style.transition = 'transform 0.6s cubic-bezier(0.22, 1, 0.36, 1)';
+                flyingBall.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+
+                await replayWait(620);
+                flyingBall.remove();
+            }
+
             async function playRealTokensSequence() {
-                // 1. Riporta temporaneamente le coordinate delle pedine all'inizio del turno
+                // Riporta temporaneamente le pedine alle coordinate di inizio turno
                 const startState = JSON.parse(JSON.stringify(finalPiecesSnapshot));
                 [...moves].reverse().forEach(mv => {
-                    const p = startState.find(x => x.id === mv.pieceId);
-                    if (p) {
-                        p.r = mv.fromR;
-                        p.c = mv.fromC;
+                    if (mv.pieceId) {
+                        const p = startState.find(x => x.id === mv.pieceId);
+                        if (p) {
+                            p.r = mv.fromR;
+                            p.c = mv.fromC;
+                        }
                     }
                 });
 
-                // Se c'è stato un passaggio completato, rimetti temporaneamente la palla al passatore
-                if (move4 && move4.type === 'pass') {
-                    const sender = startState.find(x => x.id === move4.fromId);
-                    const rec = startState.find(x => x.id === move4.toId);
-                    if (sender && rec && rec.hasBall) {
-                        rec.hasBall = false;
-                        sender.hasBall = true;
-                    }
+                // Rimette il pallone sui piedi di chi lo aveva a inizio turno
+                if (move4) {
+                    startState.forEach(p => p.hasBall = false);
+                    const initialCarrier = startState.find(p =>
+                        (move4.pieceId && p.id === move4.pieceId) ||
+                        (move4.fromId && p.id === move4.fromId) ||
+                        (p.r === move4.fromR && p.c === move4.fromC)
+                    );
+                    if (initialCarrier) initialCarrier.hasBall = true;
                 }
 
                 pieces = startState;
                 renderBoard();
 
-                // Nasconde temporaneamente le frecce tattiche per far godere il movimento pulito sul campo
+                // Forza tutte le pedine a partire dal centro esatto della loro cella (anche se erano in overlap)
+                document.querySelectorAll('.board-token').forEach(el => {
+                    el.style.transform = 'translate(-50%, -50%)';
+                });
+
                 const arrowsLayer = document.getElementById('arrows-layer');
                 if (arrowsLayer) arrowsLayer.style.opacity = '0';
 
                 await replayWait(450);
 
-                // 2. Anima in sequenza ogni pedina reale lungo il campo usando transform CSS
-                const cumulativeDelta = {}; // tiene traccia dello spostamento se una pedina si muove
+                const originCellMap = {}; // Ricorda la cella iniziale del DOM di ogni pedina
+
                 for (const mv of moves) {
                     if (generation !== resolutionReplayGeneration || gameState !== 'RESOLUTION') return;
 
+                    if (mv.replayType === 'pass') {
+                        // Nasconde l'icona palla sul passatore, fa volare il pallone e poi lo mostra sul ricevitore
+                        const senderTok = document.querySelector(`.board-token[data-piece-id="${mv.fromId}"]`);
+                        if (senderTok) {
+                            senderTok.classList.remove('ball-aura');
+                            const bIcon = senderTok.querySelector('.ball-icon');
+                            if (bIcon) bIcon.style.display = 'none';
+                        }
+
+                        await animateBallOnGrid(mv.fromR, mv.fromC, mv.toR, mv.toC);
+
+                        const recTok = document.querySelector(`.board-token[data-piece-id="${mv.toId}"]`);
+                        if (recTok && !mv.isSpacePass) {
+                            recTok.classList.add('ball-aura');
+                        }
+                        continue;
+                    }
+
+                    if (mv.replayType === 'shot') {
+                        await animateBallOnGrid(mv.fromR, mv.fromC, mv.toR, mv.toC);
+                        continue;
+                    }
+
                     const tokEl = document.querySelector(`.board-token[data-piece-id="${mv.pieceId}"]`);
                     if (tokEl) {
-                        const prev = cumulativeDelta[mv.pieceId] || { dR: 0, dC: 0 };
-                        const dR = prev.dR + (mv.toR - mv.fromR);
-                        const dC = prev.dC + (mv.toC - mv.fromC);
-                        cumulativeDelta[mv.pieceId] = { dR, dC };
+                        if (!originCellMap[mv.pieceId]) {
+                            originCellMap[mv.pieceId] = { r: mv.fromR, c: mv.fromC };
+                        }
+                        const orig = originCellMap[mv.pieceId];
+                        const { dx, dy } = getCellDeltaPixels(orig.r, orig.c, mv.toR, mv.toC);
 
                         tokEl.style.transition = 'transform 0.65s cubic-bezier(0.22, 1, 0.36, 1)';
                         tokEl.style.zIndex = '48';
-                        tokEl.style.transform = `translate(calc(-50% + ${dC * 100}%), calc(-50% + ${dR * 100}%))`;
+                        tokEl.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+
+                        if (mv.replayType === 'receiver') {
+                            tokEl.classList.add('ball-aura');
+                        }
                     }
 
-                    await replayWait(720);
+                    await replayWait(700);
                 }
 
-                // 3. Allinea allo stato finale reale (con eventuale cambio possesso/palla e frecce)
                 if (generation !== resolutionReplayGeneration || gameState !== 'RESOLUTION') return;
                 pieces = JSON.parse(JSON.stringify(finalPiecesSnapshot));
                 renderBoard();
@@ -5861,7 +5941,6 @@
                 await playRealTokensSequence();
             }
 
-            // Ripristino garantito dello stato finale reale quando si esce dalla Risoluzione
             pieces = finalPiecesSnapshot;
             const arrowsLayer = document.getElementById('arrows-layer');
             if (arrowsLayer) arrowsLayer.style.opacity = '1';
