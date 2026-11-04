@@ -180,6 +180,18 @@
         </div>
     </div>
 
+    <!-- GLOBAL ACTION SHOWCASE BANNER (RED CARDS & INTERCEPTIONS) -->
+    <div id="action-showcase-overlay" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[155] pointer-events-none hidden w-80 max-w-[92vw]">
+        <div id="action-showcase-box" class="p-5 rounded-3xl border-2 border-red-500 bg-slate-950/95 shadow-[0_0_55px_rgba(239,68,68,0.8)] text-center backdrop-blur-xl">
+            <div id="action-showcase-badge" class="inline-block px-3 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-2 bg-red-500/25 text-red-300 border border-red-400/50">
+                🟥 ESPULSIONE DIRETTA!
+            </div>
+            <div id="action-showcase-icon" class="text-5xl my-2 drop-shadow">🟥</div>
+            <div id="action-showcase-title" class="font-display text-2xl font-black text-white tracking-wide">CARTELLINO ROSSO</div>
+            <div id="action-showcase-desc" class="text-xs text-slate-200 mt-1 font-semibold leading-snug"></div>
+        </div>
+    </div>
+
     <!-- OVERLAY: PLAYER DISCONNECTED / REJOIN SLOT PICKER -->
     <div id="overlay-disconnect-pause" class="fixed inset-0 z-[130] bg-slate-950/90 backdrop-blur-xl flex flex-col items-center justify-center p-5 hidden">
         <div class="w-full max-w-md bg-slate-900 border-2 border-amber-500/50 rounded-2xl p-5 text-center shadow-2xl">
@@ -215,7 +227,7 @@
                 <div>
                     <b class="text-white uppercase">🎯 Passaggi & Colori Percentuali:</b>
                     <p>Entro <b>2 caselle ortogonali</b> il passaggio è sicuro (<b>100%</b> sui piedi, <b>90%</b> nello spazio). Oltre le 2 caselle (contando prima le caselle verticali e poi le orizzontali): ogni casella in avanti verso la porta avversaria toglie il <b>20%</b>; ogni casella laterale o all'indietro verso la propria porta toglie il <b>10%</b>. I passaggi nello spazio hanno un <b>-10%</b> base.</p>
-                    <p class="mt-1">Colori a schermo: <span class="text-emerald-400 font-bold">Verde ≥ 80%</span> • <span class="text-amber-300 font-bold">Giallo 40%-79%</span> • <span class="text-red-400 font-bold">Rosso &lt; 40%</span>.</p>
+                    <p class="mt-1">Colori a schermo: <span class="text-emerald-400 font-bold">Verde ≥ 80%</span> • <span class="text-amber-300 font-bold">Giallo 40%-79%</span> • <span class="text-orange-400 font-bold">Arancione &lt; 40%</span>.</p>
                 </div>
                 <div>
                     <b class="text-white uppercase">🚀 Tiri in Porta & Contrasti:</b>
@@ -268,6 +280,14 @@
                         <div>
                             <label class="text-[10px] text-slate-400 block mb-1">Max Carte Cumulabili</label>
                             <input id="set-max-cards" type="number" min="1" max="15" value="8" onchange="onSettingsChanged()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 font-black text-white text-center">
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-slate-400 block mb-1">Max Doppioni per Carta</label>
+                            <input id="set-max-duplicates" type="number" min="1" max="10" value="2" onchange="onSettingsChanged()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 font-black text-white text-center">
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-slate-400 block mb-1">Pesca 1 Carta ogni N Turni (0=Off)</label>
+                            <input id="set-draw-every-turns" type="number" min="0" max="20" value="2" onchange="onSettingsChanged()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 font-black text-white text-center">
                         </div>
                     </div>
                 </div>
@@ -481,7 +501,7 @@
 
             <div id="kit-box-red" class="p-3 rounded-xl bg-red-950/25 border border-red-500/30 mb-3">
                 <div class="flex justify-between items-center mb-2">
-                    <strong class="text-red-400 text-sm">🔴 SQUADRA ROSSA</strong>
+                    <strong id="kit-title-red" class="text-red-400 text-sm">SQUADRA ROSSA</strong>
                     <span id="kit-status-red" class="text-xs text-amber-300">In scelta...</span>
                 </div>
                 <div id="kit-controls-red">
@@ -507,7 +527,7 @@
 
             <div id="kit-box-blue" class="p-3 rounded-xl bg-blue-950/25 border border-blue-500/30">
                 <div class="flex justify-between items-center mb-2">
-                    <strong class="text-blue-400 text-sm">🔵 SQUADRA BLU</strong>
+                    <strong id="kit-title-blue" class="text-blue-400 text-sm">SQUADRA BLU</strong>
                     <span id="kit-status-blue" class="text-xs text-amber-300">In scelta...</span>
                 </div>
                 <div id="kit-controls-blue">
@@ -543,7 +563,7 @@
                 <!-- Red Team Formation Box -->
                 <div id="box-form-red" class="p-3.5 rounded-xl bg-red-950/25 border border-red-500/30 transition-all">
                     <div class="flex items-center justify-between mb-2">
-                        <span class="font-display font-black text-sm text-red-400">🔴 SQUADRA ROSSA</span>
+                        <span id="form-title-red" class="font-display font-black text-sm text-red-400">SQUADRA ROSSA</span>
                         <span id="status-form-red" class="text-[10px] font-black px-2 py-0.5 rounded bg-amber-500/20 text-amber-300">In scelta...</span>
                     </div>
                     <div id="controls-form-red">
@@ -560,7 +580,7 @@
                 <!-- Blue Team Formation Box -->
                 <div id="box-form-blue" class="p-3.5 rounded-xl bg-blue-950/25 border border-blue-500/30 transition-all">
                     <div class="flex items-center justify-between mb-2">
-                        <span class="font-display font-black text-sm text-blue-400">🔵 SQUADRA BLU</span>
+                        <span id="form-title-blue" class="font-display font-black text-sm text-blue-400">SQUADRA BLU</span>
                         <span id="status-form-blue" class="text-[10px] font-black px-2 py-0.5 rounded bg-amber-500/20 text-amber-300">In scelta...</span>
                     </div>
                     <div id="controls-form-blue">
@@ -585,7 +605,7 @@
             <!-- Red Team RPS Picker -->
             <div id="rps-box-red" class="p-3.5 rounded-xl bg-red-950/25 border border-red-500/30 mb-3">
                 <div class="flex items-center justify-between mb-2">
-                    <span class="font-display font-black text-xs text-red-400 uppercase">🔴 Scelta Squadra Rossa</span>
+                    <span id="rps-title-red" class="font-display font-black text-xs uppercase">SQUADRA ROSSA</span>
                     <span id="rps-status-red" class="text-[10px] font-bold text-amber-300">Scegli una mossa...</span>
                 </div>
                 <div id="rps-controls-red" class="grid grid-cols-3 gap-2">
@@ -610,7 +630,7 @@
             <!-- Blue Team RPS Picker -->
             <div id="rps-box-blue" class="p-3.5 rounded-xl bg-blue-950/25 border border-blue-500/30 mb-3">
                 <div class="flex items-center justify-between mb-2">
-                    <span class="font-display font-black text-xs text-blue-400 uppercase">🔵 Scelta Squadra Blu</span>
+                    <span id="rps-title-blue" class="font-display font-black text-xs uppercase">SQUADRA BLU</span>
                     <span id="rps-status-blue" class="text-[10px] font-bold text-amber-300">Scegli una mossa...</span>
                 </div>
                 <div id="rps-controls-blue" class="grid grid-cols-3 gap-2">
@@ -636,12 +656,12 @@
             <div id="rps-duel-stage" class="hidden p-4 rounded-2xl bg-slate-950 border-2 border-amber-400/50 mt-2 shadow-2xl">
                 <div class="flex items-center justify-around py-3">
                     <div class="flex flex-col items-center">
-                        <span class="text-[10px] font-black text-red-400 uppercase mb-1">ROSSI</span>
+                        <span id="rps-anim-team-red" class="text-[10px] font-black uppercase mb-1">ROSSI</span>
                         <div id="rps-anim-red" class="text-5xl animate-rps-hand">🤜</div>
                     </div>
                     <div class="font-display font-black text-xl text-amber-400">VS</div>
                     <div class="flex flex-col items-center">
-                        <span class="text-[10px] font-black text-blue-400 uppercase mb-1">BLU</span>
+                        <span id="rps-anim-team-blue" class="text-[10px] font-black uppercase mb-1">BLU</span>
                         <div id="rps-anim-blue" class="text-5xl animate-rps-hand">🤛</div>
                     </div>
                 </div>
@@ -711,12 +731,12 @@
             <h2 id="period-title" class="font-display text-3xl font-black text-white mb-2">FINE PRIMO TEMPO</h2>
             <div class="flex items-center justify-center gap-4 my-4 bg-slate-950 py-3 px-6 rounded-2xl border border-slate-800">
                 <div class="text-center">
-                    <div class="text-[10px] font-bold text-red-400 uppercase">ROSSI</div>
+                    <div id="period-team-name-red" class="text-[10px] font-bold uppercase">ROSSI</div>
                     <div id="period-score-red" class="font-display text-3xl font-black text-white">0</div>
                 </div>
                 <div class="text-slate-600 font-black text-xl">-</div>
                 <div class="text-center">
-                    <div class="text-[10px] font-bold text-blue-400 uppercase">BLU</div>
+                    <div id="period-team-name-blue" class="text-[10px] font-bold uppercase">BLU</div>
                     <div id="period-score-blue" class="font-display text-3xl font-black text-white">0</div>
                 </div>
             </div>
@@ -812,7 +832,7 @@
             <div class="flex items-center justify-between">
                 <!-- Red Team -->
                 <div class="flex items-center gap-2">
-                    <div class="w-4 h-4 sm:w-5 sm:h-5 rounded-full token-red"></div>
+                    <div id="team-dot-red" class="w-4 h-4 sm:w-5 sm:h-5 rounded-full token-red"></div>
                     <span id="team-name-red" class="font-display font-black text-base sm:text-xl text-white tracking-wide">ROSSI</span>
                     <span id="role-red" class="text-[10px] font-black px-2 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30">ATT</span>
                 </div>
@@ -831,7 +851,7 @@
                 <div class="flex items-center gap-2">
                     <span id="role-blue" class="text-[10px] font-black px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">DIF</span>
                     <span id="team-name-blue" class="font-display font-black text-base sm:text-xl text-white tracking-wide">BLU</span>
-                    <div class="w-4 h-4 sm:w-5 sm:h-5 rounded-full token-blue"></div>
+                    <div id="team-dot-blue" class="w-4 h-4 sm:w-5 sm:h-5 rounded-full token-blue"></div>
                     <button onclick="openGameInfoModal()" title="Info Tattiche" class="ml-1 w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-xs font-black text-emerald-400 flex items-center justify-center shadow">
                         ℹ️
                     </button>
@@ -955,13 +975,15 @@
         let customSettings = {
             initialCardsCount: 5,
             maxCardsInHand: 8,
-            passForwardPenalty: 20, // -20% per casella verticale in avanti oltre le 2
-            passLateralBackPenalty: 10, // -10% per casella laterale o indietro oltre le 2
-            passSpacePenalty: 10, // -10% base per passaggio nello spazio
-            shotDistPenalty: 25, // -25% per casella di distanza dalla zona tiro
-            misterBonus: 20, // +20% con "Mister, questo è per lei"
-            varChance: 80, // 80% annullamento con "Revisione VAR"
-            pioggiaPenalty: 30, // -30% a tutto con "Pioggia a Wembley"
+            maxDuplicatesPerCard: 2, // Max copie della stessa carta in mano
+            drawCardEveryTurns: 2,   // Pesca 1 carta per squadra ogni 2 turni (0 = disabilitato)
+            passForwardPenalty: 20,
+            passLateralBackPenalty: 10,
+            passSpacePenalty: 10,
+            shotDistPenalty: 25,
+            misterBonus: 20,
+            varChance: 80,
+            pioggiaPenalty: 30,
             enabledFormations: {
                 '4-3-3': true, '4-4-2': true, '4-3-1-2': true,
                 '3-5-2': true, '3-4-3': true, '5-4-1': true, '5-3-2': true
@@ -1032,6 +1054,8 @@
         let latestGlobalEvent = null;
         let lastCardShowcaseId = 0;
         let latestCardShowcase = null;
+        let lastActionShowcaseId = 0;
+        let latestActionShowcase = null;
 
         let readyConfirmations = {
             ROULETTE: [],
@@ -1363,11 +1387,77 @@
             onSettingsChanged();
         }
 
+        function emitRedCardShowcase(expelledList) {
+            if (!expelledList || expelledList.length === 0) return;
+            const isMulti = expelledList.length > 1;
+            const badge = isMulti ? "🟥🟥 DOPPIA ESPULSIONE!" : "🟥 CARTELLINO ROSSO!";
+            const icon = isMulti ? "🟥🥊🟥" : "🟥";
+            const title = isMulti ? `${expelledList.length} GIOCATORI ESPULSI!` : "ESPULSIONE (10 TURNI)";
+            const names = expelledList.map(p => `#${p.num} (${getTeamDisplayName(p.team)})`).join(" e ");
+            const desc = isMulti
+                ? `Fuori dal campo per 10 turni: ${names}!`
+                : `${names} lascia il campo per 10 turni!`;
+
+            const newId = Date.now() + Math.floor(Math.random() * 1000);
+            latestActionShowcase = { id: newId, kind: 'RED_CARD', badge, icon, title, desc };
+            lastActionShowcaseId = newId;
+            displayActionShowcaseOverlay(latestActionShowcase);
+        }
+
+        function emitInterceptionShowcase(defenderPiece, detailText) {
+            if (!defenderPiece) return;
+            const teamName = getTeamDisplayName(defenderPiece.team).toUpperCase();
+            const badge = `🛡️ PALLA RUBATA • ${teamName}`;
+            const icon = "⚡🛡️⚽";
+            const title = "INTERCETTO DIFENSIVO!";
+            const desc = detailText || `#${defenderPiece.num} (${teamName}) ruba il pallone e avvia il contropiede (+1 PA)!`;
+
+            const newId = Date.now() + Math.floor(Math.random() * 1000);
+            latestActionShowcase = { id: newId, kind: 'INTERCEPT', badge, icon, title, desc };
+            lastActionShowcaseId = newId;
+            displayActionShowcaseOverlay(latestActionShowcase);
+        }
+
+        function displayActionShowcaseOverlay(data) {
+            if (!data) return;
+            const overlay = document.getElementById('action-showcase-overlay');
+            const box = document.getElementById('action-showcase-box');
+            const badgeEl = document.getElementById('action-showcase-badge');
+            const iconEl = document.getElementById('action-showcase-icon');
+            const titleEl = document.getElementById('action-showcase-title');
+            const descEl = document.getElementById('action-showcase-desc');
+            if (!overlay) return;
+
+            if (data.kind === 'RED_CARD') {
+                box.className = "p-5 rounded-3xl border-2 border-red-500 bg-slate-950/95 shadow-[0_0_55px_rgba(239,68,68,0.85)] text-center backdrop-blur-xl";
+                badgeEl.className = "inline-block px-3 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-2 bg-red-500/25 text-red-300 border border-red-400/50";
+            } else {
+                box.className = "p-5 rounded-3xl border-2 border-emerald-400 bg-slate-950/95 shadow-[0_0_55px_rgba(16,185,129,0.85)] text-center backdrop-blur-xl";
+                badgeEl.className = "inline-block px-3 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-2 bg-emerald-500/25 text-emerald-300 border border-emerald-400/50";
+            }
+
+            badgeEl.innerText = data.badge;
+            iconEl.innerText = data.icon;
+            titleEl.innerText = data.title;
+            descEl.innerText = data.desc;
+
+            overlay.classList.remove('hidden', 'animate-card-showcase');
+            void overlay.offsetWidth;
+            overlay.classList.add('animate-card-showcase');
+
+            setTimeout(() => {
+                overlay.classList.add('hidden');
+            }, 2600);
+        }
+
         function onSettingsChanged() {
             requireFivePastMidfield = document.getElementById('toggle-five-rule').checked;
             usePrivacyCurtain = document.getElementById('toggle-privacy-init').checked;
             customSettings.initialCardsCount = Math.max(0, Math.min(12, parseInt(document.getElementById('set-initial-cards').value) || 5));
             customSettings.maxCardsInHand = Math.max(1, Math.min(20, parseInt(document.getElementById('set-max-cards').value) || 8));
+            customSettings.maxDuplicatesPerCard = Math.max(1, Math.min(10, parseInt(document.getElementById('set-max-duplicates').value) || 2));
+            const rawEvery = parseInt(document.getElementById('set-draw-every-turns').value);
+            customSettings.drawCardEveryTurns = isNaN(rawEvery) ? 2 : Math.max(0, Math.min(20, rawEvery));
             customSettings.passForwardPenalty = Math.max(0, Math.min(50, parseInt(document.getElementById('set-pass-fwd-pen').value) || 20));
             customSettings.passLateralBackPenalty = Math.max(0, Math.min(50, parseInt(document.getElementById('set-pass-lat-pen').value) || 10));
             customSettings.passSpacePenalty = Math.max(0, Math.min(50, parseInt(document.getElementById('set-pass-space-pen').value) || 10));
@@ -1386,9 +1476,11 @@
             const currentHand = teamCards[team] || [];
             if (currentHand.length >= customSettings.maxCardsInHand) return null;
 
-            const validKeys = enabledKeys.filter(k => currentHand.filter(x => x === k).length < 2);
-            const pool = validKeys.length > 0 ? validKeys : enabledKeys;
-            const randomKey = pool[Math.floor(Math.random() * pool.length)];
+            const maxDup = customSettings.maxDuplicatesPerCard || 2;
+            const validKeys = enabledKeys.filter(k => currentHand.filter(x => x === k).length < maxDup);
+            if (validKeys.length === 0) return null;
+
+            const randomKey = validKeys[Math.floor(Math.random() * validKeys.length)];
             teamCards[team].push(randomKey);
             return CARD_CATALOG[randomKey];
         }
@@ -1407,6 +1499,7 @@
             if (piece.yellowCards >= 2) {
                 expelledPlayers.push({ id: piece.id, num: piece.num, team: piece.team, turns: 10 });
                 pieces = pieces.filter(p => p.id !== piece.id);
+                emitRedCardShowcase([{ num: piece.num, team: piece.team }]);
                 return { sentOff: true };
             }
             return { sentOff: false };
@@ -1686,7 +1779,18 @@
 
         function assignPeerToSlot(peerId, slotKey) {
             if (!lobbySlots[slotKey]) return;
-            if (lobbySlots[slotKey].occupiedBy && lobbySlots[slotKey].occupiedBy !== peerId) return;
+            const previousOccupant = lobbySlots[slotKey].occupiedBy;
+
+            // Se lo slot era occupato da un altro peerId, lo buttiamo fuori e subentriamo al suo posto!
+            if (previousOccupant && previousOccupant !== peerId) {
+                const oldWrapper = hostConnections.find(w => w.peerId === previousOccupant);
+                if (oldWrapper && oldWrapper.conn && oldWrapper.conn.open) {
+                    try { oldWrapper.conn.send({ type: 'KICKED_BY_TAKEOVER', slotKey }); } catch (e) {}
+                    setTimeout(() => { try { oldWrapper.conn.close(); } catch (e) {} }, 150);
+                }
+                hostConnections = hostConnections.filter(w => w.peerId !== previousOccupant);
+            }
+
             Object.keys(lobbySlots).forEach(k => {
                 if (lobbySlots[k].occupiedBy === peerId) lobbySlots[k].occupiedBy = null;
             });
@@ -1705,20 +1809,20 @@
                 const isTaken = !!slot.occupiedBy && !isMine;
 
                 const btn = document.createElement('button');
-                btn.className = `p-2.5 rounded-xl border text-left transition-all ${
+                btn.className = `p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
                     isMine
                         ? 'bg-emerald-500/20 border-emerald-400 text-white shadow'
                         : isTaken
-                        ? 'bg-slate-900/50 border-slate-800 text-slate-500 cursor-not-allowed'
+                        ? 'bg-slate-900/80 hover:bg-amber-950/50 border-amber-500/40 text-slate-200'
                         : 'bg-slate-800 hover:bg-slate-700 border-amber-400/60 text-slate-100 animate-pulse'
                 }`;
                 btn.innerHTML = `
                     <div class="font-display font-black text-xs">${slot.label}</div>
                     <div class="text-[10px] font-bold mt-0.5 ${isMine ? 'text-emerald-300' : isTaken ? 'text-amber-400' : 'text-emerald-300'}">
-                        ${isMine ? '✓ Tu (Questo dispositivo)' : isTaken ? 'Occupato (Connesso)' : '⚡ Posto Libero (Tocca per entrare)'}
+                        ${isMine ? '✓ Tu (Questo dispositivo)' : isTaken ? '🔄 Occupato (Tocca per subentrare)' : '⚡ Posto Libero (Tocca per entrare)'}
                     </div>
                 `;
-                if (!isTaken) {
+                if (!isMine) {
                     btn.onclick = () => claimLobbySlot(slotKey);
                 }
                 container.appendChild(btn);
@@ -1968,7 +2072,7 @@
                                 (r === 'SCISSORS' && b === 'PAPER');
 
                 rpsState.winner = redWins ? 'red' : 'blue';
-                rpsState.statusText = redWins ? '🔴 VINCE LA SQUADRA ROSSA!' : '🔵 VINCE LA SQUADRA BLU!';
+                rpsState.statusText = `🏆 VINCE ${getTeamDisplayName(rpsState.winner).toUpperCase()}!`;
                 syncPreMatchUI();
                 if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
 
@@ -2039,7 +2143,7 @@
 
             if (networkMode === 'ONLINE') {
                 syncMyIdentityFromSlots();
-                return getMyTeamOnline() === team;
+                return isPreMatchLeader(team);
             }
 
             return team === 'red'
@@ -2079,7 +2183,7 @@
             if (!kit || !KIT_COLORS[kit.primary] || teamKitLocked[team]) return;
 
             teamKits[team] = {
-                name: String(kit.name || (team === 'red' ? 'ROSSI' : 'BLU')).slice(0, 18),
+                name: String(kit.name || getTeamDisplayName(team)).slice(0, 18),
                 primary: kit.primary,
                 secondary: KIT_COLORS[kit.secondary] ? kit.secondary : null
             };
@@ -2099,12 +2203,138 @@
             }
         }
 
-        function renderTeamKitOnHUD() {
-            const redName = document.getElementById('team-name-red');
-            const blueName = document.getElementById('team-name-blue');
+        function getTeamDisplayName(team) {
+            return String(
+                teamKits?.[team]?.name ||
+                (team === 'red' ? 'ROSSI' : 'BLU')
+            ).trim();
+        }
 
-            if (redName) redName.innerText = teamKits.red.name;
-            if (blueName) blueName.innerText = teamKits.blue.name;
+        function getTeamKitColors(team) {
+            const kit = teamKits?.[team] || {};
+            return {
+                primary: KIT_COLORS[kit.primary] ||
+                    (team === 'red' ? '#dc2626' : '#2563eb'),
+                secondary: KIT_COLORS[kit.secondary] || null
+            };
+        }
+
+        function applyTeamKitVisual(el, team, mode = 'panel') {
+            if (!el) return;
+
+            const { primary, secondary } = getTeamKitColors(team);
+            const stripe = secondary
+                ? `repeating-linear-gradient(135deg, ${primary} 0 10px, ${secondary} 10px 20px)`
+                : primary;
+
+            if (mode === 'token') {
+                el.style.background = secondary
+                    ? `repeating-linear-gradient(135deg, ${primary} 0 7px, ${secondary} 7px 14px)`
+                    : primary;
+                el.style.borderColor = 'rgba(255,255,255,0.9)';
+                return;
+            }
+
+            if (mode === 'panel') {
+                el.style.background = secondary
+                    ? `repeating-linear-gradient(135deg, ${primary}22 0 12px, ${secondary}22 12px 24px), #0f172a`
+                    : `linear-gradient(135deg, ${primary}33, ${primary}11), #0f172a`;
+                el.style.borderColor = `${primary}99`;
+                return;
+            }
+
+            if (mode === 'button') {
+                el.style.background = secondary
+                    ? stripe
+                    : primary;
+                el.style.borderColor = secondary || primary;
+                el.style.color = '#ffffff';
+                return;
+            }
+
+            if (mode === 'badge') {
+                el.style.backgroundColor = `${primary}33`;
+                el.style.borderColor = `${primary}99`;
+                el.style.color = primary;
+                return;
+            }
+
+            el.style.color = primary;
+        }
+
+        function renderTeamKitOnHUD() {
+            ['red', 'blue'].forEach(team => {
+                const name = getTeamDisplayName(team);
+
+                // Nome e simbolo nell'intestazione
+                const nameEl = document.getElementById(`team-name-${team}`);
+                if (nameEl) nameEl.innerText = name;
+                applyTeamKitVisual(nameEl, team, 'text');
+
+                applyTeamKitVisual(
+                    document.getElementById(`team-dot-${team}`),
+                    team,
+                    'token'
+                );
+
+                applyTeamKitVisual(
+                    document.getElementById(`score-${team}`),
+                    team,
+                    'text'
+                );
+
+                applyTeamKitVisual(
+                    document.getElementById(`role-${team}`),
+                    team,
+                    'badge'
+                );
+
+                // Schermata scelta divise
+                const kitTitle = document.getElementById(`kit-title-${team}`);
+                if (kitTitle) kitTitle.innerText = `👕 ${name.toUpperCase()}`;
+                applyTeamKitVisual(
+                    document.getElementById(`kit-box-${team}`),
+                    team,
+                    'panel'
+                );
+
+                // Schermata moduli
+                const formTitle = document.getElementById(`form-title-${team}`);
+                if (formTitle) formTitle.innerText = `👕 ${name.toUpperCase()}`;
+                applyTeamKitVisual(
+                    document.getElementById(`box-form-${team}`),
+                    team,
+                    'panel'
+                );
+                const formButton = document.getElementById(`btn-lock-form-${team}`);
+                if (formButton) {
+                    formButton.innerText = `CONFERMA MODULO ${name.toUpperCase()} ✓`;
+                    applyTeamKitVisual(formButton, team, 'button');
+                }
+
+                // Sasso-Carta-Forbice
+                const rpsTitle = document.getElementById(`rps-title-${team}`);
+                if (rpsTitle) rpsTitle.innerText = `👕 Scelta ${name}`;
+                applyTeamKitVisual(
+                    document.getElementById(`rps-box-${team}`),
+                    team,
+                    'panel'
+                );
+
+                const duelName = document.getElementById(`rps-anim-team-${team}`);
+                if (duelName) duelName.innerText = name.toUpperCase();
+                applyTeamKitVisual(duelName, team, 'text');
+
+                // Risultato e riepilogo tempo
+                const periodName = document.getElementById(`period-team-name-${team}`);
+                if (periodName) periodName.innerText = name.toUpperCase();
+                applyTeamKitVisual(periodName, team, 'text');
+            });
+
+            const resultTitle = document.getElementById('rps-result-title');
+            if (resultTitle && rpsState.winner) {
+                applyTeamKitVisual(resultTitle, rpsState.winner, 'text');
+            }
         }
 
         function renderFormationButtonsForTeam(team) {
@@ -2153,12 +2383,11 @@
             stepRps.classList.toggle('hidden', gameState !== 'PREMATCH_RPS');
 
             const myTeam = getMyTeamOnline();
+            renderTeamKitOnHUD();
 
             if (gameState === 'PREMATCH_KITS') {
                 ['red', 'blue'].forEach(team => {
-                    const show = networkMode === 'ONLINE'
-                        ? myTeam === team && !teamKitLocked[team]
-                        : canControlTeamKit(team);
+                    const show = canControlTeamKit(team);
 
                     document.getElementById(`kit-controls-${team}`).classList.toggle('hidden', !show);
                     document.getElementById(`kit-secret-${team}`).classList.toggle('hidden', show);
@@ -2334,6 +2563,7 @@
                 readyConfirmations,
                 latestGlobalEvent,
                 latestCardShowcase,
+                latestActionShowcase,
                 resolutionUI: {
                     title: document.getElementById('resolution-title')?.innerText || '',
                     titleClass: document.getElementById('resolution-title')?.className || '',
@@ -2390,6 +2620,10 @@
             } else {
                 if (data.type === 'STATE_SYNC') {
                     applySyncedStateFromHost(data);
+                } else if (data.type === 'KICKED_BY_TAKEOVER') {
+                    myOnlineSlot = null;
+                    showLocalToast("Un altro dispositivo è subentrato nel tuo ruolo!", "warn");
+                    syncDisconnectOverlayUI();
                 }
             }
         }
@@ -2460,12 +2694,18 @@
             } else if (act.kind === 'FINISH_SHOOTOUT') {
                 finishShootout(true, resolvedSlot);
             } else if (act.kind === 'PLAY_CARD') {
-                if (act.stagedMoves && (currentPhase === 2 || currentPhase === 3)) {
+                if (Array.isArray(act.stagedMoves) && currentPhase <= 3) {
                     plannedMoves[currentPhase] = act.stagedMoves;
+                    if (currentPhase === 1 && typeof act.remP1AP === 'number') {
+                        p1ActionPoints = act.remP1AP;
+                    }
                 }
                 triggerSecretCard(act.cardKey, act.cardIndex, act.team, act.subMode);
             } else if (act.kind === 'CARD_GRID_INTERACTION') {
                 handleCardGridClickOnHost(act.r, act.c, act.team);
+            }
+            else if (act.kind === 'CANCEL_CARD_INTERACTION') { 
+                cancelPendingCardInteractionOnHost(); 
             }
             broadcastFullStateFromHost();
         }
@@ -2533,6 +2773,11 @@
             if (st.latestCardShowcase && st.latestCardShowcase.id !== lastCardShowcaseId) {
                 lastCardShowcaseId = st.latestCardShowcase.id;
                 displayCardShowcaseOverlay(st.latestCardShowcase.cardKey, st.latestCardShowcase.team);
+            }
+
+            if (st.latestActionShowcase && st.latestActionShowcase.id !== lastActionShowcaseId) {
+                lastActionShowcaseId = st.latestActionShowcase.id;
+                displayActionShowcaseOverlay(st.latestActionShowcase);
             }
 
             if (st.latestGlobalEvent && st.latestGlobalEvent.id !== lastGlobalEventId) {
@@ -2741,7 +2986,7 @@
 
             const btnFlip = document.getElementById('btn-flip-toggle');
             if (btnFlip) {
-                const perspectiveTeam = flip ? 'Rossi' : 'Blu';
+                const perspectiveTeam = getTeamDisplayName(flip ? 'red' : 'blue');
                 btnFlip.innerText = `🔄 Porta ${perspectiveTeam} Giù`;
             }
         }
@@ -2879,7 +3124,7 @@
             const hasCounterBonus = (counterattackBonusTeam === attackingTeam);
             p1ActionPoints = hasCounterBonus ? 3 : 2;
             if (hasCounterBonus) {
-                emitSharedMatchEvent(`⚡ CONTROPIEDE RAPIDO! ${attackingTeam === 'red' ? 'Rossi' : 'Blu'} hanno 3 Punti Azione in Fase 1!`, 'success', 'all');
+                emitSharedMatchEvent(`⚡ CONTROPIEDE RAPIDO! ${getTeamDisplayName(attackingTeam)} hanno 3 Punti Azione in Fase 1!`, 'success', 'all');
                 counterattackBonusTeam = null;
             }
             p2ActionPoints = 1;
@@ -2902,7 +3147,7 @@
 
             expelledPlayers.forEach(e => e.turns--);
             const recovered = expelledPlayers.filter(e => e.turns <= 0);
-            recovered.forEach(e => emitSharedMatchEvent(`Giocatore #${e.num} (${e.team === 'red' ? 'Rossi' : 'Blu'}) rientra dall'espulsione!`, 'info', 'all'));
+            recovered.forEach(e => emitSharedMatchEvent(`Giocatore #${e.num} (${getTeamDisplayName(e.team)}) rientra dall'espulsione!`, 'info', 'all'));
             expelledPlayers = expelledPlayers.filter(e => e.turns > 0);
 
             beginPhase(1);
@@ -2955,16 +3200,16 @@
 
             if (phase === 1) {
                 title.innerText = `Fase 1: Inserimento (${p1ActionPoints} PA)`;
-                desc.innerText = `Passa a Sq1 P1 (${isRed ? 'Rossi' : 'Blu'} - Attacco senza palla)`;
+                desc.innerText = `Passa a Sq1 P1 (${getTeamDisplayName(isRed ? 'red' : 'blue')} - Attacco senza palla)`;
             } else if (phase === 2) {
                 title.innerText = "Fase 2: Prima Copertura";
-                desc.innerText = `Passa a Sq2 P2 (${isRed ? 'Rossi' : 'Blu'} - Difesa 1)`;
+                desc.innerText = `Passa a Sq2 P2 (${getTeamDisplayName(isRed ? 'red' : 'blue')} - Difesa 1)`;
             } else if (phase === 3) {
                 title.innerText = "Fase 3: Raddoppio Difensivo";
-                desc.innerText = `Passa a Sq2 P3 (${isRed ? 'Rossi' : 'Blu'} - Difesa 2)`;
+                desc.innerText = `Passa a Sq2 P3 (${getTeamDisplayName(isRed ? 'red' : 'blue')} - Difesa 2)`;
             } else if (phase === 4) {
                 title.innerText = "Fase 4: Regista (Palla)";
-                desc.innerText = `Passa a Sq1 P4 (${isRed ? 'Rossi' : 'Blu'} - Mosse difensive nascoste!)`;
+                desc.innerText = `Passa a Sq1 P4 (${getTeamDisplayName(isRed ? 'red' : 'blue')} - Mosse difensive nascoste!)`;
             }
 
             document.getElementById('screen-interstitial').classList.remove('hidden');
@@ -2990,8 +3235,12 @@
             if (r === 0 || r === 11) return false;
             const inOwnHalf = team === 'red' ? (r >= 1 && r <= 5) : (r >= 6 && r <= 10);
             if (!inOwnHalf) return false;
-            const vis = getVisiblePiecesForThisDevice();
-            if (vis.some(p => p.r === r && p.c === c)) return false;
+            const vis = getVisiblePieces(currentPhase);
+            // Controlla anche le mosse pianificate nella fase corrente
+            const occupiedByPlanned = (plannedMoves[currentPhase] || []).some && Array.isArray(plannedMoves[currentPhase])
+                ? plannedMoves[currentPhase].some(m => m.toR === r && m.toC === c)
+                : false;
+            if (vis.some(p => p.r === r && p.c === c) || occupiedByPlanned) return false;
             return true;
         }
 
@@ -3019,22 +3268,50 @@
                         id: ep.id, num: ep.num, team: ep.team,
                         r, c, isGK: false, hasBall: false, yellowCards: 0
                     });
-                    emitSharedMatchEvent(`😇 "ALLORA FISCHIAMO TUTTO": #${ep.num} (${team === 'red' ? 'Rossi' : 'Blu'}) rientra subito in campo!`, 'success', 'all');
+                    emitSharedMatchEvent(`😇 "ALLORA FISCHIAMO TUTTO": #${ep.num} (${getTeamDisplayName(team)}) rientra subito in campo!`, 'success', 'all');
                 }
                 pendingCardInteraction = null;
             } else if (mode === 'CLEAN_YELLOW') {
-                const target = pieces.find(p => p.team === team && p.r === r && p.c === c && p.yellowCards > 0);
-                if (!target) return;
-                target.yellowCards = 0;
+                // Cerca sulle coordinate visibili (vis) e poi aggiorna il pezzo reale in pieces
+                const visTarget = vis.find(p => p.team === team && p.r === r && p.c === c && p.yellowCards > 0);
+                if (!visTarget) return;
+                const realTarget = pieces.find(p => p.id === visTarget.id);
+                if (realTarget) realTarget.yellowCards = 0;
                 pendingCardInteraction = null;
-                emitSharedMatchEvent(`😇 "ALLORA FISCHIAMO TUTTO": rimosso il cartellino giallo a #${target.num}!`, 'success', 'all');
+                emitSharedMatchEvent(`😇 "ALLORA FISCHIAMO TUTTO": rimosso il cartellino giallo a #${visTarget.num}!`, 'success', 'all');
             } else if (mode === 'RISSA_OWN') {
                 const ownP = vis.find(p => p.team === team && !p.isGK && !p.hasBall && p.r === r && p.c === c);
                 if (!ownP) return;
+                const oppList = vis.filter(e => e.team !== team && !e.isGK && !e.hasBall);
+                if (!oppList.some(e => isWithinRissaRange(ownP, e))) {
+                    showLocalToast("Questo giocatore non ha avversari entro 3 caselle!", "warn");
+                    return;
+                }
                 pendingCardInteraction.type = 'RISSA_OPP';
                 pendingCardInteraction.ownPieceId = ownP.id;
+                showLocalToast(`Hai scelto #${ownP.num}. Tocca l'avversario da espellere (o ritocca #${ownP.num} per cambiare)!`, "info");
             } else if (mode === 'RISSA_OPP') {
                 const ownP = vis.find(p => p.id === pendingCardInteraction.ownPieceId);
+                if (ownP && ownP.r === r && ownP.c === c) {
+                    pendingCardInteraction.type = 'RISSA_OWN';
+                    pendingCardInteraction.ownPieceId = null;
+                    showLocalToast("Selezione annullata: scegli il tuo giocatore per la Rissa.", "info");
+                    updateHUD();
+                    renderBoard();
+                    return;
+                }
+                const anotherOwn = vis.find(p => p.team === team && !p.isGK && !p.hasBall && p.r === r && p.c === c);
+                if (anotherOwn) {
+                    const oppList = vis.filter(e => e.team !== team && !e.isGK && !e.hasBall);
+                    if (oppList.some(e => isWithinRissaRange(anotherOwn, e))) {
+                        pendingCardInteraction.ownPieceId = anotherOwn.id;
+                        showLocalToast(`Selezionato #${anotherOwn.num}! Ora tocca l'avversario.`, "info");
+                        updateHUD();
+                        renderBoard();
+                        return;
+                    }
+                }
+
                 const oppP = vis.find(p => p.team !== team && !p.isGK && !p.hasBall && p.r === r && p.c === c);
                 if (!ownP || !oppP) return;
                 if (!isWithinRissaRange(ownP, oppP)) {
@@ -3045,7 +3322,19 @@
                 expelledPlayers.push({ id: ownP.id, num: ownP.num, team: ownP.team, turns: 10 });
                 expelledPlayers.push({ id: oppP.id, num: oppP.num, team: oppP.team, turns: 10 });
                 pieces = pieces.filter(p => p.id !== ownP.id && p.id !== oppP.id);
+
+                // Rimuove eventuali mosse pianificate in questo turno dai due giocatori espulsi
+                [1, 2, 3].forEach(ph => {
+                    if (Array.isArray(plannedMoves[ph])) {
+                        plannedMoves[ph] = plannedMoves[ph].filter(m => m.pieceId !== ownP.id && m.pieceId !== oppP.id);
+                    }
+                });
+
                 pendingCardInteraction = null;
+                emitRedCardShowcase([
+                    { num: ownP.num, team: ownP.team },
+                    { num: oppP.num, team: oppP.team }
+                ]);
                 emitSharedMatchEvent(`🥊 RISSA IN CAMPO! #${ownP.num} e #${oppP.num} espulsi entrambi per 10 turni!`, 'error', 'all');
             }
 
@@ -3272,6 +3561,7 @@
                 type: 'longshot',
                 fromR: carrier.r,
                 fromC: carrier.c,
+                targetGoalRow: attackingTeam === 'red' ? 11 : 0,
                 minDist: shotEval.minDist,
                 chance: shotEval.chance,
                 modifiersText: shotEval.modifiersText
@@ -3282,6 +3572,15 @@
 
         function undoPhaseMove() {
             if (!isMyTurnOnline()) return;
+            if (pendingCardInteraction) {
+                if (networkMode === 'ONLINE' && !isOnlineHost) {
+                    sendOnlineAction({ kind: 'CANCEL_CARD_INTERACTION' });
+                } else {
+                    cancelPendingCardInteractionOnHost();
+                    if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
+                }
+                return;
+            }
             if (currentPhase === 1 && plannedMoves[1].length > 0) {
                 plannedMoves[1].pop();
                 p1ActionPoints += 1;
@@ -3294,6 +3593,24 @@
                 const vis = getVisiblePieces(4);
                 const carrier = vis.find(p => p.hasBall);
                 if (carrier) selectedPieceId = carrier.id;
+            }
+            updateHUD();
+            renderBoard();
+        }
+
+        function cancelPendingCardInteractionOnHost() {
+            if (!pendingCardInteraction) return;
+            if (pendingCardInteraction.type === 'RISSA_OPP') {
+                // Torna alla scelta del proprio giocatore
+                pendingCardInteraction.type = 'RISSA_OWN';
+                pendingCardInteraction.ownPieceId = null;
+            } else {
+                // Rimborsa la carta in mano se annulli prima di usarla!
+                const t = pendingCardInteraction.team;
+                const cardToRefund = (pendingCardInteraction.type === 'RISSA_OWN') ? 'rissa' : 'fischiamo_tutto';
+                teamCards[t].push(cardToRefund);
+                pendingCardInteraction = null;
+                emitSharedMatchEvent(`↩️ Azione carta annullata: la carta torna nel mazzo!`, 'info', t);
             }
             updateHUD();
             renderBoard();
@@ -3351,7 +3668,7 @@
                         m4.modifiersText += ` • 🧱 THE WALL (÷2!)`;
 
                         emitCardPlayedShowcase('the_wall', defTeam);
-                        emitSharedMatchEvent(`🧱 TRAPPOLA RIVELATA! ${defTeam === 'red' ? 'Rossi' : 'Blu'} avevano attivato THE WALL: probabilità tiro dimezzata al ${m4.chance}%!`, 'warn', 'all');
+                        emitSharedMatchEvent(`🧱 TRAPPOLA RIVELATA! ${getTeamDisplayName(defTeam)} avevano attivato THE WALL: probabilità tiro dimezzata al ${m4.chance}%!`, 'warn', 'all');
                     }
 
                     if (m4.chance < 100) {
@@ -3655,7 +3972,7 @@
                     emitSharedMatchEvent(`✅ Controllo VAR superato! La carta "${CARD_CATALOG[meta.cardKey].name}" è valida!`, 'success', 'all');
                     executeCardEffectAfterVarCheck(meta.cardKey, meta.team, meta.subMode);
                 } else {
-                    emitSharedMatchEvent(`📺 REVISIONE VAR! La carta "${CARD_CATALOG[meta.cardKey].name}" di ${meta.team === 'red' ? 'Rossi' : 'Blu'} è ANNULLATA!`, 'error', 'all');
+                    emitSharedMatchEvent(`📺 REVISIONE VAR! La carta "${CARD_CATALOG[meta.cardKey].name}" di ${getTeamDisplayName(meta.team)} è ANNULLATA!`, 'error', 'all');
                     updateHUD();
                     renderBoard();
                     if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
@@ -3682,7 +3999,8 @@
             const container = document.getElementById('cards-container');
             const sub = document.getElementById('cards-team-subtitle');
 
-            sub.innerText = `Mazzo ${activeTeam === 'red' ? 'Squadra Rossa' : 'Squadra Blu'} (${cards.length}/${customSettings.maxCardsInHand} carte)`;
+            sub.innerText = `Mazzo ${getTeamDisplayName(activeTeam)} (${cards.length}/${customSettings.maxCardsInHand} carte)`;
+            applyTeamKitVisual(sub, activeTeam, 'text');
             container.innerHTML = '';
 
             if (cards.length === 0) {
@@ -3744,7 +4062,8 @@
                     cardIndex: idx,
                     team: activeTeam,
                     subMode,
-                    stagedMoves: (currentPhase === 2 || currentPhase === 3) ? plannedMoves[currentPhase] : null
+                    stagedMoves: (currentPhase <= 3) ? plannedMoves[currentPhase] : null,
+                    remP1AP: p1ActionPoints
                 });
             } else {
                 triggerSecretCard(key, idx, activeTeam, subMode);
@@ -3848,7 +4167,7 @@
 
                 emitCardPlayedShowcase('revisione_var', oppTeam);
                 const cardSurvivalChance = Math.max(5, 100 - customSettings.varChance);
-                emitSharedMatchEvent(`📺 TRAPPOLA VAR ATTIVATA DA ${oppTeam === 'red' ? 'ROSSI' : 'BLU'}! Estrazione per "${CARD_CATALOG[cardKey].name}" (${cardSurvivalChance}% di riuscita)!`, 'warn', 'all');
+                emitSharedMatchEvent(`📺 TRAPPOLA VAR ATTIVATA DA ${getTeamDisplayName(oppTeam)}! Estrazione per "${CARD_CATALOG[cardKey].name}" (${cardSurvivalChance}% di riuscita)!`, 'warn', 'all');
 
                 openManualRouletteModal(
                     `📺 REVISIONE VAR: ${CARD_CATALOG[cardKey].name.toUpperCase()}`,
@@ -3870,20 +4189,20 @@
 
             if (cardKey === 'extra_sprint') {
                 activeBuffs.extra_sprint = true;
-                emitSharedMatchEvent(`⚡ ${team === 'red' ? 'Rossi' : 'Blu'} giocano EXTRA SPRINT (+1 casella)!`, "success", 'all');
+                emitSharedMatchEvent(`⚡ ${getTeamDisplayName(team)} giocano EXTRA SPRINT (+1 casella)!`, "success", 'all');
             } else if (cardKey === 'mister_lei') {
                 activeBuffs.mister_lei = true;
                 plannedMoves[4] = null;
-                emitSharedMatchEvent(`🎩 ${team === 'red' ? 'Rossi' : 'Blu'} giocano "MISTER, QUESTO È PER LEI" (+${customSettings.misterBonus}%)!`, "success", 'all');
+                emitSharedMatchEvent(`🎩 ${getTeamDisplayName(team)} giocano "MISTER, QUESTO È PER LEI" (+${customSettings.misterBonus}%)!`, "success", 'all');
             } else if (cardKey === 'park_the_bus') {
                 activeBuffs.park_the_bus = true;
-                emitSharedMatchEvent(`🚌 ${team === 'red' ? 'Rossi' : 'Blu'} giocano PARK THE BUS! Vietati i passaggi nello spazio in questo turno!`, "warn", 'all');
+                emitSharedMatchEvent(`🚌 ${getTeamDisplayName(team)} giocano PARK THE BUS! Vietati i passaggi nello spazio in questo turno!`, "warn", 'all');
             } else if (cardKey === 'fartlek') {
                 activeBuffs.fartlek_used = true;
                 if (currentPhase === 1) p1ActionPoints += 1;
                 else if (currentPhase === 2) p2ActionPoints += 1;
                 else if (currentPhase === 3) p3ActionPoints += 1;
-                emitSharedMatchEvent(`🏃‍♂️ ${team === 'red' ? 'Rossi' : 'Blu'} giocano FARTLEK (+1 PA extra in Fase ${currentPhase})!`, "success", 'all');
+                emitSharedMatchEvent(`🏃‍♂️ ${getTeamDisplayName(team)} giocano FARTLEK (+1 PA extra in Fase ${currentPhase})!`, "success", 'all');
             } else if (cardKey === 'pioggia_wembley') {
                 activeBuffs.pioggia_wembley = true;
                 if (currentPhase === 4) plannedMoves[4] = null;
@@ -3963,13 +4282,13 @@
                 if (cardRes.sentOff) {
                     showResolutionBanner(
                         "🟨🟨 = 🟥 SIMULAZIONE E DOPPIA AMMONIZIONE!",
-                        `#${carrier ? carrier.num : ''} prende il 2° giallo ed è ESPULSO per 10 turni! Palla e contropiede ai ${defTeam === 'red' ? 'ROSSI' : 'BLU'}.`,
+                        `#${carrier ? carrier.num : ''} prende il 2° giallo ed è ESPULSO per 10 turni! Palla e contropiede ai ${getTeamDisplayName(defTeam)}.`,
                         "text-red-400"
                     );
                 } else {
                     showResolutionBanner(
                         "🟨 SIMULAZIONE: AMMONIZIONE E CAMBIO POSSESSO!",
-                        `#${carrier ? carrier.num : ''} viene AMMONITO (🟨) e il possesso passa ai ${defTeam === 'red' ? 'ROSSI' : 'BLU'}!`,
+                        `#${carrier ? carrier.num : ''} viene AMMONITO (🟨) e il possesso passa ai ${getTeamDisplayName(defTeam)}!`,
                         "text-amber-400"
                     );
                 }
@@ -4008,6 +4327,7 @@
             if (isRedCard && foulingPiece) {
                 expelledPlayers.push({ id: foulingPiece.id, num: foulingPiece.num, team: foulingPiece.team, turns: 10 });
                 pieces = pieces.filter(p => p.id !== foulingPiece.id);
+                emitRedCardShowcase([{ num: foulingPiece.num, team: foulingPiece.team }]);
 
                 const teammates = pieces.filter(p => p.team === defTeam && !p.isGK);
                 let receiver = teammates[0] || pieces.find(p => p.team === defTeam);
@@ -4015,7 +4335,7 @@
 
                 showResolutionBanner(
                     "🟥 FALLO DA ROSSO! POSSESSO RUBATO!",
-                    `#${foulingPiece.num} ferma l'azione ed è espulso per 10 turni! Palla e +1 PA contropiede ai ${defTeam === 'red' ? 'ROSSI' : 'BLU'}.`,
+                    `#${foulingPiece.num} ferma l'azione ed è espulso per 10 turni! Palla e +1 PA contropiede ai ${getTeamDisplayName(defTeam)}.`,
                     "text-red-400"
                 );
             } else if (foulingPiece) {
@@ -4027,14 +4347,14 @@
 
                     showResolutionBanner(
                         "🟨🟨 = 🟥 FALLO TATTICO: SECONDO GIALLO!",
-                        `#${foulingPiece.num} ruba palla ma rimedia il 2° giallo ed è espulso! Palla ai ${defTeam === 'red' ? 'ROSSI' : 'BLU'}.`,
+                        `#${foulingPiece.num} ruba palla ma rimedia il 2° giallo ed è espulso! Palla ai ${getTeamDisplayName(defTeam)}.`,
                         "text-red-400"
                     );
                 } else {
                     foulingPiece.hasBall = true;
                     showResolutionBanner(
                         "🟨 FALLO TATTICO PERFETTO (CON AMMONIZIONE)!",
-                        `#${foulingPiece.num} ruba palla in anticipo (🟨)! +1 PA contropiede ai ${defTeam === 'red' ? 'ROSSI' : 'BLU'}.`,
+                        `#${foulingPiece.num} ruba palla in anticipo (🟨)! +1 PA contropiede ai ${getTeamDisplayName(defTeam)}.`,
                         "text-amber-400"
                     );
                 }
@@ -4079,7 +4399,7 @@
             return currentPhase === 2 || currentPhase === 3;
         }
 
-        function getVisiblePieces(phase = currentPhase) {
+        function getVisiblePieces(phase = currentPhase, enforceViewerMask = false) {
             const cloned = JSON.parse(JSON.stringify(pieces));
             if (gameState === 'RESOLUTION' || gameState === 'SHOOTOUT' || gameState === 'PERIOD_END') {
                 return cloned;
@@ -4090,8 +4410,7 @@
                 if (p) { p.r = m.toR; p.c = m.toC; }
             });
 
-            // Le mosse difensive P2 e P3 sono applicate SOLO se phase === 2 o 3 E il viewer è autorizzato a vederle!
-            if ((phase === 2 || phase === 3) && canViewerSeeDefensiveMoves()) {
+            if ((phase === 2 || phase === 3) && (!enforceViewerMask || canViewerSeeDefensiveMoves())) {
                 (plannedMoves[2] || []).forEach(mv => {
                     const p2 = cloned.find(x => x.id === mv.pieceId);
                     if (p2) { p2.r = mv.toR; p2.c = mv.toC; }
@@ -4125,7 +4444,7 @@
         }
 
         function getVisiblePiecesForThisDevice() {
-            return getVisiblePieces(currentPhase);
+            return getVisiblePieces(currentPhase, true);
         }
 
         function countAttackersPastMidfield(piecesList) {
@@ -4393,6 +4712,40 @@
             const m4 = plannedMoves[4];
             const carrierBeforeP4 = pieces.find(p => p.hasBall);
 
+            // Gestione esito Roulette per Tiro in Area sotto la Pioggia (dopo Dribbling o Passaggio in Zona Tiro)
+            if (isLongShot && m4 && (m4.type === 'move' || m4.type === 'pass')) {
+                if (m4.type === 'move') {
+                    const carrier = pieces.find(p => p.id === m4.pieceId) || carrierBeforeP4;
+                    if (carrier) { carrier.r = m4.toR; carrier.c = m4.toC; }
+                } else if (m4.type === 'pass') {
+                    const sender = pieces.find(p => p.id === m4.fromId);
+                    const receiver = pieces.find(p => p.id === m4.toId);
+                    if (sender) sender.hasBall = false;
+                    if (receiver) { receiver.r = m4.toR; receiver.c = m4.toC; receiver.hasBall = true; }
+                }
+
+                if (!rouletteSucceeded) {
+                    pieces.forEach(p => p.hasBall = false);
+                    const defReceiver = findNearestDefenderTo(defTeam === 'red' ? 2 : 9, 3, defTeam);
+                    if (defReceiver) defReceiver.hasBall = true;
+                    attackingTeam = defTeam;
+                    gameState = 'RESOLUTION';
+                    cleanupEndOfTurnBuffs();
+                    showResolutionBanner(
+                        "🌧️ SCIVOLONE SOTTO LA PIOGGIA: TIRO FUORI!",
+                        `La pioggia tradisce la conclusione ravvicinata! Rimessa dal fondo per ${getTeamDisplayName(defTeam)}.`,
+                        "text-red-400"
+                    );
+                    updateHUD();
+                    renderBoard();
+                    if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
+                    return;
+                }
+
+                startShootoutFlow();
+                return;
+            }
+
             if (isLongShot && m4 && m4.type === 'longshot') {
                 const tacklerOnShooter = pieces.find(p => p.team === defTeam && p.r === m4.fromR && p.c === m4.fromC);
                 if (tacklerOnShooter) {
@@ -4404,9 +4757,10 @@
                     cleanupEndOfTurnBuffs();
                     showResolutionBanner(
                         "🛡️ TIRO CONTRATO (+1 PA CONTROPIEDE)!",
-                        `#${tacklerOnShooter.num} mura il tiro e lancia il contropiede dei ${defTeam === 'red' ? 'ROSSI' : 'BLU'}!`,
+                        `#${tacklerOnShooter.num} mura il tiro e lancia il contropiede dei ${getTeamDisplayName(defTeam)}!`,
                         "text-amber-400"
                     );
+                    emitInterceptionShowcase(tacklerOnShooter, `#${tacklerOnShooter.num} (${getTeamDisplayName(defTeam)}) si è mosso sulla casella di tiro e ruba palla!`);
                     updateHUD();
                     renderBoard();
                     if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
@@ -4422,7 +4776,7 @@
                     cleanupEndOfTurnBuffs();
                     showResolutionBanner(
                         "❌ TIRO FUORI!",
-                        `Rimessa dal fondo per la Squadra ${defTeam === 'red' ? 'ROSSA' : 'BLU'}.`,
+                        `Rimessa dal fondo per la Squadra ${getTeamDisplayName(defTeam)}.`,
                         "text-red-400"
                     );
                     updateHUD();
@@ -4455,6 +4809,7 @@
                         `#${defenderOnBall.num} ferma #${carrier.num} e conquista 3 PA per il prossimo turno!`,
                         "text-amber-400"
                     );
+                    emitInterceptionShowcase(defenderOnBall, `#${defenderOnBall.num} (${getTeamDisplayName(defTeam)}) intercetta il dribbling di #${carrier.num} e ruba palla!`);
                     updateHUD();
                     renderBoard();
                     if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
@@ -4533,6 +4888,7 @@
                         `#${defenderOnReceiver.num} anticipa #${receiver ? receiver.num : ''} e lancia il contropiede!`,
                         "text-amber-400"
                     );
+                    emitInterceptionShowcase(defenderOnReceiver, `#${defenderOnReceiver.num} (${getTeamDisplayName(defTeam)}) copre la casella di arrivo e intercetta il passaggio!`);
                     updateHUD();
                     renderBoard();
                     if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
@@ -4595,6 +4951,17 @@
             matchMinute += 3;
             turnNumber += 1;
 
+            // Pesca periodica di 1 nuova carta per squadra ogni N turni (es. ogni 2 turni completati)
+            const completedTurns = turnNumber - 1;
+            const everyN = customSettings.drawCardEveryTurns;
+            if (everyN > 0 && completedTurns > 0 && (completedTurns % everyN === 0)) {
+                const cRed = drawRandomCardForTeam('red');
+                const cBlue = drawRandomCardForTeam('blue');
+                if (cRed || cBlue) {
+                    emitSharedMatchEvent(`🃏 Fine ${completedTurns}° turno: ogni squadra pesca +1 nuova Carta Segreta!`, 'info', 'all');
+                }
+            }
+
             if (currentHalf === 1 && matchMinute >= 45) {
                 matchMinute = 45;
                 gameState = 'PERIOD_END';
@@ -4603,7 +4970,7 @@
                 periodEndState = {
                     type: 'HALFTIME',
                     title: 'FINE PRIMO TEMPO (45\')',
-                    desc: `Il 2° Tempo inizierà con il possesso palla per la Squadra ${secondHalfTeam === 'red' ? 'ROSSA 🔴' : 'BLU 🔵'}.`
+                    desc: `Il 2° Tempo inizierà con il possesso palla per ${getTeamDisplayName(secondHalfTeam)}.`
                 };
                 syncPeriodEndModalUI();
                 updateHUD();
@@ -4616,12 +4983,12 @@
                 gameState = 'PERIOD_END';
                 resetReadyConfirmations('PERIOD_END');
                 let winnerText = "PAREGGIO AL 90'!";
-                if (scoreRed > scoreBlue) winnerText = "🏆 VINCE LA SQUADRA ROSSA!";
-                if (scoreBlue > scoreRed) winnerText = "🏆 VINCE LA SQUADRA BLU!";
+                if (scoreRed > scoreBlue) winnerText = `🏆 VINCE ${getTeamDisplayName('red').toUpperCase()}!`;
+                if (scoreBlue > scoreRed) winnerText = `🏆 VINCE ${getTeamDisplayName('blue').toUpperCase()}!`;
                 periodEndState = {
                     type: 'FULLTIME',
                     title: winnerText,
-                    desc: `Triplice fischio finale al 90'! Risultato finale: Rossi ${scoreRed} - ${scoreBlue} Blu.`
+                    desc: `Triplice fischio finale al 90'! Risultato finale: ${getTeamDisplayName('red')} ${scoreRed} - ${scoreBlue} ${getTeamDisplayName('blue')}.`
                 };
                 syncPeriodEndModalUI();
                 updateHUD();
@@ -4729,6 +5096,7 @@
 
             const defTeam = attackingTeam === 'red' ? 'blue' : 'red';
             gkBody.className = `w-12 h-12 rounded-full ${defTeam === 'red' ? 'token-gk-red' : 'token-gk-blue'} border-2 border-white flex items-center justify-center shadow-2xl`;
+            applyTeamKitVisual(gkBody, defTeam, 'token');
 
             const attSlot = getRequiredSlotForPhase(4);
             const defSlot = getRequiredSlotForPhase(3);
@@ -4744,7 +5112,8 @@
             const hasGuantoniInHand = (defTeam === 'red' ? teamCards.red : teamCards.blue).includes('guantoni');
 
             if (shootoutState.step === 'ATTACK') {
-                badge.innerText = `⚽ TIRO IN PORTA • ${attackingTeam === 'red' ? 'ROSSI' : 'BLU'}`;
+                badge.innerText = `⚽ TIRO IN PORTA • ${getTeamDisplayName(attackingTeam)}`;
+                applyTeamKitVisual(badge, attackingTeam, 'badge');
                 if (canClickNow) {
                     title.innerText = "ATTACCANTE: SCEGLI DOVE CALCIARE!";
                     sub.innerText = "Tocca Sinistra (SX), Centro (CEN) o Destra (DX)";
@@ -4756,7 +5125,8 @@
             } else if (shootoutState.step === 'DEFEND') {
                 const maxPicks = hasGuantoniActive ? 2 : 1;
                 const remaining = maxPicks - shootoutState.defChoices.length;
-                badge.innerText = `🧤 PARATA PORTIERE • ${defTeam === 'red' ? 'ROSSI' : 'BLU'}`;
+                badge.innerText = `🧤 PARATA PORTIERE • ${getTeamDisplayName(defTeam)}`;
+                applyTeamKitVisual(badge, defTeam, 'badge');
                 if (canClickNow) {
                     title.innerText = maxPicks === 2
                         ? `PORTIERE (BATTO GK): SCEGLI ${remaining} ZONA/E!`
@@ -4842,7 +5212,7 @@
                 if (defTeam === 'red') activeBuffs.guantoni_red = true;
                 else activeBuffs.guantoni_blue = true;
                 emitCardPlayedShowcase('guantoni', defTeam);
-                emitSharedMatchEvent(`🧤 Portiere ${defTeam === 'red' ? 'Rosso' : 'Blu'} attiva BATTO GK (copre 2 zone)!`, 'success', 'all');
+                emitSharedMatchEvent(`🧤 Portiere ${getTeamDisplayName(defTeam)} attiva BATTO GK (copre 2 zone)!`, 'success', 'all');
                 syncShootoutScreenUI();
                 if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
             }
@@ -4897,7 +5267,7 @@
                 if (isSaved) {
                     resTitle.innerText = "🧤 PARATA STREPITOSA!";
                     resTitle.className = "font-display text-3xl font-black mb-1 text-sky-400";
-                    resDesc.innerText = `Tiro a ${dirLabels[shootoutState.attChoice]} parato dal portiere! Palla ai ${defTeam === 'red' ? 'ROSSI' : 'BLU'}.`;
+                    resDesc.innerText = `Tiro a ${dirLabels[shootoutState.attChoice]} parato dal portiere! Palla ai ${getTeamDisplayName(defTeam)}.`;
                 } else {
                     if (attackingTeam === 'red') scoreRed++;
                     else scoreBlue++;
@@ -4907,7 +5277,7 @@
 
                     resTitle.innerText = "⚽ GOOOL!! RETE!";
                     resTitle.className = "font-display text-3xl font-black mb-1 text-emerald-400";
-                    resDesc.innerText = `Palla nell'angolino (${dirLabels[shootoutState.attChoice]})! La Squadra ${defTeam === 'red' ? 'ROSSA' : 'BLU'} ${cardMsg}riparte da centrocampo!`;
+                    resDesc.innerText = `Palla nell'angolino (${dirLabels[shootoutState.attChoice]})! La Squadra ${getTeamDisplayName(defTeam)} ${cardMsg}riparte da centrocampo!`;
                 }
 
                 cleanupEndOfTurnBuffs();
@@ -4958,7 +5328,7 @@
         function getPercentBadgeClasses(pct) {
             if (pct >= 80) return "bg-emerald-500 text-slate-950 border-emerald-200";
             if (pct >= 40) return "bg-amber-400 text-slate-950 border-amber-200";
-            return "bg-red-600 text-white border-red-300";
+            return "bg-orange-500 text-slate-950 border-orange-200";
         }
 
         function updateScoreboardUI() {
@@ -5058,13 +5428,25 @@
             const p4Bar = document.getElementById('p4-action-bar');
             const dockPlaying = document.getElementById('dock-playing-controls');
 
-            if (!myTurn || pendingCardInteraction || gameState !== 'PLAYING') {
+            if (!myTurn || gameState !== 'PLAYING') {
                 btnUndo.classList.add('hidden');
                 btnConfirm.classList.add('hidden');
                 p4Bar.classList.add('hidden');
                 dockPlaying.classList.add('hidden');
                 return;
             }
+
+            if (pendingCardInteraction && pendingCardInteraction.team === activeTeam) {
+                dockPlaying.classList.remove('hidden');
+                p4Bar.classList.add('hidden');
+                btnConfirm.classList.add('hidden');
+                btnUndo.classList.remove('hidden');
+                btnUndo.innerText = pendingCardInteraction.type === 'RISSA_OPP'
+                    ? "↩ Cambia Giocatore"
+                    : "↩ Annulla Carta";
+                return;
+            }
+            btnUndo.innerText = "↩ Ripensa";
 
             if (currentPhase === 1) {
                 p4Bar.classList.add('hidden');
@@ -5198,13 +5580,21 @@
                         const isSelected = p.id === selectedPieceId;
                         const isPassTargetPlayer = passInfo && !passInfo.isSpacePass && passInfo.receiver.id === p.id;
 
+                        // Verifica se questa pedina è il TUO giocatore già selezionato nel primo step della carta Rissa
+                        const isRissaSelectedOwn = (
+                            myTurn &&
+                            pendingCardInteraction &&
+                            pendingCardInteraction.team === activeTeam &&
+                            pendingCardInteraction.type === 'RISSA_OPP' &&
+                            p.id === pendingCardInteraction.ownPieceId
+                        );
+
                         // Evidenziazione per carte interattive (Rissa / Togli Giallo)
                         let isCardTargetToken = false;
                         if (myTurn && pendingCardInteraction && pendingCardInteraction.team === activeTeam) {
                             if (pendingCardInteraction.type === 'CLEAN_YELLOW' && p.team === activeTeam && p.yellowCards > 0) {
                                 isCardTargetToken = true;
                             } else if (pendingCardInteraction.type === 'RISSA_OWN' && p.team === activeTeam && !p.isGK && !p.hasBall) {
-                                // Illumina solo i tuoi giocatori che hanno almeno un avversario a portata di Rissa!
                                 const oppList = visPieces.filter(e => e.team !== activeTeam && !e.isGK && !e.hasBall);
                                 if (oppList.some(e => isWithinRissaRange(p, e))) {
                                     isCardTargetToken = true;
@@ -5227,13 +5617,12 @@
                             colorCls = p.team === 'red' ? 'token-gk-red' : 'token-gk-blue';
                         }
 
-                        // Pedine leggermente più grandi (w-8 h-8 sm:w-9 sm:h-9) e perfettamente centrate!
                         tok.className = `board-token w-8 h-8 sm:w-9 sm:h-9 rounded-full ${colorCls} flex items-center justify-center cursor-pointer transition-all duration-200 ${
-                            isSelected ? 'selected-token' : ''
+                            (isSelected || isRissaSelectedOwn) ? 'selected-token' : ''
                         } ${p.hasBall ? 'ball-aura' : ''} ${
                             (isPassTargetPlayer || isCardTargetToken) ? 'ring-4 ring-white shadow-[0_0_20px_#fff] animate-token-target' : ''
                         }`;
-                        // Applica i colori della divisa scelta prima della partita
+
                         tok.style.background = secondaryColor
                             ? `repeating-linear-gradient(135deg, ${primaryColor} 0 7px, ${secondaryColor} 7px 14px)`
                             : primaryColor;
@@ -5241,7 +5630,7 @@
                         tok.style.borderColor = 'rgba(255,255,255,0.9)';
 
                         if (!hasOverlap) {
-                            if (!isSelected && !isPassTargetPlayer && !isCardTargetToken) {
+                            if (!isSelected && !isRissaSelectedOwn && !isPassTargetPlayer && !isCardTargetToken) {
                                 tok.style.transform = 'translate(-50%, -50%)';
                             }
                             tok.style.zIndex = p.hasBall ? '32' : (p.team === activeTeam ? '26' : '22');
@@ -5255,7 +5644,6 @@
                             ? `<span class="absolute -top-3 left-1/2 -translate-x-1/2 px-1.5 py-0.2 rounded-full border ${getPercentBadgeClasses(passInfo.successChance)} font-black text-[9px] shadow-md z-40">${passInfo.successChance}%</span>`
                             : '';
 
-                        // Fix Portiere Mobile: per il portiere posizioniamo il pallone ben visibile con z-index alto!
                         const ballPosClass = p.isGK ? '-bottom-1.5 -right-1.5 text-xs' : '-top-2 -right-2 text-xs';
 
                         tok.innerHTML = `
