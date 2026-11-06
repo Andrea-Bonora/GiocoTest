@@ -6054,10 +6054,12 @@
                 }
             } else if (move4 && move4.type === 'longshot') {
                 moves.push({
+                    fromId: (pieces.find(p => p.r === move4.fromR && p.c === move4.fromC) || {}).id,
+                    toId: move4.toId || null,
                     fromR: move4.fromR,
                     fromC: move4.fromC,
                     toR: (move4.targetGoalRow !== undefined) ? move4.targetGoalRow : (attackingTeam === 'red' ? 11 : 0),
-                    toC: 3,
+                    toC: (move4.targetGoalCol !== undefined) ? move4.targetGoalCol : 3,
                     replayType: 'shot'
                 });
             }
@@ -6198,7 +6200,19 @@
                     }
 
                     if (mv.replayType === 'shot') {
+                        if (mv.fromId) {
+                            const shooterTok = document.querySelector(`.board-token[data-piece-id="${mv.fromId}"]`);
+                            if (shooterTok) {
+                                shooterTok.classList.remove('ball-aura');
+                                const bIcon = shooterTok.querySelector('.ball-icon');
+                                if (bIcon) bIcon.style.display = 'none';
+                            }
+                        }
                         await animateBallOnGrid(mv.fromR, mv.fromC, mv.toR, mv.toC);
+                        if (mv.toId) {
+                            const recTok = document.querySelector(`.board-token[data-piece-id="${mv.toId}"]`);
+                            if (recTok) recTok.classList.add('ball-aura');
+                        }
                         continue;
                     }
 
@@ -6299,14 +6313,23 @@
 
                 if (!rouletteSucceeded) {
                     pieces.forEach(p => p.hasBall = false);
-                    const defReceiver = findNearestDefenderTo(defTeam === 'red' ? 2 : 9, 3, defTeam);
-                    if (defReceiver) defReceiver.hasBall = true;
+                    const interceptor = findNearestDefenderTo(m4.toR, m4.toC, defTeam);
+                    if (interceptor) {
+                        interceptor.hasBall = true;
+                        // Reindirizza freccia e pallone verso l'avversario che intercetta
+                        // e annulla lo scatto a vuoto del ricevitore nello spazio!
+                        m4.toR = interceptor.r;
+                        m4.toC = interceptor.c;
+                        m4.toId = interceptor.id;
+                        m4.isSpacePass = false;
+                    }
                     attackingTeam = defTeam;
+                    counterattackBonusTeam = defTeam;
                     gameState = 'RESOLUTION';
                     cleanupEndOfTurnBuffs();
                     showResolutionBanner(
-                        "🌧️ SCIVOLONE SOTTO LA PIOGGIA: TIRO FUORI!",
-                        `La pioggia tradisce la conclusione ravvicinata! Rimessa dal fondo per ${getTeamDisplayName(defTeam)}.`,
+                        "🛑 PASSAGGIO INTERCETTATO (+1 PA)!",
+                        `#${interceptor ? interceptor.num : ''} recupera palla e avvia il contropiede!`,
                         "text-red-400"
                     );
                     updateHUD();
@@ -6343,7 +6366,13 @@
                 if (!rouletteSucceeded) {
                     pieces.forEach(p => p.hasBall = false);
                     const defReceiver = findNearestDefenderTo(defTeam === 'red' ? 2 : 9, 3, defTeam);
-                    if (defReceiver) defReceiver.hasBall = true;
+                    if (defReceiver) {
+                        defReceiver.hasBall = true;
+                        // Reindirizza tiro e freccia verso il difensore che riceve la rimessa
+                        m4.targetGoalRow = defReceiver.r;
+                        m4.targetGoalCol = defReceiver.c;
+                        m4.toId = defReceiver.id;
+                    }
                     attackingTeam = defTeam;
                     gameState = 'RESOLUTION';
                     cleanupEndOfTurnBuffs();
@@ -7337,11 +7366,9 @@
                     }
                     drawSingleSVGArrow(group, m4.fromR, m4.fromC, m4.toR, m4.toC, '#facc15', 'arrow-pass', true);
                 } else if (m4.type === 'longshot') {
-                    // Fix Freccia SVG Tiro: usa m4.fromR (< 6 significa che ha tirato la Squadra Rossa verso la porta r=11, anche se il possesso è cambiato in Risoluzione!)
-                    const shooterWasRed = m4.fromR <= 5 ? (attackingTeam === 'red') : (m4.fromR >= 6 && attackingTeam === 'red' ? true : false);
-                    // Ancora più affidabile: determiniamo la porta bersaglio dal colore dell'attaccante che ha tirato
                     const targetGoalRow = (m4.targetGoalRow !== undefined) ? m4.targetGoalRow : (attackingTeam === 'red' ? 11 : 0);
-                    drawSingleSVGArrow(group, m4.fromR, m4.fromC, targetGoalRow, 3, '#facc15', 'arrow-pass', true);
+                    const targetGoalCol = (m4.targetGoalCol !== undefined) ? m4.targetGoalCol : 3;
+                    drawSingleSVGArrow(group, m4.fromR, m4.fromC, targetGoalRow, targetGoalCol, '#facc15', 'arrow-pass', true);
                 }
             }
         }
