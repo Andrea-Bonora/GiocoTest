@@ -1239,6 +1239,7 @@
         let currentPhase = 1;
         let resolutionReplayGeneration = 0;
         let resolutionReplayRunning = false;
+        let resolutionFinalPiecesSnapshot = null;
 
         let attackingTeam = 'red';
         let usePrivacyCurtain = true;
@@ -3365,15 +3366,14 @@
             matchMinute = 0;
             currentHalf = 1;
             expelledPlayers = [];
+            pendingRissaExpulsions = [];
+            pendingCardDraws = [];
+            locallyClosedDrawIds.clear();
+            pieces = [];
             counterattackBonusTeam = null;
 
             dealInitialHandForTeam('red');
             dealInitialHandForTeam('blue');
-
-            expelledPlayers = [];
-            pendingRissaExpulsions = [];
-            pieces = []; // <-- Azzera i cartellini gialli della partita precedente!
-            counterattackBonusTeam = null;
 
             resetPitchForKickoff(firstHalfKickoffTeam);
         }
@@ -3425,6 +3425,7 @@
                 },
                 pieces,
                 p1ActionPoints,
+                p1TotalRequiredAP,
                 p2ActionPoints,
                 p3ActionPoints,
                 p4Mode,
@@ -3630,6 +3631,9 @@
                         p1ActionPoints = act.remP1AP;
                     }
                 }
+                if (currentPhase === 4) {
+                    plannedMoves[4] = null;
+                }
                 triggerSecretCard(act.cardKey, act.cardIndex, act.team, act.subMode);
             } else if (act.kind === 'CARD_GRID_INTERACTION') {
                 handleCardGridClickOnHost(act.r, act.c, act.team);
@@ -3670,6 +3674,10 @@
             document.getElementById('toggle-five-rule').checked = requireFivePastMidfield;
             renderLobbySlotsUI();
 
+            if (st.gameState !== 'RESOLUTION' && resolutionReplayRunning) {
+                stopResolutionReplay();
+            }
+
             gameState = st.gameState;
             turnNumber = st.turnNumber;
             matchMinute = st.matchMinute || 0;
@@ -3680,6 +3688,7 @@
             scoreRed = st.scoreRed;
             scoreBlue = st.scoreBlue;
             pieces = st.pieces;
+            p1TotalRequiredAP = st.p1TotalRequiredAP || customSettings.p1BaseAP || 2;
             activeBuffs = st.activeBuffs;
             expelledPlayers = st.expelledPlayers;
             pendingRissaExpulsions = st.pendingRissaExpulsions || [];
@@ -6007,7 +6016,11 @@
 
         function stopResolutionReplay() {
             resolutionReplayGeneration++;
+            if (resolutionReplayRunning && resolutionFinalPiecesSnapshot) {
+                pieces = JSON.parse(JSON.stringify(resolutionFinalPiecesSnapshot));
+            }
             resolutionReplayRunning = false;
+            resolutionFinalPiecesSnapshot = null;
             const panel = document.getElementById('resolution-replay-panel');
             if (panel) panel.classList.add('hidden');
             const arrowsLayer = document.getElementById('arrows-layer');
@@ -6070,6 +6083,7 @@
             }
 
             const finalPiecesSnapshot = JSON.parse(JSON.stringify(pieces));
+            resolutionFinalPiecesSnapshot = JSON.parse(JSON.stringify(pieces));
 
             // Restituisce il delta esatto in pixel (nel sistema di coordinate del campo) tra due celle
             function getCellDeltaPixels(fromR, fromC, toR, toC) {
@@ -6244,15 +6258,18 @@
                 await replayWait(2200);
             }
 
-            while (generation === resolutionReplayGeneration && gameState === 'RESOLUTION') {
+            while (generation === resolutionReplayGeneration && gameState !== 'SETUP' && gameState === 'RESOLUTION') {
                 await playRealTokensSequence();
             }
 
-            pieces = finalPiecesSnapshot;
-            const arrowsLayer = document.getElementById('arrows-layer');
-            if (arrowsLayer) arrowsLayer.style.opacity = '1';
-            renderBoard();
-            resolutionReplayRunning = false;
+            if (generation === resolutionReplayGeneration) {
+                pieces = finalPiecesSnapshot;
+                resolutionFinalPiecesSnapshot = null;
+                const arrowsLayer = document.getElementById('arrows-layer');
+                if (arrowsLayer) arrowsLayer.style.opacity = '1';
+                renderBoard();
+                resolutionReplayRunning = false;
+            }
         }
 
         function replayWait(ms) {
@@ -6313,23 +6330,14 @@
 
                 if (!rouletteSucceeded) {
                     pieces.forEach(p => p.hasBall = false);
-                    const interceptor = findNearestDefenderTo(m4.toR, m4.toC, defTeam);
-                    if (interceptor) {
-                        interceptor.hasBall = true;
-                        // Reindirizza freccia e pallone verso l'avversario che intercetta
-                        // e annulla lo scatto a vuoto del ricevitore nello spazio!
-                        m4.toR = interceptor.r;
-                        m4.toC = interceptor.c;
-                        m4.toId = interceptor.id;
-                        m4.isSpacePass = false;
-                    }
+                    const defReceiver = findNearestDefenderTo(defTeam === 'red' ? 2 : 9, 3, defTeam);
+                    if (defReceiver) defReceiver.hasBall = true;
                     attackingTeam = defTeam;
-                    counterattackBonusTeam = defTeam;
                     gameState = 'RESOLUTION';
                     cleanupEndOfTurnBuffs();
                     showResolutionBanner(
-                        "🛑 PASSAGGIO INTERCETTATO (+1 PA)!",
-                        `#${interceptor ? interceptor.num : ''} recupera palla e avvia il contropiede!`,
+                        "❌ TIRO SCIVOLATO SUL BAGNATO!",
+                        `Azione sfumata per la pioggia! Rimessa per ${getTeamDisplayName(defTeam)}.`,
                         "text-red-400"
                     );
                     updateHUD();
@@ -6454,7 +6462,13 @@
                 if (!rouletteSucceeded) {
                     pieces.forEach(p => p.hasBall = false);
                     const interceptor = findNearestDefenderTo(m4.toR, m4.toC, defTeam);
-                    if (interceptor) interceptor.hasBall = true;
+                    if (interceptor) {
+                        interceptor.hasBall = true;
+                        m4.toR = interceptor.r;
+                        m4.toC = interceptor.c;
+                        m4.toId = interceptor.id;
+                        m4.isSpacePass = false;
+                    }
                     attackingTeam = defTeam;
                     counterattackBonusTeam = defTeam;
                     gameState = 'RESOLUTION';
