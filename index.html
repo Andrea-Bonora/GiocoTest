@@ -411,6 +411,21 @@
                     </div>
                 </div>
 
+                <!-- Punti Azione (PA) per Fase -->
+                <div class="space-y-2 bg-slate-950/70 p-3 rounded-xl border border-slate-800">
+                    <div class="font-bold text-cyan-400 uppercase text-[10px]">Punti Azione (PA) per Fase</div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-[10px] text-slate-400 block mb-1">PA Fase 1 (Attacco)</label>
+                            <input id="set-p1-ap" type="number" min="1" max="5" value="2" onchange="onSettingsChanged()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 font-black text-white text-center">
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-slate-400 block mb-1">PA Fase 2 &amp; 3 (Difesa)</label>
+                            <input id="set-p23-ap" type="number" min="1" max="4" value="1" onchange="onSettingsChanged()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 font-black text-white text-center">
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Percentuali Bonus / Malus -->
                 <div class="space-y-2 bg-slate-950/70 p-3 rounded-xl border border-slate-800">
                     <div class="font-bold text-amber-400 uppercase text-[10px]">Percentuali Bonus & Malus (%)</div>
@@ -1238,6 +1253,8 @@
             maxDuplicatesPerCard: 2,
             drawCardEveryTurns: 2,
             matchDuration: 30, // Nuova impostazione (10, 15 o 30)
+            p1BaseAP: 2,       // PA base per la Fase 1
+            p23BaseAP: 1,      // PA base per la Fase 2 e per la Fase 3 (uguali)
             passForwardPenalty: 20,
             passLateralBackPenalty: 10,
             passSpacePenalty: 10,
@@ -1299,6 +1316,7 @@
         let pieces = [];
         let selectedPieceId = null;
         let p1ActionPoints = 2;
+        let p1TotalRequiredAP = 2;
         let p2ActionPoints = 1;
         let p3ActionPoints = 1;
         let p4Mode = 'PASS';
@@ -1795,6 +1813,8 @@
             customSettings.shotDistPenalty = Math.max(5, Math.min(50, parseInt(document.getElementById('set-shot-dist-pen').value) || 25));
             customSettings.misterBonus = Math.max(5, Math.min(50, parseInt(document.getElementById('set-mister-bonus').value) || 20));
             customSettings.varChance = Math.max(10, Math.min(100, parseInt(document.getElementById('set-var-chance').value) || 80));
+            customSettings.p1BaseAP = Math.max(1, Math.min(5, parseInt(document.getElementById('set-p1-ap').value) || 2));
+            customSettings.p23BaseAP = Math.max(1, Math.min(4, parseInt(document.getElementById('set-p23-ap').value) || 1));
 
             saveSettingsToLocal();
 
@@ -1846,6 +1866,8 @@
                 document.getElementById('set-shot-dist-pen').value = customSettings.shotDistPenalty;
                 document.getElementById('set-mister-bonus').value = customSettings.misterBonus;
                 document.getElementById('set-var-chance').value = customSettings.varChance;
+                document.getElementById('set-p1-ap').value = customSettings.p1BaseAP || 2;
+                document.getElementById('set-p23-ap').value = customSettings.p23BaseAP || 1;
                 setMatchDuration(customSettings.matchDuration || 30);
             } catch(e) { console.warn("Errore caricamento impostazioni", e); }
         }
@@ -3987,6 +4009,7 @@
                 if (phase <= 3) {
                     const arr = plannedMoves[phase] || [];
                     sprintEffectUsed = arr.some(m => {
+                        if (!m || m.type !== 'move') return false;
                         const dr = Math.abs(m.toR - m.fromR);
                         const dc = Math.abs(m.toC - m.fromC);
                         return (dr === 0 && dc > 2) || (dc === 0 && dr > 2) || (dr === dc && dr > 1);
@@ -4028,12 +4051,11 @@
             if (activeBuffs.fartlek_used && phase <= 3) {
                 let fartlekUsedInPhase = false;
                 if (phase === 1) {
-                    const baseP1 = (counterattackBonusTeam === attackingTeam) ? 3 : 2;
-                    fartlekUsedInPhase = ((plannedMoves[1] || []).length > baseP1) || (p1ActionPoints === 0);
+                    fartlekUsedInPhase = (countActualMoves(plannedMoves[1]) > p1TotalRequiredAP) || (p1ActionPoints === 0);
                 } else if (phase === 2) {
-                    fartlekUsedInPhase = ((plannedMoves[2] || []).length >= p2ActionPoints);
+                    fartlekUsedInPhase = (countActualMoves(plannedMoves[2]) >= p2ActionPoints);
                 } else if (phase === 3) {
-                    fartlekUsedInPhase = ((plannedMoves[3] || []).length >= p3ActionPoints);
+                    fartlekUsedInPhase = (countActualMoves(plannedMoves[3]) >= p3ActionPoints);
                 }
 
                 if (!fartlekUsedInPhase) {
@@ -4069,15 +4091,17 @@
             }
 
             currentPhase = 1;
+            const baseP1 = customSettings.p1BaseAP || 2;
+            const baseP23 = customSettings.p23BaseAP || 1;
             const hasCounterBonus = (counterattackBonusTeam === attackingTeam);
-            p1ActionPoints = hasCounterBonus ? 3 : 2;
-            p1TotalRequiredAP = p1ActionPoints; // <-- Aggiungi questa riga (e dichiara let p1TotalRequiredAP = 2; in alto con le altre variabili)
+            p1ActionPoints = hasCounterBonus ? (baseP1 + 1) : baseP1;
+            p1TotalRequiredAP = p1ActionPoints;
             if (hasCounterBonus) {
-                emitSharedMatchEvent(`⚡ CONTROPIEDE RAPIDO! ${getTeamDisplayName(attackingTeam)} hanno 3 Punti Azione in Fase 1!`, 'success', 'all');
+                emitSharedMatchEvent(`⚡ CONTROPIEDE RAPIDO! ${getTeamDisplayName(attackingTeam)} hanno ${p1ActionPoints} Punti Azione in Fase 1!`, 'success', 'all');
                 counterattackBonusTeam = null;
             }
-            p2ActionPoints = 1;
-            p3ActionPoints = 1;
+            p2ActionPoints = baseP23;
+            p3ActionPoints = baseP23;
 
             plannedMoves = { 1: [], 2: [], 3: [], 4: null };
             selectedPieceId = null;
@@ -4455,7 +4479,7 @@
             // PHASE 2 & 3: Defense (Supporta anche +1 PA extra se usato Fartlek)
             if (currentPhase === 2 || currentPhase === 3) {
                 const maxAllowed = currentPhase === 2 ? p2ActionPoints : p3ActionPoints;
-                if (plannedMoves[currentPhase].length >= maxAllowed) {
+                if (countActualMoves(plannedMoves[currentPhase]) >= maxAllowed) {
                     showLocalToast("Mossa pronta! Premi 'CONFERMA MOSSA ✓' o '↩ Ripensa'.", "info");
                     return;
                 }
@@ -4629,6 +4653,16 @@
             renderBoard();
         }
 
+        // Conta solo le mosse di giocatori NON espulsi (le uniche a cui si può "ripensare")
+        function countUndoableMoves(movesList) {
+            if (!Array.isArray(movesList)) return 0;
+            return movesList.filter(m => {
+                if (!m || m.type !== 'move') return false;
+                const p = pieces.find(x => x.id === m.pieceId);
+                return p && !p.redCardPending;
+            }).length;
+        }
+
         function undoPhaseMove() {
             if (!isMyTurnOnline()) return;
             if (pendingCardInteraction) {
@@ -4640,23 +4674,31 @@
                 }
                 return;
             }
-            if (currentPhase === 1 && countActualMoves(plannedMoves[1]) > 0) {
+            if (currentPhase === 1 && countUndoableMoves(plannedMoves[1]) > 0) {
                 for (let i = plannedMoves[1].length - 1; i >= 0; i--) {
-                    if (plannedMoves[1][i].type === 'move') {
-                        plannedMoves[1].splice(i, 1);
-                        break;
+                    const m = plannedMoves[1][i];
+                    if (m && m.type === 'move') {
+                        const p = pieces.find(x => x.id === m.pieceId);
+                        if (p && !p.redCardPending) {
+                            plannedMoves[1].splice(i, 1);
+                            p1ActionPoints += 1;
+                            selectedPieceId = null;
+                            break;
+                        }
                     }
                 }
-                p1ActionPoints += 1;
-                selectedPieceId = null;
-            } else if ((currentPhase === 2 || currentPhase === 3) && countActualMoves(plannedMoves[currentPhase]) > 0) {
+            } else if ((currentPhase === 2 || currentPhase === 3) && countUndoableMoves(plannedMoves[currentPhase]) > 0) {
                 for (let i = plannedMoves[currentPhase].length - 1; i >= 0; i--) {
-                    if (plannedMoves[currentPhase][i].type === 'move') {
-                        plannedMoves[currentPhase].splice(i, 1);
-                        break;
+                    const m = plannedMoves[currentPhase][i];
+                    if (m && m.type === 'move') {
+                        const p = pieces.find(x => x.id === m.pieceId);
+                        if (p && !p.redCardPending) {
+                            plannedMoves[currentPhase].splice(i, 1);
+                            selectedPieceId = null;
+                            break;
+                        }
                     }
                 }
-                selectedPieceId = null;
             } else if (currentPhase === 4 && plannedMoves[4]) {
                 plannedMoves[4] = null;
                 const vis = getVisiblePieces(4);
@@ -4947,29 +4989,40 @@
             } else if (pendingRoulette.rolled) {
                 cursor.style.left = `${pendingRoulette.finalRoll}%`;
                 rollEl.innerText = `${pendingRoulette.finalRoll}`;
-                if (pendingRoulette.success) {
-                    outEl.innerText = "SUCCESSO";
-                    outEl.className = "text-2xl font-display font-black min-h-[32px] text-emerald-400 mb-4 tracking-wider";
-                } else {
-                    outEl.innerText = "FALLITO";
-                    outEl.className = "text-2xl font-display font-black min-h-[32px] text-red-400 mb-4 tracking-wider";
-                }
-                const canReroll =
-                    canSpin &&
+
+                const mustRerollWithMerlo =
                     !pendingRoulette.success &&
                     pendingRoulette.merloArmed &&
                     !pendingRoulette.merloRerollUsed;
 
-                spinBtn.classList.toggle('hidden', !canReroll);
+                if (pendingRoulette.success) {
+                    outEl.innerText = "SUCCESSO";
+                    outEl.className = "text-2xl font-display font-black min-h-[32px] text-emerald-400 mb-4 tracking-wider";
+                } else if (mustRerollWithMerlo) {
+                    outEl.innerText = canSpin
+                        ? "FALLITO! USA IL RILANCIO DI MERLO AL BINGO!"
+                        : `FALLITO! 👀 ${getSlotDisplayName(activeRollerSlot)} deve ritirare (Merlo al Bingo)...`;
+                    outEl.className = "text-sm sm:text-base font-display font-black min-h-[32px] text-cyan-300 mb-4 tracking-wide animate-pulse";
+                } else {
+                    outEl.innerText = "FALLITO";
+                    outEl.className = "text-2xl font-display font-black min-h-[32px] text-red-400 mb-4 tracking-wider";
+                }
 
+                const canReroll = canSpin && mustRerollWithMerlo;
+
+                spinBtn.classList.toggle('hidden', !canReroll);
+                spinBtn.disabled = !canReroll;
                 spinBtn.innerText = canReroll
-                    ? '🐦 RITIRA LA PROBABILITÀ'
+                    ? '🐦 RITIRA LA PROBABILITÀ (OBBLIGATORIO)'
                     : '🎲 ESTRAI PROBABILITÀ';
 
                 merloBtn.classList.add('hidden');
 
-                contBtn.classList.remove('hidden');
-                updateConfirmButtonLabel('btn-roulette-continue', 'ROULETTE', "CONFERMA ESITO ➔");
+                // Se Merlo al Bingo è attivo e il 1° tiro è fallito, NON si può avanzare col fallimento: bisogna per forza ritirare!
+                contBtn.classList.toggle('hidden', mustRerollWithMerlo);
+                if (!mustRerollWithMerlo) {
+                    updateConfirmButtonLabel('btn-roulette-continue', 'ROULETTE', "CONFERMA ESITO ➔");
+                }
             }
 
             modal.classList.remove('hidden');
@@ -5130,6 +5183,12 @@
         }
 
         function confirmRouletteContinue(fromNetworkHost = false, senderSlot = null) {
+            
+            if (!pendingRoulette.success && pendingRoulette.merloArmed && !pendingRoulette.merloRerollUsed) {
+                showLocalToast("Hai attivato Merlo al Bingo: devi prima ritirare la probabilità!", "warn");
+                return;
+            }
+
             if (networkMode === 'ONLINE' && !isOnlineHost && !fromNetworkHost) {
                 if (myOnlineSlot && !readyConfirmations.ROULETTE.includes(myOnlineSlot)) {
                     readyConfirmations.ROULETTE.push(myOnlineSlot);
@@ -5315,7 +5374,7 @@
                 const unmovedTeammates = vis.filter(p => p.team === team && !p.isGK && !p.hasBall && !hasPieceMovedThisTurn(p.id));
                 const remainingAPInPhase = currentPhase === 1
                     ? p1ActionPoints
-                    : ((currentPhase === 2 ? p2ActionPoints : p3ActionPoints) - (plannedMoves[currentPhase] || []).length);
+                    : ((currentPhase === 2 ? p2ActionPoints : p3ActionPoints) - countActualMoves(plannedMoves[currentPhase]));
                 return unmovedTeammates.length > remainingAPInPhase;
             }
             if (cardKey === 'park_the_bus') return (currentPhase === 2 || currentPhase === 3) && !activeBuffs.park_the_bus;
@@ -5349,10 +5408,12 @@
             }
             if (cardKey === 'fallo_tattico' || cardKey === 'fallo_rosso') {
                 if (currentPhase !== 2 && currentPhase !== 3) return false;
-                const arr = plannedMoves[currentPhase] || [];
+                const arr = (plannedMoves[currentPhase] || []).filter(m => m && m.type === 'move');
                 if (arr.length === 0) return false;
                 const mv = arr[arr.length - 1];
                 const vis = getVisiblePieces(currentPhase);
+                // Verifica che il difensore che si è mosso sia ancora in campo (non espulso da Rissa)
+                if (!vis.some(p => p.id === mv.pieceId)) return false;
                 const carrier = vis.find(p => p.hasBall);
                 if (!carrier) return false;
                 const dr = Math.abs(mv.toR - carrier.r);
@@ -5468,11 +5529,13 @@
             checkAndRefundUnusedPhaseCards(4);
             // Applica i movimenti pianificati di P1, P2, P3 prima di aprire l'estrattore del rigore
             plannedMoves[1].forEach(m => {
+                if (!m || m.type !== 'move') return;
                 const p = pieces.find(x => x.id === m.pieceId);
                 if (p) { p.r = m.toR; p.c = m.toC; }
             });
             [2, 3].forEach(ph => {
                 (plannedMoves[ph] || []).forEach(mv => {
+                    if (!mv || mv.type !== 'move') return;
                     const p = pieces.find(x => x.id === mv.pieceId);
                     if (p) { p.r = mv.toR; p.c = mv.toC; }
                 });
@@ -5534,22 +5597,25 @@
 
         function executeFoulCardSteal(isRedCard) {
             const defTeam = attackingTeam === 'red' ? 'blue' : 'red';
-            const arr = plannedMoves[currentPhase] || [];
+            const arr = (plannedMoves[currentPhase] || []).filter(m => m && m.type === 'move');
             if (arr.length === 0) return;
             const activeMove = arr[arr.length - 1];
 
             checkAndRefundUnusedPhaseCards(currentPhase);
 
             plannedMoves[1].forEach(m => {
+                if (!m || m.type !== 'move') return;
                 const p = pieces.find(x => x.id === m.pieceId);
                 if (p) { p.r = m.toR; p.c = m.toC; }
             });
             (plannedMoves[2] || []).forEach(mv => {
+                if (!mv || mv.type !== 'move') return;
                 const p2 = pieces.find(x => x.id === mv.pieceId);
                 if (p2) { p2.r = mv.toR; p2.c = mv.toC; }
             });
             if (currentPhase === 3) {
                 (plannedMoves[3] || []).forEach(mv => {
+                    if (!mv || mv.type !== 'move') return;
                     const p3 = pieces.find(x => x.id === mv.pieceId);
                     if (p3) { p3.r = mv.toR; p3.c = mv.toC; }
                 });
@@ -5644,17 +5710,20 @@
             cloned = cloned.filter(p => !p.redCardPending);
 
             plannedMoves[1].forEach(m => {
+                if (!m || m.type !== 'move') return;
                 const p = cloned.find(x => x.id === m.pieceId);
                 if (p) { p.r = m.toR; p.c = m.toC; }
             });
 
             if ((phase === 2 || phase === 3) && (!enforceViewerMask || canViewerSeeDefensiveMoves())) {
                 (plannedMoves[2] || []).forEach(mv => {
+                    if (!mv || mv.type !== 'move') return;
                     const p2 = cloned.find(x => x.id === mv.pieceId);
                     if (p2) { p2.r = mv.toR; p2.c = mv.toC; }
                 });
                 if (phase === 3) {
                     (plannedMoves[3] || []).forEach(mv => {
+                        if (!mv || mv.type !== 'move') return;
                         const p3 = cloned.find(x => x.id === mv.pieceId);
                         if (p3) { p3.r = mv.toR; p3.c = mv.toC; }
                     });
@@ -6963,22 +7032,22 @@
 
             if (currentPhase === 1) {
                 p4Bar.classList.add('hidden');
-                const usedMoves = countActualMoves(plannedMoves[1]);
+                const undoableMoves = countUndoableMoves(plannedMoves[1]);
                 const spentAllAP = validatePhaseActionPoints(1, plannedMoves[1]);
                 
                 dockPlaying.classList.remove('hidden');
                 
-                btnUndo.classList.toggle('hidden', usedMoves === 0);
+                btnUndo.classList.toggle('hidden', undoableMoves === 0);
                 btnConfirm.classList.toggle('hidden', !spentAllAP);
 
             } else if (currentPhase === 2 || currentPhase === 3) {
                 p4Bar.classList.add('hidden');
-                const usedMoves = countActualMoves(plannedMoves[currentPhase]);
+                const undoableMoves = countUndoableMoves(plannedMoves[currentPhase]);
                 const spentAllAP = validatePhaseActionPoints(currentPhase, plannedMoves[currentPhase]);
                 
                 dockPlaying.classList.remove('hidden');
                 
-                btnUndo.classList.toggle('hidden', usedMoves === 0);
+                btnUndo.classList.toggle('hidden', undoableMoves === 0);
                 btnConfirm.classList.toggle('hidden', !spentAllAP);
                 
             } else if (currentPhase === 4) {
@@ -7047,7 +7116,7 @@
                         const maxAllowedDef = currentPhase === 2 ? p2ActionPoints : p3ActionPoints;
                         const canStillMoveInPhase = currentPhase === 1
                             ? (p1ActionPoints > 0)
-                            : ((plannedMoves[currentPhase] || []).length < maxAllowedDef);
+                            : (countActualMoves(plannedMoves[currentPhase]) < maxAllowedDef);
 
                         if (currentPhase <= 3 && canStillMoveInPhase) {
                             moveHighlight = canPlayerMoveTo(selPiece, r, c, visPieces).valid;
@@ -7240,16 +7309,19 @@
             const defMarker = attackingTeam === 'red' ? 'arrow-blue' : 'arrow-red';
 
             plannedMoves[1].forEach(m => {
+                if (!m || m.type !== 'move') return;
                 drawSingleSVGArrow(group, m.fromR, m.fromC, m.toR, m.toC, attColor, attMarker, false);
             });
 
             // Fix Velo Difensivo: le frecce di P2 e P3 sono disegnate SOLO per la squadra in difesa o durante la Risoluzione!
             if ((currentPhase === 2 || currentPhase === 3 || gameState === 'RESOLUTION') && canViewerSeeDefensiveMoves()) {
                 (plannedMoves[2] || []).forEach(mv => {
+                    if (!mv || mv.type !== 'move') return;
                     drawSingleSVGArrow(group, mv.fromR, mv.fromC, mv.toR, mv.toC, defColor, defMarker, false);
                 });
                 if (currentPhase === 3 || gameState === 'RESOLUTION') {
                     (plannedMoves[3] || []).forEach(mv => {
+                        if (!mv || mv.type !== 'move') return;
                         drawSingleSVGArrow(group, mv.fromR, mv.fromC, mv.toR, mv.toC, defColor, defMarker, false);
                     });
                 }
