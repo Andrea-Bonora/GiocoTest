@@ -2192,9 +2192,8 @@
                 expelledPlayers.push({ id: piece.id, num: piece.num, team: piece.team, turns: 10 });
                 piece.redCardPending = true;
                 pendingRissaExpulsions.push({ pieceId: piece.id, phase: currentPhase });
-                if (registerReplayAnim) {
-                    const targetPhase = (currentPhase <= 3) ? currentPhase : 3;
-                    plannedMoves[targetPhase].push({
+                if (registerReplayAnim && currentPhase <= 3) {
+                    plannedMoves[currentPhase].push({
                         type: 'rissa_expulsion',
                         ownId: piece.id,
                         oppId: null
@@ -3376,6 +3375,7 @@
             currentHalf = 1;
             expelledPlayers = [];
             pendingRissaExpulsions = [];
+            pendingNaturalReentries = [];
             pendingCardDraws = [];
             locallyClosedDrawIds.clear();
             cardShowcaseEvents = [];
@@ -3650,6 +3650,12 @@
                 }
                 triggerSecretCard(act.cardKey, act.cardIndex, act.team, act.subMode);
             } else if (act.kind === 'CARD_GRID_INTERACTION') {
+                if (Array.isArray(act.stagedMoves) && currentPhase <= 3) {
+                    plannedMoves[currentPhase] = act.stagedMoves;
+                    if (currentPhase === 1 && typeof act.remP1AP === 'number') {
+                        p1ActionPoints = act.remP1AP;
+                    }
+                }
                 handleCardGridClickOnHost(act.r, act.c, act.team);
             }
             else if (act.kind === 'CANCEL_CARD_INTERACTION') { 
@@ -3980,7 +3986,10 @@
         function setupFormationPieces(formKeyRed, formKeyBlue, ballTeam) {
             const prevYellows = {};
             pieces.forEach(p => { if (p.yellowCards) prevYellows[p.id] = p.yellowCards; });
-            const isExpelled = (id) => expelledPlayers.some(ep => ep.id === id);
+            
+            const isExpelledOrPending = (id) => 
+                expelledPlayers.some(ep => ep.id === id) || 
+                pendingNaturalReentries.some(ep => ep.id === id);
 
             pieces = [];
             const fRed = FORMATIONS[formKeyRed] || FORMATIONS['4-3-3'];
@@ -3988,7 +3997,7 @@
 
             let rNum = 1;
             const addPieceIfActive = (id, num, team, r, c, isGK, hasBall) => {
-                if (!isExpelled(id)) {
+                if (!isExpelledOrPending(id)) {
                     pieces.push({ id, num, team, r, c, isGK, hasBall, yellowCards: prevYellows[id] || 0 });
                 }
             };
@@ -4066,9 +4075,13 @@
                 const m4 = plannedMoves[4];
                 if (activeBuffs.mister_lei) {
                     let misterUsed = false;
+                    const baseVis = getVisiblePieces(1);
+                    const carrier = baseVis.find(p => p.hasBall);
+                    const maxSafeDist = (carrier && carrier.isGK) ? 3 : 2;
+
                     if (m4 && m4.type === 'pass') {
                         const dist = Math.abs(m4.toR - m4.fromR) + Math.abs(m4.toC - m4.fromC);
-                        if (dist > 2 || m4.isSpacePass || activeBuffs.pioggia_wembley) misterUsed = true;
+                        if (dist > maxSafeDist || m4.isSpacePass || activeBuffs.pioggia_wembley) misterUsed = true;
                     } else if (m4 && m4.type === 'longshot') {
                         if (m4.minDist > 0 || activeBuffs.pioggia_wembley) misterUsed = true;
                     }
@@ -4121,12 +4134,18 @@
             const idx = pendingNaturalReentries.findIndex(ep => ep.team === activeTeam);
             if (idx !== -1) {
                 const ep = pendingNaturalReentries[idx];
-                pendingCardInteraction = {
-                    type: 'NATURAL_REENTRY',
-                    team: activeTeam,
-                    playerObj: ep
-                };
-                emitSharedMatchEvent(`⏱️ Fine squalifica per #${ep.num} (${getTeamDisplayName(activeTeam)})! Tocca una casella viola nella tua metà campo per farlo rientrare!`, 'info', activeTeam);
+                const drawerSlot = getRequiredSlotForPhase(phase);
+                
+                // Attiva l'interazione solo sul dispositivo del giocatore di turno (es. P2 o P1)
+                const pseudoDraw = { drawerSlot, team: activeTeam };
+                if (canCurrentDeviceClickCardDraw(pseudoDraw)) {
+                    pendingCardInteraction = {
+                        type: 'NATURAL_REENTRY',
+                        team: activeTeam,
+                        playerObj: ep
+                    };
+                    emitSharedMatchEvent(`⏱️ Fine squalifica per #${ep.num}! Tocca una casella viola nella tua metà campo per farlo rientrare.`, 'info', activeTeam);
+                }
             }
         }
 
@@ -4140,6 +4159,17 @@
             } else {
                 pieces = pieces.filter(p => !p.redCardPending);
             }
+
+            // Decrementa le squalifiche esattamente all'inizio di ogni nuovo turno
+            expelledPlayers.forEach(e => e.turns--);
+            const recovered = expelledPlayers.filter(e => e.turns <= 0);
+            recovered.forEach(e => {
+                if (!pendingNaturalReentries.some(x => x.id === e.id)) {
+                    pendingNaturalReentries.push({ id: e.id, num: e.num, team: e.team });
+                    emitSharedMatchEvent(`⏱️ Squalifica terminata per #${e.num} (${getTeamDisplayName(e.team)})! Rientrerà nella prossima fase della sua squadra.`, 'info', 'all');
+                }
+            });
+            expelledPlayers = expelledPlayers.filter(e => e.turns > 0);
 
             currentPhase = 1;
             const baseP1 = customSettings.p1BaseAP || 2;
@@ -4168,14 +4198,6 @@
 
             document.getElementById('dock-playing-controls').classList.remove('hidden');
             document.getElementById('dock-resolution-controls').classList.add('hidden');
-
-            expelledPlayers.forEach(e => e.turns--);
-            const recovered = expelledPlayers.filter(e => e.turns <= 0);
-            recovered.forEach(e => {
-                pendingNaturalReentries.push({ id: e.id, num: e.num, team: e.team });
-                emitSharedMatchEvent(`⏱️ Squalifica terminata per #${e.num} (${getTeamDisplayName(e.team)})! Sceglierai dove schierarlo nella tua fase.`, 'info', 'all');
-            });
-            expelledPlayers = expelledPlayers.filter(e => e.turns > 0);
 
             beginPhase(1);
         }
@@ -4282,10 +4304,38 @@
             return manhattan >= 1 && manhattan <= 2;
         }
 
+        function getPiecesFromTeamPerspective(phase, team) {
+            const defTeam = attackingTeam === 'red' ? 'blue' : 'red';
+            const canSeeDef = (team === defTeam);
+            let cloned = JSON.parse(JSON.stringify(pieces)).filter(p => !p.redCardPending);
+
+            (plannedMoves[1] || []).forEach(m => {
+                if (!m || m.type !== 'move') return;
+                const p = cloned.find(x => x.id === m.pieceId);
+                if (p) { p.r = m.toR; p.c = m.toC; }
+            });
+
+            if (phase >= 2 && canSeeDef) {
+                (plannedMoves[2] || []).forEach(mv => {
+                    if (!mv || mv.type !== 'move') return;
+                    const p2 = cloned.find(x => x.id === mv.pieceId);
+                    if (p2) { p2.r = mv.toR; p2.c = mv.toC; }
+                });
+                if (phase >= 3) {
+                    (plannedMoves[3] || []).forEach(mv => {
+                        if (!mv || mv.type !== 'move') return;
+                        const p3 = cloned.find(x => x.id === mv.pieceId);
+                        if (p3) { p3.r = mv.toR; p3.c = mv.toC; }
+                    });
+                }
+            }
+            return cloned;
+        }
+
         function handleCardGridClickOnHost(r, c, team) {
             if (!pendingCardInteraction || pendingCardInteraction.team !== team) return;
             const mode = pendingCardInteraction.type;
-            const vis = getVisiblePieces(currentPhase);
+            const vis = getPiecesFromTeamPerspective(currentPhase, team);
 
             if (mode === 'REENTRY') {
                 if (!isValidReentryCell(r, c, team)) return;
@@ -4320,23 +4370,24 @@
                 if (realTarget) realTarget.yellowCards = 0;
                 pendingCardInteraction = null;
                 emitSharedMatchEvent(`😇 "ALLORA FISCHIAMO TUTTO": rimosso il cartellino giallo a #${visTarget.num}!`, 'success', 'all');
+                checkAndTriggerNaturalReentryForPhase(currentPhase);
             } else if (mode === 'RISSA_OWN') {
                 const ownP = vis.find(p => p.team === team && !p.isGK && !p.hasBall && p.r === r && p.c === c);
                 if (!ownP) return;
                 const oppList = vis.filter(e => e.team !== team && !e.isGK && !e.hasBall);
                 if (!oppList.some(e => isWithinRissaRange(ownP, e))) {
-                    showLocalToast("Questo giocatore non ha avversari entro 2 caselle di distanza!", "warn");
+                    emitSharedMatchEvent("Questo giocatore non ha avversari entro 2 caselle di distanza!", "warn", team);
                     return;
                 }
                 pendingCardInteraction.type = 'RISSA_OPP';
                 pendingCardInteraction.ownPieceId = ownP.id;
-                showLocalToast(`Hai scelto #${ownP.num}. Tocca l'avversario da espellere (o ritocca #${ownP.num} per cambiare)!`, "info");
+                emitSharedMatchEvent(`Hai scelto #${ownP.num}. Tocca l'avversario da espellere (o ritocca #${ownP.num} per cambiare)!`, "info", team);
             } else if (mode === 'RISSA_OPP') {
                 const ownP = vis.find(p => p.id === pendingCardInteraction.ownPieceId);
                 if (ownP && ownP.r === r && ownP.c === c) {
                     pendingCardInteraction.type = 'RISSA_OWN';
                     pendingCardInteraction.ownPieceId = null;
-                    showLocalToast("Selezione annullata: scegli il tuo giocatore per la Rissa.", "info");
+                    emitSharedMatchEvent("Selezione annullata: scegli il tuo giocatore per la Rissa.", "info", team);
                     updateHUD();
                     renderBoard();
                     return;
@@ -4346,7 +4397,7 @@
                     const oppList = vis.filter(e => e.team !== team && !e.isGK && !e.hasBall);
                     if (oppList.some(e => isWithinRissaRange(anotherOwn, e))) {
                         pendingCardInteraction.ownPieceId = anotherOwn.id;
-                        showLocalToast(`Selezionato #${anotherOwn.num}! Ora tocca l'avversario.`, "info");
+                        emitSharedMatchEvent(`Selezionato #${anotherOwn.num}! Ora tocca l'avversario.`, "info", team);
                         updateHUD();
                         renderBoard();
                         return;
@@ -4356,7 +4407,7 @@
                 const oppP = vis.find(p => p.team !== team && !p.isGK && !p.hasBall && p.r === r && p.c === c);
                 if (!ownP || !oppP) return;
                 if (!isWithinRissaRange(ownP, oppP)) {
-                    showLocalToast("L'avversario deve essere entro 2 caselle di distanza (Manhattan, inclusa diagonale di 1)!", "warn");
+                    emitSharedMatchEvent("L'avversario deve essere entro 2 caselle di distanza (Manhattan, inclusa diagonale di 1)!", "warn", team);
                     return;
                 }
 
@@ -4373,13 +4424,12 @@
                     { pieceId: oppP.id, phase: currentPhase }
                 );
 
-                if (currentPhase <= 3) {
-                    plannedMoves[currentPhase].push({
-                        type: 'rissa_expulsion',
-                        ownId: ownP.id,
-                        oppId: oppP.id
-                    });
-                }
+                const targetReplayPhase = (currentPhase <= 3) ? currentPhase : 3;
+                plannedMoves[targetReplayPhase].push({
+                    type: 'rissa_expulsion',
+                    ownId: ownP.id,
+                    oppId: oppP.id
+                });
 
                 pendingCardInteraction = null;
                 emitRedCardShowcase([
@@ -4387,6 +4437,7 @@
                     { num: oppP.num, team: oppP.team }
                 ]);
                 emitSharedMatchEvent(`🥊 RISSA IN CAMPO! #${ownP.num} e #${oppP.num} espulsi entrambi per 10 turni!`, 'error', 'all');
+                checkAndTriggerNaturalReentryForPhase(currentPhase);
             }
 
             updateHUD();
@@ -4440,10 +4491,17 @@
 
             const activeTeam = getActiveTeamForPhase(currentPhase);
 
-            // Gestione interazioni carte su griglia (Allora fischiamo tutto / Rissa)
+            // Gestione interazioni carte su griglia (Allora fischiamo tutto / Rissa / Rientro)
             if (pendingCardInteraction && pendingCardInteraction.team === activeTeam) {
                 if (networkMode === 'ONLINE' && !isOnlineHost) {
-                    sendOnlineAction({ kind: 'CARD_GRID_INTERACTION', r, c, team: activeTeam });
+                    sendOnlineAction({
+                        kind: 'CARD_GRID_INTERACTION',
+                        r,
+                        c,
+                        team: activeTeam,
+                        stagedMoves: (currentPhase <= 3) ? plannedMoves[currentPhase] : null,
+                        remP1AP: p1ActionPoints
+                    });
                 } else {
                     handleCardGridClickOnHost(r, c, activeTeam);
                     if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
@@ -5377,6 +5435,9 @@
         }
 
         function playCardFromModal(key, idx, activeTeam, subMode) {
+            if (currentPhase === 4) {
+                plannedMoves[4] = null;
+            }
             if (networkMode === 'ONLINE' && !isOnlineHost) {
                 closeCardsModal();
                 sendOnlineAction({
@@ -5427,12 +5488,12 @@
                 return team === 'red' ? !activeBuffs.var_red : !activeBuffs.var_blue;
             }
             if (cardKey === 'fischiamo_tutto') {
-                const hasExpelled = expelledPlayers.some(ep => ep.team === team);
+                const hasExpelled = expelledPlayers.some(ep => ep.team === team) || pendingNaturalReentries.some(ep => ep.team === team);
                 const hasYellows = pieces.some(p => p.team === team && p.yellowCards > 0 && !p.redCardPending);
                 return hasExpelled || hasYellows;
             }
             if (cardKey === 'rissa') {
-                const vis = getVisiblePieces(currentPhase);
+                const vis = getPiecesFromTeamPerspective(currentPhase, team);
                 const ownList = vis.filter(p => p.team === team && !p.isGK && !p.hasBall);
                 const oppList = vis.filter(p => p.team !== team && !p.isGK && !p.hasBall);
                 return ownList.some(o => oppList.some(e => isWithinRissaRange(o, e)));
@@ -5443,7 +5504,6 @@
                 const carrier = vis.find(p => p.hasBall && p.team === team);
                 if (!carrier || carrier.isGK) return false;
                 if (isOpponentShootingCell(carrier.r, carrier.c, team)) return false;
-                // Ultime 4 righe offensive (righe 7, 8, 9, 10 per i Rossi; righe 1, 2, 3, 4 per i Blu)
                 return team === 'red' ? (carrier.r >= 7 && carrier.r <= 10) : (carrier.r >= 1 && carrier.r <= 4);
             }
             if (cardKey === 'fallo_tattico' || cardKey === 'fallo_rosso') {
@@ -5452,13 +5512,12 @@
                 if (arr.length === 0) return false;
                 const mv = arr[arr.length - 1];
                 const vis = getVisiblePieces(currentPhase);
-                // Verifica che il difensore che si è mosso sia ancora in campo (non espulso da Rissa)
                 if (!vis.some(p => p.id === mv.pieceId)) return false;
                 const carrier = vis.find(p => p.hasBall);
-                if (!carrier) return false;
+                // Il portiere (carrier.isGK) NON può mai subire Fallo Tattico o Fallo da Rosso!
+                if (!carrier || carrier.isGK) return false;
                 const dr = Math.abs(mv.toR - carrier.r);
                 const dc = Math.abs(mv.toC - carrier.c);
-                // Fallo Tattico: SOLO adiacente ortogonale (dr + dc === 1, NO diagonali!)
                 if (cardKey === 'fallo_tattico') return (dr + dc) === 1;
                 if (cardKey === 'fallo_rosso') return (dr + dc) <= 2 && (dr === 0 || dc === 0);
             }
@@ -5567,20 +5626,6 @@
 
         function executeMarottaLeagueCard(team) {
             checkAndRefundUnusedPhaseCards(4);
-            // Applica i movimenti pianificati di P1, P2, P3 prima di aprire l'estrattore del rigore
-            plannedMoves[1].forEach(m => {
-                if (!m || m.type !== 'move') return;
-                const p = pieces.find(x => x.id === m.pieceId);
-                if (p) { p.r = m.toR; p.c = m.toC; }
-            });
-            [2, 3].forEach(ph => {
-                (plannedMoves[ph] || []).forEach(mv => {
-                    if (!mv || mv.type !== 'move') return;
-                    const p = pieces.find(x => x.id === mv.pieceId);
-                    if (p) { p.r = mv.toR; p.c = mv.toC; }
-                });
-            });
-
             const baseChance = 50;
             const threshold = Math.max(5, activeBuffs.pioggia_wembley ? (baseChance - customSettings.pioggiaPenalty) : baseChance);
             const mods = activeBuffs.pioggia_wembley
@@ -5598,6 +5643,20 @@
         }
 
         function resolveMarottaLeagueOutcome(team, success) {
+            // Applica i movimenti pianificati di P1, P2, P3
+            plannedMoves[1].forEach(m => {
+                if (!m || m.type !== 'move') return;
+                const p = pieces.find(x => x.id === m.pieceId);
+                if (p) { p.r = m.toR; p.c = m.toC; }
+            });
+            [2, 3].forEach(ph => {
+                (plannedMoves[ph] || []).forEach(mv => {
+                    if (!mv || mv.type !== 'move') return;
+                    const p = pieces.find(x => x.id === mv.pieceId);
+                    if (p) { p.r = mv.toR; p.c = mv.toC; }
+                });
+            });
+
             const defTeam = team === 'red' ? 'blue' : 'red';
             const carrier = pieces.find(p => p.hasBall && p.team === team);
 
@@ -5605,10 +5664,20 @@
                 emitSharedMatchEvent(`⚖️ MAROTTA LEAGUE A SEGNO! CALCIO DI RIGORE ASSEGNATO!`, 'success', 'all');
                 startShootoutFlow();
             } else {
-                const cardRes = giveYellowCardToPiece(carrier, true);
+                const cardRes = giveYellowCardToPiece(carrier, false);
                 pieces.forEach(p => p.hasBall = false);
                 const defReceiver = findNearestDefenderTo(carrier ? carrier.r : 5, carrier ? carrier.c : 3, defTeam);
                 if (defReceiver) defReceiver.hasBall = true;
+
+                // Salva i metadati in plannedMoves[4] per il Replay (palla su carrier a inizio turno + eventuale 2° giallo in Fase 4)
+                plannedMoves[4] = {
+                    type: 'marotta_fail',
+                    fromId: carrier ? carrier.id : null,
+                    fromR: carrier ? carrier.r : 5,
+                    fromC: carrier ? carrier.c : 3,
+                    toId: defReceiver ? defReceiver.id : null,
+                    sentOffId: (cardRes.sentOff && carrier) ? carrier.id : null
+                };
 
                 attackingTeam = defTeam;
                 counterattackBonusTeam = defTeam;
@@ -5643,10 +5712,12 @@
 
             checkAndRefundUnusedPhaseCards(currentPhase);
 
-            // Se siamo in Fase 2, azzeriamo Fase 3 perché il turno finisce col fallo
             if (currentPhase === 2) {
                 plannedMoves[3] = [];
             }
+
+            const originalCarrier = pieces.find(p => p.hasBall);
+            const origCarrierId = originalCarrier ? originalCarrier.id : null;
 
             plannedMoves[1].forEach(m => {
                 if (!m || m.type !== 'move') return;
@@ -5668,6 +5739,12 @@
 
             pieces.forEach(p => p.hasBall = false);
             const foulingPiece = pieces.find(p => p.id === activeMove.pieceId);
+
+            // Registra chi aveva originariamente la palla per il Replay
+            plannedMoves[4] = {
+                type: 'foul_steal',
+                fromId: origCarrierId
+            };
 
             if (isRedCard && foulingPiece) {
                 expelledPlayers.push({ id: foulingPiece.id, num: foulingPiece.num, team: foulingPiece.team, turns: 10 });
@@ -6094,15 +6171,14 @@
             const panel = document.getElementById('resolution-replay-panel');
             if (panel) panel.classList.add('hidden');
 
-            // 1. Raccogliamo le mosse del turno in ordine cronologico
             const moves = [];
             [1, 2, 3].forEach(phase => {
                 (plannedMoves[phase] || []).forEach(move => {
                     if (!move) return;
-                    if (move.type === 'rissa_expulsion') {
-                        moves.push({ ...move, replayType: 'rissa_expulsion' });
-                    } else if (move.fromR !== move.toR || move.fromC !== move.toC) {
+                    if (move.type === 'move') {
                         moves.push({ ...move, replayType: 'move' });
+                    } else if (move.type === 'rissa_expulsion') {
+                        moves.push({ ...move, replayType: 'rissa_expulsion' });
                     }
                 });
             });
@@ -6110,7 +6186,7 @@
             const move4 = plannedMoves[4];
             if (move4 && move4.type === 'move' && (move4.fromR !== move4.toR || move4.fromC !== move4.toC)) {
                 moves.push({ ...move4, replayType: 'dribble' });
-                if (move4. endsWithRainMiss && move4.rainDefId) {
+                if (move4.endsWithRainMiss && move4.rainDefId) {
                     moves.push({
                         fromId: move4.pieceId,
                         toId: move4.rainDefId,
@@ -6153,6 +6229,12 @@
                     toR: (move4.targetGoalRow !== undefined) ? move4.targetGoalRow : (attackingTeam === 'red' ? 11 : 0),
                     toC: (move4.targetGoalCol !== undefined) ? move4.targetGoalCol : 3,
                     replayType: 'shot'
+                });
+            } else if (move4 && move4.type === 'marotta_fail' && move4.sentOffId) {
+                moves.push({
+                    ownId: move4.sentOffId,
+                    oppId: null,
+                    replayType: 'rissa_expulsion'
                 });
             }
 
@@ -6216,7 +6298,6 @@
                 }
             }
 
-            // Ricalcola e applica l'offset orizzontale (-68% / -32%) se due pedine condividono la stessa cella corrente durante il replay
             function refreshReplayCellOverlaps(liveCoordsMap, originCellMap) {
                 const cellGroups = {};
                 Object.keys(liveCoordsMap).forEach(pid => {
@@ -6254,13 +6335,21 @@
 
                 startState.forEach(p => p.hasBall = false);
                 if (move4) {
+                    let initialCarrierId = move4.pieceId || move4.fromId || move4.shooterId;
+                    if (move4.type === 'marotta_fail' || move4.type === 'foul_steal') {
+                        initialCarrierId = move4.fromId;
+                    }
                     const initialCarrier = startState.find(p =>
-                        (move4.pieceId && p.id === move4.pieceId) ||
-                        (move4.fromId && p.id === move4.fromId) ||
-                        (move4.shooterId && p.id === move4.shooterId) ||
-                        (p.r === move4.fromR && p.c === move4.fromC)
+                        p.id === initialCarrierId ||
+                        (move4.fromR !== undefined && p.r === move4.fromR && p.c === move4.fromC)
                     );
-                    if (initialCarrier) initialCarrier.hasBall = true;
+                    if (initialCarrier) {
+                        initialCarrier.hasBall = true;
+                    } else {
+                        // Fallback sul primo attaccante con palla
+                        const fallback = startState.find(p => p.team === attackingTeam && !p.isGK) || startState[0];
+                        if (fallback) fallback.hasBall = true;
+                    }
                 } else {
                     const finalCarrier = finalPiecesSnapshot.find(p => p.hasBall);
                     if (finalCarrier) {
@@ -6279,7 +6368,6 @@
                     liveCoordsMap[p.id] = { id: p.id, team: p.team, r: p.r, c: p.c, expelled: false };
                 });
 
-                // Mantiene anche a inizio replay la separazione visiva (-68% / -32%) per le pedine nella stessa cella
                 refreshReplayCellOverlaps(liveCoordsMap, originCellMap);
 
                 const arrowsLayer = document.getElementById('arrows-layer');
@@ -6326,12 +6414,11 @@
                             if (bIcon) bIcon.style.display = 'none';
                         }
 
-                        // Calcola la cella attuale del ricevitore/intercettore (se si è mosso in Fase 2/3 è nella nuova cella!)
-                        const destPos = (mv.toId && liveCoordsMap[mv.toId] && !mv.isSpacePass)
-                            ? liveCoordsMap[mv.toId]
-                            : { r: mv.toR, c: mv.toC };
+                        // Se c'è una destinazione d'intento (passaggio intercettato), facciamo volare la palla prima verso il compagno designato
+                        const targetPassR = (mv.intendedToR !== undefined) ? mv.intendedToR : mv.toR;
+                        const targetPassC = (mv.intendedToC !== undefined) ? mv.intendedToC : mv.toC;
 
-                        await animateBallOnGrid(mv.fromR, mv.fromC, destPos.r, destPos.c);
+                        await animateBallOnGrid(mv.fromR, mv.fromC, targetPassR, targetPassC);
 
                         const recTok = document.querySelector(`.board-token[data-piece-id="${mv.toId}"]`);
                         if (recTok && !mv.isSpacePass) {
@@ -6375,7 +6462,6 @@
                     await replayWait(700);
                 }
 
-                // Se a fine azione (es. contrasto su dribbling) la palla è passata al difensore, mostrala sui suoi piedi
                 const finalBallOwner = finalPiecesSnapshot.find(p => p.hasBall);
                 if (finalBallOwner) {
                     document.querySelectorAll('.board-token').forEach(el => {
@@ -6390,8 +6476,8 @@
                 }
 
                 if (generation !== resolutionReplayGeneration || gameState !== 'RESOLUTION') return;
-                pieces = JSON.parse(JSON.stringify(finalPiecesSnapshot)).filter(p => !p.redCardPending);
-                renderBoard();
+                // Mostra le frecce tattiche direttamente sopra le pedine già posizionate senza ricreare il DOM (zero scatti!)
+                drawTacticalArrows();
                 if (arrowsLayer) arrowsLayer.style.opacity = '1';
 
                 await replayWait(2200);
@@ -6402,17 +6488,13 @@
             }
 
             if (generation === resolutionReplayGeneration) {
-                pieces = finalPiecesSnapshot;
+                pieces = finalPiecesSnapshot.filter(p => !p.redCardPending);
                 resolutionFinalPiecesSnapshot = null;
                 const arrowsLayer = document.getElementById('arrows-layer');
                 if (arrowsLayer) arrowsLayer.style.opacity = '1';
                 renderBoard();
                 resolutionReplayRunning = false;
             }
-        }
-
-        function replayWait(ms) {
-            return new Promise(resolve => setTimeout(resolve, ms));
         }
 
         function setReplayPosition(element, r, c) {
@@ -6437,36 +6519,11 @@
 
         function executeResolution(isLongShot, rouletteSucceeded) {
             const defTeam = attackingTeam === 'red' ? 'blue' : 'red';
-
-            plannedMoves[1].forEach(m => {
-                if (m.type !== 'move') return;
-                const p = pieces.find(x => x.id === m.pieceId);
-                if (p) { p.r = m.toR; p.c = m.toC; }
-            });
-
-            [2, 3].forEach(ph => {
-                (plannedMoves[ph] || []).forEach(mv => {
-                    if (mv.type !== 'move') return;
-                    const p = pieces.find(x => x.id === mv.pieceId);
-                    if (p) { p.r = mv.toR; p.c = mv.toC; }
-                });
-            });
-
             const m4 = plannedMoves[4];
-            const carrierBeforeP4 = pieces.find(p => p.hasBall);
 
-            // Gestione esito Roulette per Tiro in Area sotto la Pioggia (dopo Dribbling o Passaggio in Zona Tiro già validato)
-            if (isLongShot && m4 && (m4.type === 'move' || m4.type === 'pass')) {
-                if (m4.type === 'move') {
-                    const carrier = pieces.find(p => p.id === m4.pieceId) || carrierBeforeP4;
-                    if (carrier) { carrier.r = m4.toR; carrier.c = m4.toC; }
-                } else if (m4.type === 'pass') {
-                    const sender = pieces.find(p => p.id === m4.fromId);
-                    const receiver = pieces.find(p => p.id === m4.toId);
-                    if (sender) sender.hasBall = false;
-                    if (receiver) { receiver.r = m4.toR; receiver.c = m4.toC; receiver.hasBall = true; }
-                }
-
+            // Caso speciale: ritorno dalla Roulette per Dribbling in Zona Tiro sotto la Pioggia (movimenti 1..3 e dribbling già applicati!)
+            if (isLongShot && m4 && m4.type === 'move' && m4.awaitingRainDribbleShot) {
+                m4.awaitingRainDribbleShot = false;
                 if (!rouletteSucceeded) {
                     pieces.forEach(p => p.hasBall = false);
                     const defReceiver = findNearestDefenderTo(defTeam === 'red' ? 2 : 9, 3, defTeam);
@@ -6490,10 +6547,25 @@
                     if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
                     return;
                 }
-
                 startShootoutFlow();
                 return;
             }
+
+            plannedMoves[1].forEach(m => {
+                if (m.type !== 'move') return;
+                const p = pieces.find(x => x.id === m.pieceId);
+                if (p) { p.r = m.toR; p.c = m.toC; }
+            });
+
+            [2, 3].forEach(ph => {
+                (plannedMoves[ph] || []).forEach(mv => {
+                    if (mv.type !== 'move') return;
+                    const p = pieces.find(x => x.id === mv.pieceId);
+                    if (p) { p.r = mv.toR; p.c = mv.toC; }
+                });
+            });
+
+            const carrierBeforeP4 = pieces.find(p => p.hasBall);
 
             // TIRO IN PORTA (Fase 4): il tiro parte sempre e NON può subire intercettazione sulla casella di partenza!
             if (isLongShot && m4 && m4.type === 'longshot') {
@@ -6558,6 +6630,7 @@
                 if (isOpponentShootingCell(carrier.r, carrier.c, attackingTeam)) {
                     if (!requireFivePastMidfield || countAttackersPastMidfield(pieces) >= 5) {
                         if (activeBuffs.pioggia_wembley) {
+                            m4.awaitingRainDribbleShot = true;
                             openManualRouletteModal(
                                 "TIRO IN AREA SOTTO LA PIOGGIA",
                                 `Pioggia a Wembley: -${customSettings.pioggiaPenalty}%`,
@@ -6590,6 +6663,9 @@
 
                 if (!rouletteSucceeded) {
                     pieces.forEach(p => p.hasBall = false);
+                    // Salva la destinazione originaria per disegnare la freccia gialla del tentativo di passaggio
+                    m4.intendedToR = m4.toR;
+                    m4.intendedToC = m4.toC;
                     const interceptor = findNearestDefenderTo(m4.toR, m4.toC, defTeam);
                     if (interceptor) {
                         interceptor.hasBall = true;
@@ -6644,17 +6720,9 @@
                     receiver.hasBall = true;
                 }
 
+                // Se il passaggio (che ha già superato l'eventuale roulette della pioggia) arriva in Zona Tiro e non è stato anticipato, va diretto al tiro!
                 if (receiver && isOpponentShootingCell(receiver.r, receiver.c, attackingTeam)) {
                     if (!requireFivePastMidfield || countAttackersPastMidfield(pieces) >= 5) {
-                        if (activeBuffs.pioggia_wembley) {
-                            openManualRouletteModal(
-                                "TIRO IN AREA SOTTO LA PIOGGIA",
-                                `Pioggia a Wembley: -${customSettings.pioggiaPenalty}%`,
-                                100 - customSettings.pioggiaPenalty,
-                                true
-                            );
-                            return;
-                        }
                         startShootoutFlow();
                         return;
                     }
@@ -6704,6 +6772,14 @@
             const increment = 90 / (customSettings.matchDuration || 30);
             matchMinute += increment;
             turnNumber += 1;
+
+            // Decrementa sempre di 1 turno le espulsioni a ogni fine turno (anche dopo Gol o fine 1° tempo)
+            const recovered = expelledPlayers.filter(e => e.turns <= 0);
+            recovered.forEach(e => {
+                pendingNaturalReentries.push({ id: e.id, num: e.num, team: e.team });
+                emitSharedMatchEvent(`⏱️ Squalifica terminata per #${e.num} (${getTeamDisplayName(e.team)})! Rientrerà nella prossima fase della sua squadra.`, 'info', 'all');
+            });
+            expelledPlayers = expelledPlayers.filter(e => e.turns > 0);
 
             // Pesca periodica di 1 nuova carta per squadra ogni N turni (es. ogni 2 turni completati)
             const completedTurns = turnNumber - 1;
@@ -7167,6 +7243,9 @@
             expelledPlayers.forEach(ep => {
                 badgesRow.innerHTML += `<span class="px-2 py-0.5 rounded bg-red-600/30 border border-red-400/40 text-red-200 text-[9px] font-black">🟥 #${ep.num} (${ep.turns}t)</span>`;
             });
+            pendingNaturalReentries.forEach(ep => {
+                badgesRow.innerHTML += `<span class="px-2 py-0.5 rounded bg-purple-600/30 border border-purple-400/40 text-purple-200 text-[9px] font-black">↩️ #${ep.num} (Rientro)</span>`;
+            });
 
             // Gestione Banner Permanente "TUO TURNO" in alto a sinistra dell'area
             const myTurn = isMyTurnOnline();
@@ -7515,7 +7594,9 @@
                     if (m4.isSpacePass && (m4.snapFromR !== m4.toR || m4.snapFromC !== m4.toC)) {
                         drawSingleSVGArrow(group, m4.snapFromR, m4.snapFromC, m4.toR, m4.toC, '#22d3ee', 'arrow-space', false);
                     }
-                    drawSingleSVGArrow(group, m4.fromR, m4.fromC, m4.toR, m4.toC, '#facc15', 'arrow-pass', true);
+                    const arrowTargetR = (m4.intendedToR !== undefined) ? m4.intendedToR : m4.toR;
+                    const arrowTargetC = (m4.intendedToC !== undefined) ? m4.intendedToC : m4.toC;
+                    drawSingleSVGArrow(group, m4.fromR, m4.fromC, arrowTargetR, arrowTargetC, '#facc15', 'arrow-pass', true);
                 } else if (m4.type === 'longshot') {
                     const targetGoalRow = (m4.targetGoalRow !== undefined) ? m4.targetGoalRow : (attackingTeam === 'red' ? 11 : 0);
                     const targetGoalCol = (m4.targetGoalCol !== undefined) ? m4.targetGoalCol : 3;
