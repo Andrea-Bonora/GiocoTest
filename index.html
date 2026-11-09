@@ -1947,11 +1947,24 @@
         // Accoda una richiesta di pesca animata se la squadra può pescare almeno 1 carta valida
         function queueInteractiveCardDrawForTeam(team, reasonText) {
             const currentHand = teamCards[team] || [];
-            if (currentHand.length >= customSettings.maxCardsInHand) return false;
+            // Conta quante pescate sono già in attesa per questa squadra in questo momento
+            const pendingCount = pendingCardDraws.filter(
+                d => d.team === team && (d.status === 'WAITING' || d.status === 'ROLLING')
+            ).length;
+
+            // Se tra carte in mano e pescate già in coda raggiungiamo il massimo, non accodare un'altra finestra!
+            if (currentHand.length + pendingCount >= customSettings.maxCardsInHand) return false;
+
             const enabledKeys = Object.keys(CARD_CATALOG).filter(k => customSettings.enabledCards[k] !== false);
             const maxDup = customSettings.maxDuplicatesPerCard || 2;
             const validKeys = enabledKeys.filter(k => currentHand.filter(c => c === k).length < maxDup);
-            if (validKeys.length === 0) return false;
+
+            // Verifica anche che ci siano abbastanza carte pescabili nel mazzo rispetto a quelle già in coda
+            const totalAvailableSlotsInDeck = validKeys.reduce((acc, k) => {
+                const owned = currentHand.filter(c => c === k).length;
+                return acc + Math.max(0, maxDup - owned);
+            }, 0);
+            if (totalAvailableSlotsInDeck <= pendingCount) return false;
 
             const drawId = 'draw_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
             pendingCardDraws.push({
@@ -1973,6 +1986,11 @@
         function syncCardDrawModalUI() {
             const modal = document.getElementById('modal-card-draw');
             if (!modal) return;
+            // Non mostrare MAI l'animazione di pesca finché è aperta la schermata di Tiro/Parata o Fine Tempo!
+            if (gameState === 'SHOOTOUT' || gameState === 'PERIOD_END' || gameState === 'ROULETTE') {
+                modal.classList.add('hidden');
+                return;
+            }
             const activeDraw = getActiveVisibleCardDraw();
             if (!activeDraw) {
                 modal.classList.add('hidden');
@@ -2150,11 +2168,11 @@
             const activeDraw = getActiveVisibleCardDraw();
             if (!activeDraw) return;
             locallyClosedDrawIds.add(activeDraw.id);
-            if (networkMode === 'LOCAL' || isOnlineHost) {
-                // In locale rimuoviamo subito; online ogni membro della squadra lo chiude sul proprio schermo
-                if (networkMode === 'LOCAL') {
-                    pendingCardDraws = pendingCardDraws.filter(d => d.id !== activeDraw.id);
-                }
+            if (networkMode === 'ONLINE' && !isOnlineHost) {
+                sendOnlineAction({ kind: 'ACK_CARD_DRAW', drawId: activeDraw.id });
+            } else {
+                pendingCardDraws = pendingCardDraws.filter(d => d.id !== activeDraw.id);
+                if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
             }
             syncCardDrawModalUI();
             updateHUD();
@@ -3416,6 +3434,7 @@
                 currentHalf,
                 firstHalfKickoffTeam,
                 currentPhase,
+                turnAttackingTeam,
                 attackingTeam,
                 requireFivePastMidfield,
                 customSettings,
@@ -3591,21 +3610,22 @@
                     const movableLeftAfter = getAvailableMovablePiecesCount(act.phase);
 
                     if (act.phase === 1) {
-                        const totalRequiredP1 = p1TotalRequiredAP + (activeBuffs.fartlek_used ? 1 : 0);
-                        const remP1 = Math.max(0, totalRequiredP1 - actualMovesDone);
+                        const minRequiredP1 = p1TotalRequiredAP;
+                        const remBaseP1 = Math.max(0, minRequiredP1 - actualMovesDone);
 
-                        if (remP1 > 0 && movableLeftAfter > 0) {
+                        if (remBaseP1 > 0 && movableLeftAfter > 0) {
                             plannedMoves[act.phase] = prevMoves;
-                            showLocalToast(`Conferma rifiutata: devi utilizzare tutti i PA!`, "warn");
+                            showLocalToast(`Conferma rifiutata: devi utilizzare tutti i PA base!`, "warn");
                             broadcastFullStateFromHost();
                             return;
                         }
-                        p1ActionPoints = 0;
+                        p1ActionPoints = Math.max(0, (p1TotalRequiredAP + (activeBuffs.fartlek_used ? 1 : 0)) - actualMovesDone);
                     } else {
-                        const requiredDefPA = act.phase === 2 ? p2ActionPoints : p3ActionPoints;
-                        if (actualMovesDone < requiredDefPA && movableLeftAfter > 0) {
+                        const fartlekBonus = activeBuffs.fartlek_used ? 1 : 0;
+                        const minRequiredDefPA = Math.max(1, (act.phase === 2 ? p2ActionPoints : p3ActionPoints) - fartlekBonus);
+                        if (actualMovesDone < minRequiredDefPA && movableLeftAfter > 0) {
                             plannedMoves[act.phase] = prevMoves;
-                            showLocalToast(`Conferma rifiutata: devi utilizzare tutti i ${requiredDefPA} PA!`, "warn");
+                            showLocalToast(`Conferma rifiutata: devi utilizzare i PA della fase!`, "warn");
                             broadcastFullStateFromHost();
                             return;
                         }
@@ -3664,6 +3684,9 @@
             else if (act.kind === 'TRIGGER_CARD_DRAW') {
                 triggerTeamCardDraw(true, resolvedSlot);
             }
+            else if (act.kind === 'ACK_CARD_DRAW') {
+                pendingCardDraws = pendingCardDraws.filter(d => d.id !== act.drawId);
+            }
             broadcastFullStateFromHost();
         }
 
@@ -3705,6 +3728,7 @@
             firstHalfKickoffTeam = st.firstHalfKickoffTeam || 'red';
             currentPhase = st.currentPhase;
             attackingTeam = st.attackingTeam;
+            turnAttackingTeam = st.turnAttackingTeam || st.attackingTeam;
             scoreRed = st.scoreRed;
             scoreBlue = st.scoreBlue;
             pieces = st.pieces;
@@ -3722,18 +3746,14 @@
             shootoutState = st.shootoutState;
             readyConfirmations = st.readyConfirmations || readyConfirmations;
 
-            // Update local plannedMoves if phase/turn changed, or if Fartlek granted extra AP on Host
-            if (prevPhase !== currentPhase || prevTurn !== turnNumber || prevState !== gameState || !isMyTurnOnline()) {
-                plannedMoves = st.plannedMoves;
-                p1ActionPoints = st.p1ActionPoints;
-                p2ActionPoints = st.p2ActionPoints;
-                p3ActionPoints = st.p3ActionPoints;
+            // Aggiorna sempre plannedMoves dall'Host; azzera selectedPieceId solo se cambia effettivamente fase o turno
+            plannedMoves = st.plannedMoves;
+            p1ActionPoints = st.p1ActionPoints;
+            p2ActionPoints = st.p2ActionPoints;
+            p3ActionPoints = st.p3ActionPoints;
+            if (prevPhase !== currentPhase || prevTurn !== turnNumber || !isMyTurnOnline()) {
                 p4Mode = st.p4Mode;
                 selectedPieceId = null;
-            } else {
-                p1ActionPoints = st.p1ActionPoints;
-                p2ActionPoints = st.p2ActionPoints;
-                p3ActionPoints = st.p3ActionPoints;
             }
 
             if (Array.isArray(st.cardShowcaseEvents)) {
@@ -3898,7 +3918,7 @@
                 return getMyTeamOnline() === 'red';
             }
             if (gameState === 'RESOLUTION') {
-                return attackingTeam === 'red';
+                return (turnAttackingTeam || attackingTeam) === 'red';
             }
             return getActiveTeamForPhase(currentPhase) === 'red';
         }
@@ -4042,6 +4062,13 @@
         // =========================================================================
         // UNUSED CARD REFUND & TRAP CLEANUP
         // =========================================================================
+        function refundCardToTeamIfSpace(team, cardKey, msgText) {
+            if (teamCards[team].length < customSettings.maxCardsInHand) {
+                teamCards[team].push(cardKey);
+                emitSharedMatchEvent(msgText, 'info', team);
+            }
+        }
+
         function checkAndRefundUnusedPhaseCards(phase) {
             const activeTeam = getActiveTeamForPhase(phase);
 
@@ -4065,8 +4092,7 @@
                 }
 
                 if (!sprintEffectUsed) {
-                    teamCards[activeTeam].push('extra_sprint');
-                    emitSharedMatchEvent(`↩️ Effetto "Extra Sprint" non sfruttato: la carta torna nel mazzo!`, 'info', activeTeam);
+                    refundCardToTeamIfSpace(activeTeam, 'extra_sprint', `↩️ Effetto "Extra Sprint" non sfruttato: la carta torna nel mazzo!`);
                 }
                 activeBuffs.extra_sprint = false;
             }
@@ -4086,8 +4112,7 @@
                         if (m4.minDist > 0 || activeBuffs.pioggia_wembley) misterUsed = true;
                     }
                     if (!misterUsed) {
-                        teamCards[activeTeam].push('mister_lei');
-                        emitSharedMatchEvent(`↩️ Effetto "Mister, questo è per lei" non sfruttato: la carta torna nel mazzo!`, 'info', activeTeam);
+                        refundCardToTeamIfSpace(activeTeam, 'mister_lei', `↩️ Effetto "Mister, questo è per lei" non sfruttato: la carta torna nel mazzo!`);
                     }
                     activeBuffs.mister_lei = false;
                 }
@@ -4096,7 +4121,7 @@
             if (activeBuffs.fartlek_used && phase <= 3) {
                 let fartlekUsedInPhase = false;
                 if (phase === 1) {
-                    fartlekUsedInPhase = (countActualMoves(plannedMoves[1]) > p1TotalRequiredAP) || (p1ActionPoints === 0);
+                    fartlekUsedInPhase = (countActualMoves(plannedMoves[1]) > p1TotalRequiredAP);
                 } else if (phase === 2) {
                     fartlekUsedInPhase = (countActualMoves(plannedMoves[2]) >= p2ActionPoints);
                 } else if (phase === 3) {
@@ -4104,8 +4129,10 @@
                 }
 
                 if (!fartlekUsedInPhase) {
-                    teamCards[activeTeam].push('fartlek');
-                    emitSharedMatchEvent(`↩️ PA extra di "Fartlek" non utilizzato: la carta torna nel mazzo!`, 'info', activeTeam);
+                    refundCardToTeamIfSpace(activeTeam, 'fartlek', `↩️ PA extra di "Fartlek" non utilizzato: la carta torna nel mazzo!`);
+                    if (phase === 1) p1ActionPoints = 0;
+                    else if (phase === 2) p2ActionPoints = Math.max(1, p2ActionPoints - 1);
+                    else if (phase === 3) p3ActionPoints = Math.max(1, p3ActionPoints - 1);
                 }
                 activeBuffs.fartlek_used = false;
             }
@@ -4134,20 +4161,21 @@
             const idx = pendingNaturalReentries.findIndex(ep => ep.team === activeTeam);
             if (idx !== -1) {
                 const ep = pendingNaturalReentries[idx];
-                const drawerSlot = getRequiredSlotForPhase(phase);
-                
-                // Attiva l'interazione solo sul dispositivo del giocatore di turno (es. P2 o P1)
-                const pseudoDraw = { drawerSlot, team: activeTeam };
-                if (canCurrentDeviceClickCardDraw(pseudoDraw)) {
-                    pendingCardInteraction = {
-                        type: 'NATURAL_REENTRY',
-                        team: activeTeam,
-                        playerObj: ep
-                    };
-                    emitSharedMatchEvent(`⏱️ Fine squalifica per #${ep.num}! Tocca una casella viola nella tua metà campo per farlo rientrare.`, 'info', activeTeam);
-                }
+                const requiredSlot = getRequiredSlotForPhase(phase);
+                pendingCardInteraction = {
+                    type: 'NATURAL_REENTRY',
+                    team: activeTeam,
+                    playerObj: ep
+                };
+                emitSharedMatchEvent(
+                    `⏱️ Fine squalifica per #${ep.num}! ${getSlotDisplayName(requiredSlot)} deve toccare una casella viola nella propria metà campo per farlo rientrare.`,
+                    'info',
+                    activeTeam
+                );
             }
         }
+
+        let turnAttackingTeam = 'red'; // Ricorda chi attaccava nel turno per non invertire frecce/visuale nel Replay
 
         function startTurn() {
             stopResolutionReplay();
@@ -4171,6 +4199,7 @@
             });
             expelledPlayers = expelledPlayers.filter(e => e.turns > 0);
 
+            turnAttackingTeam = attackingTeam;
             currentPhase = 1;
             const baseP1 = customSettings.p1BaseAP || 2;
             const baseP23 = customSettings.p23BaseAP || 1;
@@ -4285,12 +4314,21 @@
             if (r === 0 || r === 11) return false;
             const inOwnHalf = team === 'red' ? (r >= 1 && r <= 5) : (r >= 6 && r <= 10);
             if (!inOwnHalf) return false;
-            const vis = getVisiblePieces(currentPhase);
-            // Controlla anche le mosse pianificate nella fase corrente
-            const occupiedByPlanned = (plannedMoves[currentPhase] || []).some && Array.isArray(plannedMoves[currentPhase])
-                ? plannedMoves[currentPhase].some(m => m.toR === r && m.toC === c)
+
+            const vis = getPiecesFromTeamPerspective(currentPhase, team);
+            const occupiedByPlanned = Array.isArray(plannedMoves[currentPhase])
+                ? plannedMoves[currentPhase].some(m => m && m.type === 'move' && m.toR === r && m.toC === c)
                 : false;
             if (vis.some(p => p.r === r && p.c === c) || occupiedByPlanned) return false;
+
+            // Rispetta il limite di massimo 1 giocatore nella propria Zona di Tiro difensiva
+            if (isOwnDefendingShootingCell(r, c, team)) {
+                const alreadyInShootZone = vis.some(p =>
+                    p.team === team && !p.isGK && isOwnDefendingShootingCell(p.r, p.c, team)
+                );
+                if (alreadyInShootZone) return false;
+            }
+
             return true;
         }
 
@@ -4814,12 +4852,11 @@
                 pendingCardInteraction.type = 'RISSA_OWN';
                 pendingCardInteraction.ownPieceId = null;
             } else {
-                // Rimborsa la carta in mano se annulli prima di usarla!
+                // Rimborsa la carta in mano se annulli prima di usarla (rispettando il limite massimo di carte)
                 const t = pendingCardInteraction.team;
                 const cardToRefund = (pendingCardInteraction.type === 'RISSA_OWN') ? 'rissa' : 'fischiamo_tutto';
-                teamCards[t].push(cardToRefund);
                 pendingCardInteraction = null;
-                emitSharedMatchEvent(`↩️ Azione carta annullata: la carta torna nel mazzo!`, 'info', t);
+                refundCardToTeamIfSpace(t, cardToRefund, `↩️ Azione carta annullata: la carta torna nel mazzo!`);
             }
             updateHUD();
             renderBoard();
@@ -4842,14 +4879,20 @@
         }
 
         function validatePhaseActionPoints(phase, moves, remainingP1 = p1ActionPoints) {
-            // Se non ci sono più calciatori che possono muoversi, sblocca sempre la conferma!
             if (getAvailableMovablePiecesCount(phase) === 0) return true;
-            
+
             const actualMovesCount = countActualMoves(moves);
-            if (phase === 1) return remainingP1 <= 0;
-            if (phase === 2) return actualMovesCount >= p2ActionPoints;
-            if (phase === 3) return actualMovesCount >= p3ActionPoints;
-            
+            const fartlekBonus = activeBuffs.fartlek_used ? 1 : 0;
+
+            if (phase === 1) {
+                return actualMovesCount >= p1TotalRequiredAP || remainingP1 <= 0;
+            }
+            if (phase === 2) {
+                return actualMovesCount >= Math.max(1, p2ActionPoints - fartlekBonus);
+            }
+            if (phase === 3) {
+                return actualMovesCount >= Math.max(1, p3ActionPoints - fartlekBonus);
+            }
             return true;
         }
 
@@ -5488,11 +5531,12 @@
                 return team === 'red' ? !activeBuffs.var_red : !activeBuffs.var_blue;
             }
             if (cardKey === 'fischiamo_tutto') {
-                const hasExpelled = expelledPlayers.some(ep => ep.team === team) || pendingNaturalReentries.some(ep => ep.team === team);
+                const hasExpelled = expelledPlayers.some(ep => ep.team === team);
                 const hasYellows = pieces.some(p => p.team === team && p.yellowCards > 0 && !p.redCardPending);
                 return hasExpelled || hasYellows;
             }
             if (cardKey === 'rissa') {
+                if (currentPhase !== 1 && currentPhase !== 2 && currentPhase !== 3) return false;
                 const vis = getPiecesFromTeamPerspective(currentPhase, team);
                 const ownList = vis.filter(p => p.team === team && !p.isGK && !p.hasBall);
                 const oppList = vis.filter(p => p.team !== team && !p.isGK && !p.hasBall);
@@ -5669,13 +5713,14 @@
                 const defReceiver = findNearestDefenderTo(carrier ? carrier.r : 5, carrier ? carrier.c : 3, defTeam);
                 if (defReceiver) defReceiver.hasBall = true;
 
-                // Salva i metadati in plannedMoves[4] per il Replay (palla su carrier a inizio turno + eventuale 2° giallo in Fase 4)
                 plannedMoves[4] = {
                     type: 'marotta_fail',
                     fromId: carrier ? carrier.id : null,
                     fromR: carrier ? carrier.r : 5,
                     fromC: carrier ? carrier.c : 3,
                     toId: defReceiver ? defReceiver.id : null,
+                    toR: defReceiver ? defReceiver.r : 5,
+                    toC: defReceiver ? defReceiver.c : 3,
                     sentOffId: (cardRes.sentOff && carrier) ? carrier.id : null
                 };
 
@@ -5699,7 +5744,6 @@
                     );
                 }
                 updateHUD();
-                renderBoard();
                 if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
             }
         }
@@ -5718,6 +5762,8 @@
 
             const originalCarrier = pieces.find(p => p.hasBall);
             const origCarrierId = originalCarrier ? originalCarrier.id : null;
+            const origCarrierR = originalCarrier ? originalCarrier.r : activeMove.toR;
+            const origCarrierC = originalCarrier ? originalCarrier.c : activeMove.toC;
 
             plannedMoves[1].forEach(m => {
                 if (!m || m.type !== 'move') return;
@@ -5740,11 +5786,9 @@
             pieces.forEach(p => p.hasBall = false);
             const foulingPiece = pieces.find(p => p.id === activeMove.pieceId);
 
-            // Registra chi aveva originariamente la palla per il Replay
-            plannedMoves[4] = {
-                type: 'foul_steal',
-                fromId: origCarrierId
-            };
+            let bannerTitle = "";
+            let bannerDesc = "";
+            let bannerColor = "text-red-400";
 
             if (isRedCard && foulingPiece) {
                 expelledPlayers.push({ id: foulingPiece.id, num: foulingPiece.num, team: foulingPiece.team, turns: 10 });
@@ -5760,39 +5804,46 @@
                 let receiver = findNearestDefenderTo(activeMove.toR, activeMove.toC, defTeam) || pieces.find(p => p.team === defTeam && !p.redCardPending);
                 if (receiver) receiver.hasBall = true;
 
-                showResolutionBanner(
-                    "🟥 FALLO DA ROSSO! POSSESSO RUBATO!",
-                    `#${foulingPiece.num} ferma l'azione ed è espulso per 10 turni! Palla e +1 PA contropiede ai ${getTeamDisplayName(defTeam)}.`,
-                    "text-red-400"
-                );
+                bannerTitle = "🟥 FALLO DA ROSSO! POSSESSO RUBATO!";
+                bannerDesc = `#${foulingPiece.num} ferma l'azione ed è espulso per 10 turni! Palla e +1 PA contropiede ai ${getTeamDisplayName(defTeam)}.`;
+                bannerColor = "text-red-400";
             } else if (foulingPiece) {
                 const yellowRes = giveYellowCardToPiece(foulingPiece, true);
                 if (yellowRes.sentOff) {
                     let receiver = findNearestDefenderTo(activeMove.toR, activeMove.toC, defTeam) || pieces.find(p => p.team === defTeam && !p.redCardPending);
                     if (receiver) receiver.hasBall = true;
 
-                    showResolutionBanner(
-                        "🟨🟨 = 🟥 FALLO TATTICO: SECONDO GIALLO!",
-                        `#${foulingPiece.num} ruba palla ma rimedia il 2° giallo ed è espulso! Palla ai ${getTeamDisplayName(defTeam)}.`,
-                        "text-red-400"
-                    );
+                    bannerTitle = "🟨🟨 = 🟥 FALLO TATTICO: SECONDO GIALLO!";
+                    bannerDesc = `#${foulingPiece.num} ruba palla ma rimedia il 2° giallo ed è espulso! Palla ai ${getTeamDisplayName(defTeam)}.`;
+                    bannerColor = "text-red-400";
                 } else {
                     foulingPiece.hasBall = true;
-                    showResolutionBanner(
-                        "🟨 FALLO TATTICO PERFETTO (CON AMMONIZIONE)!",
-                        `#${foulingPiece.num} ruba palla in anticipo (🟨)! +1 PA contropiede ai ${getTeamDisplayName(defTeam)}.`,
-                        "text-amber-400"
-                    );
+                    bannerTitle = "🟨 FALLO TATTICO PERFETTO (CON AMMONIZIONE)!";
+                    bannerDesc = `#${foulingPiece.num} ruba palla in anticipo (🟨)! +1 PA contropiede ai ${getTeamDisplayName(defTeam)}.`;
+                    bannerColor = "text-amber-400";
                 }
             }
+
+            // Ora che hasBall è stato assegnato al difensore, salviamo plannedMoves[4] per il Replay!
+            const newBallHolder = pieces.find(p => p.hasBall);
+            plannedMoves[4] = {
+                type: 'foul_steal',
+                fromId: origCarrierId,
+                fromR: origCarrierR,
+                fromC: origCarrierC,
+                toId: newBallHolder ? newBallHolder.id : null,
+                toR: newBallHolder ? newBallHolder.r : activeMove.toR,
+                toC: newBallHolder ? newBallHolder.c : activeMove.toC
+            };
 
             attackingTeam = defTeam;
             counterattackBonusTeam = defTeam;
             gameState = 'RESOLUTION';
             resetReadyConfirmations('RESOLUTION');
             cleanupEndOfTurnBuffs();
+            showResolutionBanner(bannerTitle, bannerDesc, bannerColor);
             updateHUD();
-            renderBoard();
+            if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
         }
 
         // =========================================================================
@@ -6198,7 +6249,6 @@
                     });
                 }
             } else if (move4 && move4.type === 'pass') {
-                moves.push({ ...move4, replayType: 'pass' });
                 if (move4.isSpacePass && (move4.snapFromR !== move4.toR || move4.snapFromC !== move4.toC)) {
                     moves.push({
                         pieceId: move4.toId,
@@ -6209,32 +6259,48 @@
                         replayType: 'receiver'
                     });
                 }
-                if (move4.endsWithRainMiss && move4.rainDefId) {
-                    moves.push({
-                        fromId: move4.toId,
-                        toId: move4.rainDefId,
-                        fromR: move4.toR,
-                        fromC: move4.toC,
-                        toR: move4.rainDefR,
-                        toC: move4.rainDefC,
-                        replayType: 'shot'
-                    });
-                }
+                moves.push({ ...move4, replayType: 'pass' });
             } else if (move4 && move4.type === 'longshot') {
+                const refAtt = turnAttackingTeam || attackingTeam;
                 moves.push({
                     fromId: move4.shooterId || (pieces.find(p => p.r === move4.fromR && p.c === move4.fromC) || {}).id,
                     toId: move4.toId || null,
                     fromR: move4.fromR,
                     fromC: move4.fromC,
-                    toR: (move4.targetGoalRow !== undefined) ? move4.targetGoalRow : (attackingTeam === 'red' ? 11 : 0),
+                    toR: (move4.targetGoalRow !== undefined) ? move4.targetGoalRow : (refAtt === 'red' ? 11 : 0),
                     toC: (move4.targetGoalCol !== undefined) ? move4.targetGoalCol : 3,
                     replayType: 'shot'
                 });
-            } else if (move4 && move4.type === 'marotta_fail' && move4.sentOffId) {
+            } else if (move4 && move4.type === 'marotta_fail') {
+                if (move4.sentOffId) {
+                    moves.push({
+                        ownId: move4.sentOffId,
+                        oppId: null,
+                        replayType: 'rissa_expulsion'
+                    });
+                }
+                if (move4.toId) {
+                    moves.push({
+                        fromId: move4.fromId,
+                        toId: move4.toId,
+                        fromR: move4.fromR,
+                        fromC: move4.fromC,
+                        toR: move4.toR,
+                        toC: move4.toC,
+                        isSpacePass: false,
+                        replayType: 'pass'
+                    });
+                }
+            } else if (move4 && move4.type === 'foul_steal' && move4.toId) {
                 moves.push({
-                    ownId: move4.sentOffId,
-                    oppId: null,
-                    replayType: 'rissa_expulsion'
+                    fromId: move4.fromId,
+                    toId: move4.toId,
+                    fromR: move4.fromR,
+                    fromC: move4.fromC,
+                    toR: move4.toR,
+                    toC: move4.toC,
+                    isSpacePass: false,
+                    replayType: 'pass'
                 });
             }
 
@@ -6291,8 +6357,10 @@
                 tokEl.classList.add('ball-aura');
                 const innerDiv = tokEl.querySelector('.counter-flip');
                 if (innerDiv && !innerDiv.querySelector('.ball-icon')) {
+                    const isGKToken = innerDiv.innerText && innerDiv.innerText.includes('GK');
+                    const posCls = isGKToken ? '-bottom-1.5 -right-1.5 text-xs' : '-top-2 -right-2 text-xs';
                     const newBall = document.createElement('span');
-                    newBall.className = 'ball-icon absolute -top-2 -right-2 text-xs drop-shadow-[0_2px_6px_rgba(0,0,0,0.95)]';
+                    newBall.className = `ball-icon absolute ${posCls} drop-shadow-[0_2px_6px_rgba(0,0,0,0.95)]`;
                     newBall.innerText = '⚽';
                     innerDiv.appendChild(newBall);
                 }
@@ -6346,8 +6414,9 @@
                     if (initialCarrier) {
                         initialCarrier.hasBall = true;
                     } else {
-                        // Fallback sul primo attaccante con palla
-                        const fallback = startState.find(p => p.team === attackingTeam && !p.isGK) || startState[0];
+                        // Fallback sul primo attaccante della squadra che aveva iniziato il turno
+                        const refAtt = turnAttackingTeam || attackingTeam;
+                        const fallback = startState.find(p => p.team === refAtt && !p.isGK) || startState[0];
                         if (fallback) fallback.hasBall = true;
                     }
                 } else {
@@ -6414,14 +6483,15 @@
                             if (bIcon) bIcon.style.display = 'none';
                         }
 
-                        // Se c'è una destinazione d'intento (passaggio intercettato), facciamo volare la palla prima verso il compagno designato
-                        const targetPassR = (mv.intendedToR !== undefined) ? mv.intendedToR : mv.toR;
-                        const targetPassC = (mv.intendedToC !== undefined) ? mv.intendedToC : mv.toC;
+                        // Il pallone vola verso la cella attuale del destinatario reale (compagno o intercettore)
+                        const destPos = (mv.toId && liveCoordsMap[mv.toId] && !mv.isSpacePass)
+                            ? liveCoordsMap[mv.toId]
+                            : { r: mv.toR, c: mv.toC };
 
-                        await animateBallOnGrid(mv.fromR, mv.fromC, targetPassR, targetPassC);
+                        await animateBallOnGrid(mv.fromR, mv.fromC, destPos.r, destPos.c);
 
                         const recTok = document.querySelector(`.board-token[data-piece-id="${mv.toId}"]`);
-                        if (recTok && !mv.isSpacePass) {
+                        if (recTok) {
                             attachBallIconToToken(recTok);
                         }
                         continue;
@@ -6453,10 +6523,6 @@
                         tokEl.style.transition = 'transform 0.65s cubic-bezier(0.22, 1, 0.36, 1)';
                         tokEl.style.zIndex = '48';
                         refreshReplayCellOverlaps(liveCoordsMap, originCellMap);
-
-                        if (mv.replayType === 'receiver') {
-                            attachBallIconToToken(tokEl);
-                        }
                     }
 
                     await replayWait(700);
@@ -6495,6 +6561,10 @@
                 renderBoard();
                 resolutionReplayRunning = false;
             }
+        }
+
+        function replayWait(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
         }
 
         function setReplayPosition(element, r, c) {
@@ -6543,7 +6613,6 @@
                         "text-red-400"
                     );
                     updateHUD();
-                    renderBoard();
                     if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
                     return;
                 }
@@ -6591,7 +6660,6 @@
                         "text-red-400"
                     );
                     updateHUD();
-                    renderBoard();
                     if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
                     return;
                 }
@@ -6622,7 +6690,6 @@
                     );
                     emitInterceptionShowcase(defenderOnBall, `#${defenderOnBall.num} (${getTeamDisplayName(defTeam)}) intercetta il dribbling di #${carrier.num} e ruba palla!`);
                     updateHUD();
-                    renderBoard();
                     if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
                     return;
                 }
@@ -6652,7 +6719,6 @@
                     "text-emerald-400"
                 );
                 updateHUD();
-                renderBoard();
                 if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
                 return;
             }
@@ -6685,7 +6751,6 @@
                         "text-red-400"
                     );
                     updateHUD();
-                    renderBoard();
                     if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
                     return;
                 }
@@ -6708,7 +6773,6 @@
                     );
                     emitInterceptionShowcase(defenderOnReceiver, `#${defenderOnReceiver.num} (${getTeamDisplayName(defTeam)}) copre la casella di arrivo e intercetta il passaggio!`);
                     updateHUD();
-                    renderBoard();
                     if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
                     return;
                 }
@@ -6736,7 +6800,6 @@
                     "text-emerald-400"
                 );
                 updateHUD();
-                renderBoard();
                 if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
             }
         }
@@ -6768,24 +6831,30 @@
 
         function advanceClockAndCheckPeriod(isAfterGoal, kickoffTeamIfGoal) {
             stopResolutionReplay();
-            // Incremento proporzionale (es. 90/30=3', 90/15=6', 90/10=9')
             const increment = 90 / (customSettings.matchDuration || 30);
             matchMinute += increment;
             turnNumber += 1;
 
-            // Decrementa sempre di 1 turno le espulsioni a ogni fine turno (anche dopo Gol o fine 1° tempo)
-            const recovered = expelledPlayers.filter(e => e.turns <= 0);
-            recovered.forEach(e => {
-                pendingNaturalReentries.push({ id: e.id, num: e.num, team: e.team });
-                emitSharedMatchEvent(`⏱️ Squalifica terminata per #${e.num} (${getTeamDisplayName(e.team)})! Rientrerà nella prossima fase della sua squadra.`, 'info', 'all');
-            });
-            expelledPlayers = expelledPlayers.filter(e => e.turns > 0);
+            // Aggiorna subito chi batterà il calcio d'inizio dopo il gol, così la pesca viene assegnata al giocatore giusto!
+            if (isAfterGoal && kickoffTeamIfGoal) {
+                attackingTeam = kickoffTeamIfGoal;
+            }
 
-            // Pesca periodica di 1 nuova carta per squadra ogni N turni (es. ogni 2 turni completati)
+            // Pulisce vecchie pescate già concluse
+            pendingCardDraws = pendingCardDraws.filter(d => d.status === 'WAITING' || d.status === 'ROLLING');
+
+            // 1. PRECEDENZA ALLA PESCA PER GOL SUBITO (avviene temporalmente prima della fine del turno)
+            if (isAfterGoal && kickoffTeamIfGoal) {
+                queueInteractiveCardDrawForTeam(
+                    kickoffTeamIfGoal,
+                    `⚽ Gol subito! ${getTeamDisplayName(kickoffTeamIfGoal)} pesca 1 nuova Carta Segreta!`
+                );
+            }
+
+            // 2. Pesca periodica di 1 nuova carta per squadra ogni N turni (es. ogni 2 turni completati)
             const completedTurns = turnNumber - 1;
             const everyN = customSettings.drawCardEveryTurns;
             if (everyN > 0 && completedTurns > 0 && (completedTurns % everyN === 0)) {
-                pendingCardDraws = []; // Pulisce vecchie pescate già concluse
                 const qRed = queueInteractiveCardDrawForTeam('red', `🃏 Fine ${completedTurns}° turno: pesca la tua nuova Carta Segreta!`);
                 const qBlue = queueInteractiveCardDrawForTeam('blue', `🃏 Fine ${completedTurns}° turno: pesca la tua nuova Carta Segreta!`);
                 if (qRed || qBlue) {
@@ -6804,6 +6873,7 @@
                     desc: `Il 2° Tempo inizierà con il possesso palla per ${getTeamDisplayName(secondHalfTeam)}.`
                 };
                 syncPeriodEndModalUI();
+                syncCardDrawModalUI();
                 updateHUD();
                 if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
                 return;
@@ -6822,6 +6892,7 @@
                     desc: `Triplice fischio finale al 90'! Risultato finale: ${getTeamDisplayName('red')} ${scoreRed} - ${scoreBlue} ${getTeamDisplayName('blue')}.`
                 };
                 syncPeriodEndModalUI();
+                syncCardDrawModalUI();
                 updateHUD();
                 if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
                 return;
@@ -6834,6 +6905,7 @@
                 startTurn();
             }
 
+            syncCardDrawModalUI();
             if (networkMode === 'ONLINE' && isOnlineHost) broadcastFullStateFromHost();
         }
 
@@ -6888,6 +6960,7 @@
                 const secondHalfKickoff = firstHalfKickoffTeam === 'red' ? 'blue' : 'red';
                 emitSharedMatchEvent(`⏱️ Inizia il 2° Tempo! Palla a ${getTeamDisplayName(secondHalfKickoff)}!`, 'info', 'all');
                 resetPitchForKickoff(secondHalfKickoff);
+                syncCardDrawModalUI();
             } else {
                 gameState = 'SETUP';
                 document.getElementById('screen-game').classList.add('hidden');
@@ -7103,15 +7176,9 @@
                     if (attackingTeam === 'red') scoreRed++;
                     else scoreBlue++;
 
-                    const cardQueued = queueInteractiveCardDrawForTeam(
-                        defTeam,
-                        `⚽ Gol subito! ${getTeamDisplayName(defTeam)} pesca 1 nuova Carta Segreta!`
-                    );
-                    const cardMsg = cardQueued ? `pesca +1 Carta e ` : '';
-
                     resTitle.innerText = "⚽ GOOOL!! RETE!";
                     resTitle.className = "font-display text-3xl font-black mb-1 text-emerald-400";
-                    resDesc.innerText = `Palla nell'angolino (${dirLabels[shootoutState.attChoice]})! La Squadra ${getTeamDisplayName(defTeam)} ${cardMsg}riparte da centrocampo!`;
+                    resDesc.innerText = `Palla nell'angolino (${dirLabels[shootoutState.attChoice]})! La Squadra ${getTeamDisplayName(defTeam)} riparte da centrocampo!`;
                 }
 
                 cleanupEndOfTurnBuffs();
@@ -7562,10 +7629,11 @@
             if (!group) return;
             group.innerHTML = '';
 
-            const attColor = attackingTeam === 'red' ? '#f87171' : '#60a5fa';
-            const attMarker = attackingTeam === 'red' ? 'arrow-red' : 'arrow-blue';
-            const defColor = attackingTeam === 'red' ? '#60a5fa' : '#f87171';
-            const defMarker = attackingTeam === 'red' ? 'arrow-blue' : 'arrow-red';
+            const refAttTeam = (gameState === 'RESOLUTION' && turnAttackingTeam) ? turnAttackingTeam : attackingTeam;
+            const attColor = refAttTeam === 'red' ? '#f87171' : '#60a5fa';
+            const attMarker = refAttTeam === 'red' ? 'arrow-red' : 'arrow-blue';
+            const defColor = refAttTeam === 'red' ? '#60a5fa' : '#f87171';
+            const defMarker = refAttTeam === 'red' ? 'arrow-blue' : 'arrow-red';
 
             plannedMoves[1].forEach(m => {
                 if (!m || m.type !== 'move') return;
@@ -7598,7 +7666,7 @@
                     const arrowTargetC = (m4.intendedToC !== undefined) ? m4.intendedToC : m4.toC;
                     drawSingleSVGArrow(group, m4.fromR, m4.fromC, arrowTargetR, arrowTargetC, '#facc15', 'arrow-pass', true);
                 } else if (m4.type === 'longshot') {
-                    const targetGoalRow = (m4.targetGoalRow !== undefined) ? m4.targetGoalRow : (attackingTeam === 'red' ? 11 : 0);
+                    const targetGoalRow = (m4.targetGoalRow !== undefined) ? m4.targetGoalRow : (refAttTeam === 'red' ? 11 : 0);
                     const targetGoalCol = (m4.targetGoalCol !== undefined) ? m4.targetGoalCol : 3;
                     drawSingleSVGArrow(group, m4.fromR, m4.fromC, targetGoalRow, targetGoalCol, '#facc15', 'arrow-pass', true);
                 }
